@@ -42,7 +42,7 @@
                     </a>
                     
                 <li class="nav-item">
-                    <a href="{{ url('admin/khoi-lop') }}" class="nav-link">
+                    <a href="{{ url('admin/ban-an') }}" class="nav-link">
                         <i class="nav-icon fas fa-table"></i>
                         <p>
                            Bàn ăn
