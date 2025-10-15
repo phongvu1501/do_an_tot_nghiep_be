@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->id();
             $table->string('table_number');
             $table->integer('capacity');
-            $table->enum('status', ['available', 'reserved', 'unavailable'])->default('available');
+            $table->enum('status', ['active', 'inactive'])->default('active'); 
             $table->timestamps();
         });
     }
