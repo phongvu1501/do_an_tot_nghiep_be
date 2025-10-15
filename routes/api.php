@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\DatBanAnController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
@@ -22,4 +23,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+
+    // đặt bàn ăn
+    Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
 });
