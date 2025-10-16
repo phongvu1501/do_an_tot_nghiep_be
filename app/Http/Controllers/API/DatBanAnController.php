@@ -18,7 +18,7 @@ class DatBanAnController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
+            
             'reservation_date' => 'required|date',
             'reservation_time' => 'required|date_format:H:i',
             'num_people' => 'required|integer|min:1',
