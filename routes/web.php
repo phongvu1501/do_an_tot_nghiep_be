@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BanAnController;
 use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\MenuCategoryController;
+use App\Http\Controllers\Auth\RegisterController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -18,3 +19,5 @@ Route::prefix('admin')->group(function(){
 Route::prefix('admin')->group(function () {
     Route::resource('menu-categories', MenuCategoryController::class);
 });
+Route::get('/register', [RegisterController::class, 'showForm'])->name('register.form');
+Route::post('/register', [RegisterController::class, 'register'])->name('register');
