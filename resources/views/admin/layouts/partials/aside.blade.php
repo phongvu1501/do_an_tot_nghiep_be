@@ -57,7 +57,7 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ url('admin/thuc-dơn/danh-muc-mon-an') }}" class="nav-link">
+                            <a href="{{ url('admin/menu-categories') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Danh mục món ăn</p>
                             </a>

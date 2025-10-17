@@ -24,14 +24,21 @@ class MenuCategoryController extends Controller
     // 3. Lưu dữ liệu khi thêm mới
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|max:255',
-            'description' => 'nullable|max:1000',
+        // Validate dữ liệu gửi lên
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:menu_categories,name',
+            'description' => 'nullable|string',
+        ],[
+            'name.unique' => 'Tên danh mục này đã tồn tại.',
         ]);
 
-        MenuCategory::create($request->only('name', 'description'));
+        // Tạo danh mục mới
+        MenuCategory::create($validated);
 
-        return redirect()->route('menu-categories.index')->with('success', 'Thêm danh mục thành công!');
+        // Quay lại trang danh sách với thông báo
+        return redirect()
+            ->route('admin.menu_categories.index')
+            ->with('success', 'Thêm danh mục món ăn thành công!');
     }
 
     /**
@@ -39,36 +46,41 @@ class MenuCategoryController extends Controller
      */
     public function show(string $id)
     {
-        //
+        return view('admin.menu_categories.show', compact('menuCategory')); 
     }
 
     // 4. Hiển thị form sửa danh mục
-    public function edit($id)
+    public function edit(MenuCategory $menuCategory)
     {
-        $category = MenuCategory::findOrFail($id);
-        return view('admin.menu_categories.edit', compact('category'));
+        return view('admin.menu_categories.edit', compact('menuCategory'));
     }
 
     //  5. Cập nhật danh mục
-    public function update(Request $request, $id)
+    public function update(Request $request, MenuCategory $menuCategory)
     {
-        $request->validate([
-            'name' => 'required|max:255',
-            'description' => 'nullable|max:1000',
+        // Validate dữ liệu
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:menu_categories,name,' . $menuCategory->id,
+            'description' => 'nullable|string',
+        ],[
+            'name.unique' => 'Tên danh mục này đã tồn tại.',
         ]);
 
-        $category = MenuCategory::findOrFail($id);
-        $category->update($request->only('name', 'description'));
+        // Cập nhật
+        $menuCategory->update($validated);
 
-        return redirect()->route('menu-categories.index')->with('success', 'Cập nhật danh mục thành công!');
+        return redirect()
+            ->route('admin.menu_categories.index')
+            ->with('success', 'Cập nhật danh mục thành công!');
     }
 
     // 6. Xoá danh mục
-    public function destroy($id)
+    public function destroy(MenuCategory $menuCategory)
     {
-        $category = MenuCategory::findOrFail($id);
-        $category->delete();
+         $menuCategory->delete();
 
-        return redirect()->route('menu-categories.index')->with('success', 'Xoá danh mục thành công!');
+        return redirect()
+            ->route('admin.menu_categories.index')
+            ->with('success', 'Xóa danh mục thành công!');
     }
 }
