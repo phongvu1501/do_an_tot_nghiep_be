@@ -27,3 +27,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
 });
+
+//đăng ký
