@@ -1,21 +1,9 @@
 <?php
 
-use App\Http\Controllers\Admin\BanAnController;
-use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\MenuCategoryController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return ['Laravel' => app()->version()];
 });
 
- <<<<<<<develop
-Route::prefix('admin')->group(function(){
-    Route::get('/',[DashboardController::class,'index'])->name('admin.dashboard');
-    Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
-});
-Route::prefix('admin')->group(function () {
-    Route::resource('menu-categories', MenuCategoryController::class);
-});
-
- >>>>>>>ductai
+require __DIR__.'/auth.php';
