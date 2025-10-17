@@ -13,11 +13,11 @@ Route::get('/', function () {
 Route::prefix('admin')->group(function(){
     Route::get('/',[DashboardController::class,'index'])->name('admin.dashboard');
     Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
+    
+    Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
 
     Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 });
-Route::prefix('admin')->group(function () {
-    Route::resource('menu-categories', MenuCategoryController::class);
-});
+
 Route::get('/register', [RegisterController::class, 'showForm'])->name('register.form');
 Route::post('/register', [RegisterController::class, 'register'])->name('register');

@@ -15,4 +15,10 @@ class MenuCategory extends Model
         'name',
         'description',
     ];
+
+    // Một danh mục có thể chứa nhiều món ăn
+    public function menus()
+    {
+        return $this->hasMany(Menu::class, 'category_id');
+    }
 }
