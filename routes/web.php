@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\BanAnController;
 use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\MenuCategoryController;
+use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Auth\RegisterController;
 
 Route::get('/', function () {
@@ -15,6 +16,11 @@ Route::prefix('admin')->group(function(){
     Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
     
     Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
+    Route::resource('/menus', MenuController::class)->names('admin.menus');
+    Route::get('/menus-trash', [MenuController::class, 'trash'])->name('admin.menus.trash');
+    Route::post('/menus/{id}/restore', [MenuController::class, 'restore'])->name('admin.menus.restore');
+    Route::delete('/menus/{id}/force-delete', [MenuController::class, 'forceDelete'])->name('admin.menus.forceDelete');
+
 
     Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 });
