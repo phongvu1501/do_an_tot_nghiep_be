@@ -65,7 +65,7 @@
                     </ul>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ url('admin/thuc-dơn/mon-an') }}" class="nav-link">
+                            <a href="{{ url('admin/menus') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Món ăn</p>
                             </a>
