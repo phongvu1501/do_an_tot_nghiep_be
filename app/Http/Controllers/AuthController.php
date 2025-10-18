@@ -21,44 +21,34 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-                $errors = $validator->errors();
-
-                // If email already exists, return a clearer 409 Conflict with VN message
-                if ($errors->has('email')) {
-                    $emailFirst = (string) $errors->first('email');
-                    if (str_contains($emailFirst, 'taken') || str_contains($emailFirst, 'exists')) {
-                        return response()->json([
-                            'success' => true,
-                            'message' => 'Email đã được đăng ký. Vui lòng đăng nhập hoặc dùng chức năng quên mật khẩu.',
-                            'errors' => $errors,
-                        ], 409);
-                    }
-                }
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation errors',
-                    'errors' => $errors,
-                ], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation errors',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $data = $validator->validated();
 
+        // Tạo user mặc định role = user
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => $data['password'], // 'hashed' cast on model will hash
+            'password' => Hash::make($data['password']),
+            'role' => 'user',
         ]);
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        // Token có hạn 2 giờ
+        $token = $user->createToken('api-token', ['*'], now()->addHours(2))->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'User registered',
+            'message' => 'User registered successfully.',
             'data' => [
                 'user' => $user,
                 'token' => $token,
                 'token_type' => 'Bearer',
+                'expires_in' => now()->addHours(2)->toDateTimeString(),
             ],
         ], 201);
     }
@@ -80,25 +70,25 @@ class AuthController extends Controller
         }
 
         $credentials = $validator->validated();
-
         $user = User::where('email', $credentials['email'])->first();
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials',
+                'message' => 'Invalid credentials.',
             ], 401);
         }
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = $user->createToken('api-token', ['*'], now()->addHours(2))->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'Login successful',
+            'message' => 'Login successful.',
             'data' => [
                 'user' => $user,
                 'token' => $token,
                 'token_type' => 'Bearer',
+                'expires_in' => now()->addHours(2)->toDateTimeString(),
             ],
         ], 200);
     }
@@ -108,16 +98,12 @@ class AuthController extends Controller
     {
         $user = $request->user();
         if ($user) {
-            // Revoke current access token
-            $current = $user->currentAccessToken();
-            if ($current) {
-                $current->delete();
-            }
+            $user->currentAccessToken()?->delete();
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out',
+            'message' => 'Logged out successfully.',
         ], 200);
     }
 
