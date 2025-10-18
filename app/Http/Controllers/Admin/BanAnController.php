@@ -12,9 +12,9 @@ class BanAnController extends Controller
     {
         $tables = BanAn::orderBy('id', 'desc')->paginate(10);
 
-        $banAn = "Trang bàn ăn";
+        $title = "Trang bàn ăn";
 
-        return view('admin.banAn.index', compact('banAn', 'tables'));
+        return view('admin.banAn.index', compact('title', 'tables'));
     }
 
     public function show(string $id)
@@ -52,7 +52,6 @@ class BanAnController extends Controller
             return redirect()->back()->with('error', 'Dữ liệu không hợp lệ!');
         }
 
-        // Nếu tên lớp không bị trùng, tiến hành tạo mới lớp học
         BanAn::create($validateData);
 
         return redirect()->route('admin.banAn.index')->with('success', 'Thêm mới bàn ăn thành công !');

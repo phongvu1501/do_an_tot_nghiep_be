@@ -10,7 +10,7 @@
                         class="fas fa-bars"></i></a>
             </li>
             <li class="nav-item d-none d-sm-inline-block">
-                <a href="index3.html" class="nav-link">Home</a>
+                <a href="#" class="nav-link">Home</a>
             </li>
             <li class="nav-item d-none d-sm-inline-block">
                 <a href="#" class="nav-link">Contact</a>
@@ -47,10 +47,10 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-widget="control-sidebar" data-controlsidebar-slide="true"
+                {{-- <a class="nav-link" data-widget="control-sidebar" data-controlsidebar-slide="true"
                     href="#" role="button">
                     <i class="fas fa-th-large"></i>
-                </a>
+                </a> --}}
             </li>
         </ul>
     </nav>
