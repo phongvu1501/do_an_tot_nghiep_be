@@ -20,10 +20,8 @@
                                     @error('table_number')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
-                                    @if (session('error_table_number'))
-                                        <span class="text-danger">{{ session('error_table_number') }}</span>
-                                    @endif
                                 </div>
+
                                 <div class="form-group">
                                     <label for="capacity">Số lượng người</label>
                                     <input type="number" class="form-control @error('capacity') is-invalid @enderror"
@@ -33,20 +31,19 @@
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
+
                                 <div class="form-group">
                                     <label for="status">Trạng thái</label>
                                     <select class="form-control @error('status') is-invalid @enderror" id="status"
                                         name="status">
-                                        <option value="">Chọn trạng thái</option>
                                         @php
                                             $statuses = [
-                                                'active' => 'Hoạt động',
-                                                'inactive' => 'Tạm dừng',
+                                                'active' => 'Bàn còn trống',
+                                                'inactive' => 'Bàn đã đặt',
                                             ];
                                         @endphp
                                         @foreach ($statuses as $value => $label)
-                                            <option value="{{ $value }}"
-                                                {{ old('status') == $value ? 'selected' : '' }}>
+                                            <option value="{{ $value }}" {{ old('status') == $value ? 'selected' : '' }}>
                                                 {{ $label }}
                                             </option>
                                         @endforeach
@@ -55,6 +52,34 @@
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
+
+                                <div class="form-group">
+                                    <label for="available_date">Ngày có sẵn</label>
+                                    <input type="date" class="form-control @error('available_date') is-invalid @enderror"
+                                        id="available_date" name="available_date" value="{{ old('available_date') }}">
+                                    @error('available_date')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="available_from">Thời gian có sẵn từ</label>
+                                    <input type="time" class="form-control @error('available_from') is-invalid @enderror"
+                                        id="available_from" name="available_from" value="{{ old('available_from') }}">
+                                    @error('available_from')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="available_until">Thời gian có sẵn đến</label>
+                                    <input type="time" class="form-control @error('available_until') is-invalid @enderror"
+                                        id="available_until" name="available_until" value="{{ old('available_until') }}">
+                                    @error('available_until')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Thêm bàn</button>
                                 </div>
