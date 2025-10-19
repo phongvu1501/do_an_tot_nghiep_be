@@ -44,8 +44,8 @@
                                         <option value="">Chọn trạng thái</option>
                                         @php
                                             $statuses = [
-                                                'active' => 'Hoạt động',
-                                                'inactive' => 'Tạm dừng',
+                                                'active' => 'Bàn còn trống',
+                                                'inactive' => 'Bàn đã đặt',
                                             ];
 
                                             $currentStatus = old('status', $banAn->status);
@@ -59,6 +59,33 @@
                                         @endforeach
                                     </select>
                                     @error('status')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="available_date">Ngày có sẵn</label>
+                                    <input type="date" class="form-control @error('available_date') is-invalid @enderror"
+                                        id="available_date" name="available_date"
+                                        value="{{ old('available_date', $banAn->available_date) }}">
+                                    @error('available_date')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="available_from">Thời gian từ</label>
+                                    <input type="time" class="form-control @error('available_from') is-invalid @enderror"
+                                        id="available_from" name="available_from"
+                                        value="{{ old('available_from', $banAn->available_from) }}">
+                                    @error('available_from')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="available_until">Thời gian đến</label>
+                                    <input type="time" class="form-control @error('available_until') is-invalid @enderror"
+                                        id="available_until" name="available_until"
+                                        value="{{ old('available_until', $banAn->available_until) }}">
+                                    @error('available_until')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>

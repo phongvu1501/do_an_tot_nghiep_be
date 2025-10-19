@@ -88,9 +88,19 @@ class BanAnController extends Controller
     public function update(Request $request, BanAn $banAn)
     {
         $request->validate([
-            'table_number' => 'required|string|max:255|unique:tables,table_number,' . $banAn->id,
-            'capacity' => 'required|integer|min:1',
-            // 'status' => 'required|in:available,reserved,occupied,inactive',
+            'table_number' => 'required|string|max:255',
+            'capacity' => 'required|integer',
+            'status' => 'required|in:active,inactive',
+            'available_date' => 'date',
+            'available_from' => 'date_format:H:i:s',
+            'available_until' => 'date_format:H:i:s',
+        ], [
+            'table_number.required' => 'Tên bàn không được bỏ trống !',
+            'capacity.required' => 'Số lượng người không được bỏ trống !',
+            'status.in' => 'Trạng thái không hợp lệ !',
+            'available_date.date' => 'Ngày có sẵn không hợp lệ !',
+            'available_from.date_format' => 'Thời gian có sẵn không hợp lệ !',
+            'available_until.date_format' => 'Thời gian hết có sẵn không hợp lệ !',
         ]);
 
         try {
@@ -98,6 +108,9 @@ class BanAnController extends Controller
                 'table_number' => $request->table_number,
                 'capacity' => $request->capacity,
                 'status' => $request->status,
+                'available_date' => $request->available_date,
+                'available_from' => $request->available_from,
+                'available_until' => $request->available_until,
             ]);
 
             return redirect()->route('admin.banAn.index')
