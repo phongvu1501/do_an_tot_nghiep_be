@@ -34,4 +34,10 @@ class Menu extends Model
     {
         return $this->status ? 'Hiển thị' : 'Ẩn';
     }
+
+    public function reservations()
+    {
+        return $this->belongsToMany(Reservation::class, 'reservation_menu')->withPivot('quantity');
+    }
+
 }

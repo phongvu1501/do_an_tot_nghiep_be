@@ -10,6 +10,7 @@ class Reservation extends Model
     use HasFactory;
 
     protected $fillable = [
+        'order_code',
         'user_id',
         'reservation_date',
         'reservation_time',
@@ -37,4 +38,8 @@ class Reservation extends Model
                     ->withTimestamps();
     }
 
+    public function tables()
+    {
+        return $this->belongsToMany(BanAn::class, 'reservation_tables', 'reservation_id', 'table_id');
+    }
 }
