@@ -86,18 +86,6 @@
                                                     <a href="{{ route('admin.banAn.show', $table->id) }}" class="btn btn-info btn-sm">Chi tiết</a>
 
                                                     <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">Chỉnh sửa</a>
-
-                                                    @if ($table->status === 'active')
-                                                        <form action="{{ route('admin.banAn.disable', $table->id) }}" method="POST" style="display:inline;">
-                                                            @csrf
-                                                            @method('PUT')
-                                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn DỪNG HOẠT ĐỘNG bàn {{ $table->table_number }} này không?');">
-                                                                Dừng hoạt động
-                                                            </button>
-                                                        </form>
-                                                    @else
-                                                        <span class="badge badge-secondary">Đã dừng</span>
-                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach
