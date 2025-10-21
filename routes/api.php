@@ -47,15 +47,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // MenuCategory
     Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
     // Menu
-    
+    Route::get('/menus', [MenuApiController::class, 'index']);
 
     // đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
 });
 
 //đăng ký
-
-// Menu
-Route::get('/menus', [MenuApiController::class, 'index']);
 
 
