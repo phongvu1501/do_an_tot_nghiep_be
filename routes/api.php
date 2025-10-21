@@ -3,6 +3,9 @@
 use App\Http\Controllers\API\DatBanAnController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\API\OrderController;
+
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,4 +31,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
 });
 
+    //Order món ăn
+    Route::apiResource('orders', OrderController::class);
 //đăng ký

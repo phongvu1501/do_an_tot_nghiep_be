@@ -38,8 +38,13 @@ class Reservation extends Model
                     ->withTimestamps();
     }
 
-    public function tables()
+    public function BanAn()
     {
         return $this->belongsToMany(BanAn::class, 'reservation_tables', 'reservation_id', 'table_id');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'reservation_id');
     }
 }

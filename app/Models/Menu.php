@@ -40,4 +40,10 @@ class Menu extends Model
         return $this->belongsToMany(Reservation::class, 'reservation_menu')->withPivot('quantity');
     }
 
+    public function orders()
+    {
+        return $this->belongstoMany(Order::class, 'order_items')
+                    ->withPivot('quantity', 'price')
+                    ->withtimestamps();
+    }
 }
