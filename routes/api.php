@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\API\DatBanAnController;
+use App\Http\Controllers\Api\MenuApiController;
+use App\Http\Controllers\API\MenuCategoryApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\AuthController;
@@ -41,6 +43,11 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+
+    // MenuCategory
+    Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
+    // Menu
+    Route::get('/menus', [MenuApiController::class, 'index']);
 
     // đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
