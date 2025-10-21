@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\DatBanAnController;
-use App\Http\Controllers\Api\MenuApiController;
+use App\Http\Controllers\API\MenuApiController;
 use App\Http\Controllers\API\MenuCategoryApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
