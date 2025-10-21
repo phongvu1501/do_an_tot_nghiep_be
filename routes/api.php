@@ -44,15 +44,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-    // MenuCategory
-    Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
-    // Menu
-    Route::get('/menus', [MenuApiController::class, 'index']);
-
     // đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
 });
 
 //đăng ký
 
-
+// MenuCategory
+    Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
+// Menu
+    Route::get('/menus', [MenuApiController::class, 'index']);
