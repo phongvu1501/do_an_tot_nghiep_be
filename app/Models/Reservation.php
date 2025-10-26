@@ -17,6 +17,9 @@ class Reservation extends Model
         'num_people',
         'depsection',
         'voucher_id',
+        'status',
+        'payment_token',
+        'payment_expires_at',
     ];
 
     // Quan hệ với User
