@@ -13,23 +13,24 @@
                             <form action="{{ route('admin.banAn.store') }}" method="post">
                                 @csrf
                                 <div class="form-group">
-                                    <label for="table_number">Tên bàn</label>
-                                    <input type="text" class="form-control @error('table_number') is-invalid @enderror"
-                                        id="table_number" name="table_number" placeholder="Nhập tên bàn ăn"
-                                        value="{{ old('table_number') }}">
-                                    @error('table_number')
+                                    <label for="name">Tên bàn</label>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                        id="name" name="name" placeholder="Nhập tên bàn (ví dụ: Bàn 1)"
+                                        value="{{ old('name') }}">
+                                    @error('name')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="capacity">Số lượng người</label>
-                                    <input type="number" class="form-control @error('capacity') is-invalid @enderror"
-                                        id="capacity" name="capacity" placeholder="Nhập số lượng người"
-                                        value="{{ old('capacity') }}">
-                                    @error('capacity')
+                                    <label for="limit_number">Số lượng người tối đa</label>
+                                    <input type="number" class="form-control @error('limit_number') is-invalid @enderror"
+                                        id="limit_number" name="limit_number" placeholder="Nhập số lượng người"
+                                        value="{{ old('limit_number', 8) }}">
+                                    @error('limit_number')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
+                                    <small class="form-text text-muted">Mặc định: 8 người</small>
                                 </div>
 
                                 <div class="form-group">
@@ -38,12 +39,12 @@
                                         name="status">
                                         @php
                                             $statuses = [
-                                                'active' => 'Bàn còn trống',
-                                                'inactive' => 'Bàn đã đặt',
+                                                'active' => 'Hoạt động',
+                                                'inactive' => 'Tạm dừng',
                                             ];
                                         @endphp
                                         @foreach ($statuses as $value => $label)
-                                            <option value="{{ $value }}" {{ old('status') == $value ? 'selected' : '' }}>
+                                            <option value="{{ $value }}" {{ old('status', 'active') == $value ? 'selected' : '' }}>
                                                 {{ $label }}
                                             </option>
                                         @endforeach
@@ -54,41 +55,10 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="available_date">Ngày có sẵn</label>
-                                    <input type="date" class="form-control @error('available_date') is-invalid @enderror"
-                                        id="available_date" name="available_date" value="{{ old('available_date') }}">
-                                    @error('available_date')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="available_from">Thời gian có sẵn từ</label>
-                                    <input type="time" class="form-control @error('available_from') is-invalid @enderror"
-                                        id="available_from" name="available_from" value="{{ old('available_from') }}">
-                                    @error('available_from')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="available_until">Thời gian có sẵn đến</label>
-                                    <input type="time" class="form-control @error('available_until') is-invalid @enderror"
-                                        id="available_until" name="available_until" value="{{ old('available_until') }}">
-                                    @error('available_until')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Thêm bàn</button>
+                                    <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
                                 </div>
                             </form>
-                        </div>
-                        <div class="row mb-3 ">
-                            <div class="col-12 ml-3">
-                                <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
-                            </div>
                         </div>
                     </div>
                 </div>

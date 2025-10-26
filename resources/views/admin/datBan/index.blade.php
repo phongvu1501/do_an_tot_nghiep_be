@@ -10,225 +10,134 @@
                             <h3>{{ $title }}</h3>
                         </div>
                         <div class="card-body">
-                            <table id="example2" class="table table-bordered table-hover">
+                            @if (session('success'))
+                                <div class="alert alert-success alert-dismissible fade show" role="alert" id="success-alert">
+                                    {{ session('success') }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            @endif
+                            
+                            <table class="table table-bordered table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Mã hóa đơn</th>
-                                        <th>Họ và tên</th>
+                                        <th>STT</th>
+                                        <th>Khách hàng</th>
                                         <th>Ngày đặt</th>
-                                        <th>Giờ đặt</th>
-                                        <th>Món ăn</th>
-                                        <th>Bàn</th>
+                                        <th>Ca</th>
+                                        <th>Số người</th>
+                                        <th>Bàn đã gán</th>
                                         <th>Trạng thái</th>
                                         <th>Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (isset($tables) && count($tables) > 0)
-                                        @foreach ($tables as $index => $reservation)
-                                            <tr>
-                                                <td>{{ $reservation->order_code }}</td>
-                                                <td>{{ $reservation->user->name }}</td>
-                                                <td>{{ $reservation->reservation_date }}</td>
-                                                <td>{{ $reservation->reservation_time }}</td>
-
-                                                <!-- Button to trigger Modal -->
-                                                <td>
-                                                    <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#menuModal{{ $reservation->id }}">
-                                                        Xem món
-                                                    </button>
-                                                </td>
-                                                <!-- Button to trigger Modal for selecting table -->
-                                                <td>
-                                                    <button
-                                                        class="btn btn-info btn-sm"
-                                                        data-toggle="modal"
-                                                        data-target="#selectTableModal{{ $reservation->id }}"
-                                                        @if ($reservation->status != 'pending') disabled @endif>
-                                                        {{ $reservation->tables->isEmpty() ? 'Chưa chọn' : 'Bàn ' . $reservation->tables->first()->table_number }}
-                                                    </button>
-                                                </td>
-                                                <td>
-                                                    @switch($reservation->status)
-                                                        @case('pending')
-                                                            Chờ xác nhận
-                                                            @break
-                                                        @case('confirmed')
-                                                            Đã xác nhận
-                                                            @break
-                                                        @case('serving')
-                                                            Đang phục vụ
-                                                            @break
-                                                        @case('completed')
-                                                            Hoàn tất
-                                                            @break
-                                                        @case('cancelled')
-                                                            Hủy
-                                                            @break
-                                                        @case('suspended')
-                                                            Tạm dừng
-                                                            @break
-                                                        @default
-                                                            Không xác định
-                                                    @endswitch
-                                                </td>
-                                                <td>
-                                                    <a href="{{ route('admin.datBan.show', $reservation->id) }}" class="btn btn-info btn-sm">
-                                                        <i class="nav-icon fas fa-eye"></i>
-                                                    </a>
-                                                    @switch($reservation->status)
-                                                        @case('pending')
-                                                            <!-- Hành động xác nhận và hủy -->
-    @if ($reservation->tables->isEmpty())
-        <button type="button" class="btn btn-success btn-sm" disabled>Chưa chọn bàn</button>
-    @else
-        <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
-            @csrf
-            <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-            <input type="hidden" name="status" value="confirmed">
-            <button type="submit" class="btn btn-success btn-sm">Xác nhận</button>
-        </form>
-    @endif
-
-                                                            @break
-                                                        @case('confirmed')
-                                                            <!-- Hành động bắt đầu phục vụ và hủy -->
-                                                            <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
-                                                                @csrf
-                                                                <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-                                                                <input type="hidden" name="status" value="serving">
-                                                                <button type="submit" class="btn btn-warning btn-sm">Bắt đầu phục vụ</button>
-                                                            </form>
-                                                            <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
-                                                                @csrf
-                                                                <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-                                                                <input type="hidden" name="status" value="cancelled">
-                                                                <button type="submit" class="btn btn-danger btn-sm">Hủy</button>
-                                                            </form>
-                                                            @break
-                                                        @case('serving')
-                                                            <!-- Hành động hoàn tất hoặc tạm dừng -->
-                                                            <!-- <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
-                                                                @csrf
-                                                                <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-                                                                <input type="hidden" name="status" value="completed">
-                                                                <button type="submit" class="btn btn-success btn-sm">Hoàn tất</button>
-                                                            </form> -->
-                                                            <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
-                                                                @csrf
-                                                                <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-                                                                <input type="hidden" name="status" value="suspended">
-                                                                <button type="submit" class="btn btn-secondary btn-sm">Tạm dừng</button>
-                                                            </form>
-                                                            <button class="button btn-warning"><i class="fas fa-money-check-alt"></i></button>
-                                                            @break
-                                                        @case('waiting_for_payment')
-                                                            @break
-                                                        @case('completed')
-                                                            @break
-                                                        @case('cancelled')
-                                                            @break
-                                                        @case('suspended')
-                                                            <!-- Hành động tiếp tục hoặc hủy -->
-                                                            <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
-                                                                @csrf
-                                                                <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-                                                                <input type="hidden" name="status" value="serving">
-                                                                <button type="submit" class="btn btn-success btn-sm">Tiếp tục</button>
-                                                            </form>
-                                                            <form action="" method="POST" style="display:inline;">
-                                                                @csrf
-                                                                <button type="submit" class="btn btn-danger btn-sm">Hủy</button>
-                                                            </form>
-                                                            @break
-                                                        @default
-                                                            <span class="text-muted">Không xác định</span>
-                                                    @endswitch
-                                                </td>
-                                            </tr>
-
-                                            <!-- Modal for selecting table -->
-                                            <div class="modal fade" id="selectTableModal{{ $reservation->id }}" tabindex="-1" role="dialog" aria-labelledby="selectTableModalLabel{{ $reservation->id }}" aria-hidden="true">
-                                                <div class="modal-dialog" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="selectTableModalLabel{{ $reservation->id }}">Chọn bàn cho đặt chỗ</h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
-                                                        </div>
-                                                        <form action="{{ route('admin.datBan.update', $reservation->id) }}" method="POST">
-                                                            @method('PUT')
-                                                            @csrf
-                                                            <div class="modal-body">
-                                                                <label for="table_id">Chọn bàn</label>
-                                                                <select name="table_id" id="table_id" class="form-control" required>
-                                                                    <option value="">Chọn bàn</option>
-                                                                    @foreach ($availableTables as $table)
-                                                                        <option value="{{ $table->id }}">
-                                                                            Ngày: {{ \Carbon\Carbon::parse($table->available_date)->format('d/m/Y') }} -
-                                                                            Bàn {{ $table->table_number }} -
-                                                                            Sức chứa: {{ $table->capacity }} người -
-                                                                            Từ {{ \Carbon\Carbon::parse($table->available_from)->format('H:i') }} đến {{ \Carbon\Carbon::parse($table->available_until)->format('H:i') }}
-                                                                        </option>
-                                                                    @endforeach
-                                                                </select>
-                                                            </div>
-                                                            <div>
-                                                                <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                                                                <button type="submit" class="btn btn-primary">Xác nhận bàn</button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-
-                                            <!-- Modal for displaying menu details -->
-                                            <div class="modal fade" id="menuModal{{ $reservation->id }}" tabindex="-1" role="dialog" aria-labelledby="menuModalLabel{{ $reservation->id }}" aria-hidden="true">
-                                                <div class="modal-dialog" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="menuModalLabel{{ $reservation->id }}">Món ăn đã chọn</h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <!-- Display the list of menus -->
-                                                            @foreach ($reservation->menus as $menu)
-                                                                <p>
-                                                                    <strong>{{ $menu->name }}</strong><br>
-                                                                    Số lượng: {{ $menu->pivot->quantity }}<br>
-                                                                    Giá: {{ number_format($menu->price, 0, ',', '.') }} VND
-                                                                </p>
-                                                            @endforeach
-                                                            <hr>
-                                                            <p><strong>Tổng giá trị đơn hàng:</strong> {{ number_format($reservation->menus->sum(function($menu) {
-                                                                return $menu->price * $menu->pivot->quantity;
-                                                            }), 0, ',', '.') }} VND</p>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    @else
+                                    @forelse ($tables as $index => $reservation)
                                         <tr>
-                                            <td colspan="9">Không có đặt chỗ nào được ghi nhận.</td>
+                                            <td>{{ $tables->firstItem() + $index }}</td>
+                                            <td>
+                                                <strong>{{ $reservation->user->name }}</strong><br>
+                                                <small class="text-muted">{{ $reservation->user->email }}</small>
+                                            </td>
+                                            <td>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</td>
+                                            <td>
+                                                @switch($reservation->shift)
+                                                    @case('morning')
+                                                        <span class="badge badge-info">Ca sáng<br><small>6h-11h</small></span>
+                                                        @break
+                                                    @case('afternoon')
+                                                        <span class="badge badge-warning">Ca trưa<br><small>11h-14h</small></span>
+                                                        @break
+                                                    @case('evening')
+                                                        <span class="badge badge-primary">Ca tối<br><small>17h-22h</small></span>
+                                                        @break
+                                                    @default
+                                                        {{ $reservation->shift }}
+                                                @endswitch
+                                            </td>
+                                            <td><strong>{{ $reservation->num_people }}</strong> người</td>
+                                            
+                                            <!-- Bàn đã được tự động gán -->
+                                            <td>
+                                                @if ($reservation->tables->isEmpty())
+                                                    <span class="badge badge-danger">Chưa có bàn</span>
+                                                @else
+                                                    @foreach($reservation->tables as $table)
+                                                        <span class="badge badge-success">{{ $table->name }}</span>
+                                                    @endforeach
+                                                    <br>
+                                                    <small class="text-muted">({{ $reservation->tables->count() }} bàn)</small>
+                                                @endif
+                                            </td>
+                                            
+                                            <td>
+                                                @switch($reservation->status)
+                                                    @case('pending')
+                                                        <span class="badge badge-warning">Chờ xác nhận</span>
+                                                        @break
+                                                    @case('confirmed')
+                                                        <span class="badge badge-success">Đã xác nhận</span>
+                                                        @break
+                                                    @case('serving')
+                                                        <span class="badge badge-primary">Đang phục vụ</span>
+                                                        @break
+                                                    @case('completed')
+                                                        <span class="badge badge-secondary">Hoàn tất</span>
+                                                        @break
+                                                    @case('cancelled')
+                                                        <span class="badge badge-danger">Đã hủy</span>
+                                                        @break
+                                                    @default
+                                                        <span class="badge badge-light">{{ $reservation->status }}</span>
+                                                @endswitch
+                                            </td>
+                                            
+                                            <td>
+                                                @if($reservation->status == 'pending')
+                                                    <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
+                                                        <input type="hidden" name="status" value="confirmed">
+                                                        <button type="submit" class="btn btn-success btn-sm" 
+                                                            onclick="return confirm('Xác nhận đơn đặt bàn này?')">
+                                                            Xác nhận
+                                                        </button>
+                                                    </form>
+                                                    <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
+                                                        <input type="hidden" name="status" value="cancelled">
+                                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                            onclick="return confirm('Hủy đơn đặt bàn này?')">
+                                                            Hủy
+                                                        </button>
+                                                    </form>
+                                                @elseif($reservation->status == 'confirmed')
+                                                    <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
+                                                        <input type="hidden" name="status" value="serving">
+                                                        <button type="submit" class="btn btn-primary btn-sm">
+                                                            Phục vụ
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
                                         </tr>
-                                    @endif
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">Chưa có đơn đặt bàn nào.</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
 
                             <!-- Phân trang -->
                             <div class="mt-3">
-                                {{ $tables->links('pagination::bootstrap-5') }}
+                                {{ $tables->links() }}
                             </div>
                         </div>
                     </div>
@@ -241,9 +150,7 @@
         $(document).ready(function() {
             if ($('#success-alert').length) {
                 setTimeout(function() {
-                    $('#success-alert').fadeOut('slow', function() {
-                        $(this).remove();
-                    });
+                    $('#success-alert').fadeOut('slow');
                 }, 3000);
             }
         });

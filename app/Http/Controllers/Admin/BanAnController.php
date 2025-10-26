@@ -10,25 +10,18 @@ class BanAnController extends Controller
 {
     public function index(Request $request)
     {
-        // Lấy ngày từ request hoặc sử dụng ngày hiện tại nếu không có giá trị tìm kiếm
-        $searchDate = $request->get('search_date', date('Y-m-d'));
+        $tables = BanAn::orderBy('id', 'desc')->paginate(10);
 
-        // Lọc các bàn ăn theo ngày
-        $tables = BanAn::whereDate('available_date', $searchDate)
-                       ->orderBy('id', 'desc')
-                       ->paginate(10);
+        $banAn = "Danh sách bàn ăn";
 
-        $banAn = "Trang bàn ăn";
-
-        return view('admin.banAn.index', compact('banAn', 'tables', 'searchDate'));
-
+        return view('admin.banAn.index', compact('banAn', 'tables'));
     }
 
     public function show(string $id)
     {
         $table = BanAn::findOrFail($id);
 
-        $tenBan = $table->table_number;
+        $tenBan = $table->name;
 
         return view('admin.banAn.show', compact('table', 'tenBan'));
     }
@@ -43,37 +36,21 @@ class BanAnController extends Controller
     public function store(Request $request)
     {
         $validateData = $request->validate([
-            'table_number' => 'required|string|max:255',
-            'capacity' => 'required|integer',
+            'name' => 'required|string|max:255|unique:tables,name',
+            'limit_number' => 'required|integer|min:1',
             'status' => 'required|in:active,inactive',
-            'available_date' => 'date',
-            'available_from' => 'date_format:H:i',
-            'available_until' => 'date_format:H:i',
         ], [
-            'table_number.required' => 'Tên bàn không được bỏ trống !',
-            'capacity.required' => 'Số lượng người không được bỏ trống !',
-            'status.in' => 'Trạng thái không hợp lệ !',
-            'available_date.date' => 'Ngày có sẵn không hợp lệ !',
-            'available_from.date_format' => 'Thời gian có sẵn không hợp lệ !',
-            'available_until.date_format' => 'Thời gian hết có sẵn không hợp lệ !',
+            'name.required' => 'Tên bàn không được bỏ trống!',
+            'name.unique' => 'Tên bàn này đã tồn tại!',
+            'limit_number.required' => 'Số lượng người không được bỏ trống!',
+            'limit_number.integer' => 'Số lượng người phải là số nguyên!',
+            'limit_number.min' => 'Số lượng người phải lớn hơn 0!',
+            'status.in' => 'Trạng thái không hợp lệ!',
         ]);
 
-        $existingBanAn = BanAn::where('table_number', $validateData['table_number'])
-                        ->where('available_date', $validateData['available_date'])  // Thêm điều kiện ngày
-                        ->first();
-
-        if ($existingBanAn) {
-            return redirect()->back()->withInput()->with('error_table_number', 'Tên bàn này đã tồn tại.');
-        }
-
-        if (!is_array($validateData)) {
-            return redirect()->back()->with('error', 'Dữ liệu không hợp lệ!');
-        }
-
-        // Nếu tên bàn ăn trong ngày không bị trùng, tiến hành tạo mới bàn ăn
         BanAn::create($validateData);
 
-        return redirect()->route('admin.banAn.index')->with('success', 'Thêm mới bàn ăn thành công !');
+        return redirect()->route('admin.banAn.index')->with('success', 'Thêm mới bàn ăn thành công!');
     }
 
     public function edit(string $id)
@@ -88,35 +65,28 @@ class BanAnController extends Controller
     public function update(Request $request, BanAn $banAn)
     {
         $request->validate([
-            'table_number' => 'required|string|max:255',
-            'capacity' => 'required|integer',
+            'name' => 'required|string|max:255|unique:tables,name,' . $banAn->id,
+            'limit_number' => 'required|integer|min:1',
             'status' => 'required|in:active,inactive',
-            'available_date' => 'date',
-            'available_from' => 'date_format:H:i:s',
-            'available_until' => 'date_format:H:i:s',
         ], [
-            'table_number.required' => 'Tên bàn không được bỏ trống !',
-            'capacity.required' => 'Số lượng người không được bỏ trống !',
-            'status.in' => 'Trạng thái không hợp lệ !',
-            'available_date.date' => 'Ngày có sẵn không hợp lệ !',
-            'available_from.date_format' => 'Thời gian có sẵn không hợp lệ !',
-            'available_until.date_format' => 'Thời gian hết có sẵn không hợp lệ !',
+            'name.required' => 'Tên bàn không được bỏ trống!',
+            'name.unique' => 'Tên bàn này đã tồn tại!',
+            'limit_number.required' => 'Số lượng người không được bỏ trống!',
+            'limit_number.integer' => 'Số lượng người phải là số nguyên!',
+            'limit_number.min' => 'Số lượng người phải lớn hơn 0!',
+            'status.in' => 'Trạng thái không hợp lệ!',
         ]);
 
         try {
             $banAn->update([
-                'table_number' => $request->table_number,
-                'capacity' => $request->capacity,
+                'name' => $request->name,
+                'limit_number' => $request->limit_number,
                 'status' => $request->status,
-                'available_date' => $request->available_date,
-                'available_from' => $request->available_from,
-                'available_until' => $request->available_until,
             ]);
 
             return redirect()->route('admin.banAn.index')
-                ->with('success', 'Cập nhật bàn ăn ' . $banAn->table_number . ' thành công!');
+                ->with('success', 'Cập nhật bàn ăn ' . $banAn->name . ' thành công!');
         } catch (\Exception $e) {
-            // \Log::error("Lỗi cập nhật bàn ăn: " . $e->getMessage());
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Cập nhật thất bại. Vui lòng thử lại.');
@@ -131,9 +101,8 @@ class BanAnController extends Controller
             $banAn->save();
 
             return redirect()->route('admin.banAn.index')
-                ->with('success', 'Đã chuyển bàn ăn ' . $banAn->table_number . ' sang trạng thái Tạm dừng.');
+                ->with('success', 'Đã chuyển bàn ăn ' . $banAn->name . ' sang trạng thái Tạm dừng.');
         } catch (\Exception $e) {
-            // \Log::error("Lỗi vô hiệu hóa bàn ăn: " . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Không thể chuyển trạng thái bàn ăn. Vui lòng thử lại.');
         }

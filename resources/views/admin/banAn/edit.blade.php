@@ -15,24 +15,21 @@
                                 @method('PUT')
 
                                 <div class="form-group">
-                                    <label for="table_number">Tên bàn</label>
-                                    <input type="text" class="form-control @error('table_number') is-invalid @enderror"
-                                        id="table_number" name="table_number" placeholder="Nhập tên bàn ăn"
-                                       value="{{ old('table_number', $banAn->table_number) }}">
-                                    @error('table_number')
+                                    <label for="name">Tên bàn</label>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                        id="name" name="name" placeholder="Nhập tên bàn"
+                                       value="{{ old('name', $banAn->name) }}">
+                                    @error('name')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
-                                    @if (session('error_table_number'))
-                                        <span class="text-danger">{{ session('error_table_number') }}</span>
-                                    @endif
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="capacity">Số lượng người</label>
-                                    <input type="number" class="form-control @error('capacity') is-invalid @enderror"
-                                        id="capacity" name="capacity" placeholder="Nhập số lượng người"
-                                         value="{{ old('capacity', $banAn->capacity) }}">
-                                    @error('capacity')
+                                    <label for="limit_number">Số lượng người tối đa</label>
+                                    <input type="number" class="form-control @error('limit_number') is-invalid @enderror"
+                                        id="limit_number" name="limit_number" placeholder="Nhập số lượng người"
+                                        value="{{ old('limit_number', $banAn->limit_number) }}">
+                                    @error('limit_number')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
@@ -41,19 +38,15 @@
                                     <label for="status">Trạng thái</label>
                                     <select class="form-control @error('status') is-invalid @enderror" id="status"
                                         name="status">
-                                        <option value="">Chọn trạng thái</option>
                                         @php
                                             $statuses = [
-                                                'active' => 'Bàn còn trống',
-                                                'inactive' => 'Bàn đã đặt',
+                                                'active' => 'Hoạt động',
+                                                'inactive' => 'Tạm dừng',
                                             ];
-
-                                            $currentStatus = old('status', $banAn->status);
                                         @endphp
-
                                         @foreach ($statuses as $value => $label)
-                                            <option value="{{ $value }}"
-                                                {{ $currentStatus == $value ? 'selected' : '' }}>
+                                            <option value="{{ $value }}" 
+                                                {{ old('status', $banAn->status) == $value ? 'selected' : '' }}>
                                                 {{ $label }}
                                             </option>
                                         @endforeach
@@ -62,43 +55,12 @@
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
-                                <div class="form-group">
-                                    <label for="available_date">Ngày có sẵn</label>
-                                    <input type="date" class="form-control @error('available_date') is-invalid @enderror"
-                                        id="available_date" name="available_date"
-                                        value="{{ old('available_date', $banAn->available_date) }}">
-                                    @error('available_date')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
-                                <div class="form-group">
-                                    <label for="available_from">Thời gian từ</label>
-                                    <input type="time" class="form-control @error('available_from') is-invalid @enderror"
-                                        id="available_from" name="available_from"
-                                        value="{{ old('available_from', $banAn->available_from) }}">
-                                    @error('available_from')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
-                                <div class="form-group">
-                                    <label for="available_until">Thời gian đến</label>
-                                    <input type="time" class="form-control @error('available_until') is-invalid @enderror"
-                                        id="available_until" name="available_until"
-                                        value="{{ old('available_until', $banAn->available_until) }}">
-                                    @error('available_until')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Cập nhật</button>
+                                    <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
                                 </div>
                             </form>
-                        </div>
-                        <div class="row mb-3 ">
-                            <div class="col-12 ml-3">
-                                <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
-                            </div>
                         </div>
                     </div>
                 </div>

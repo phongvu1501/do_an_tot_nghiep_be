@@ -12,12 +12,9 @@ class BanAn extends Model
     protected $table = 'tables';
 
     protected $fillable = [
-        'table_number',
-        'capacity',
+        'name',
+        'limit_number',
         'status',
-        'available_date',
-        'available_from',
-        'available_until',
     ];
 
     public function reservations()

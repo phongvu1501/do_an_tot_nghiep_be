@@ -7,7 +7,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Danh sách bàn ăn</h3>
+                            <h3 class="card-title">{{ $banAn }}</h3>
                         </div>
                         <div class="card-body">
                             @if (session('success'))
@@ -18,25 +18,27 @@
                                     </button>
                                 </div>
                             @endif
+                            
+                            @if (session('error'))
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ session('error') }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            @endif
+                            
                             <div class="d-flex justify-content-between mb-3">
-                                <a href="{{ route('admin.banAn.create') }}" class="btn btn-success btn-sm">Thêm mới</a>
-
-                                <form action="{{ route('admin.banAn.index') }}" method="GET" class="d-flex align-items-center">
-                                    <input type="date" name="search_date" id="searchDate" class="form-control w-auto" value="{{ request()->get('search_date', date('Y-m-d')) }}" />
-
-                                    <!-- Nút tìm kiếm -->
-                                    <button type="submit" class="btn btn-primary btn-sm">Tìm kiếm</button>
-                                </form>
+                                <a href="{{ route('admin.banAn.create') }}" class="btn btn-success btn-sm">Thêm mới bàn</a>
                             </div>
+                            
                             <table id="example2" class="table table-bordered table-hover">
                                 <thead>
                                     <tr>
                                         <th>STT</th>
                                         <th>Tên bàn</th>
-                                        <th>Sức chứa</th>
+                                        <th>Số lượng người</th>
                                         <th>Trạng thái</th>
-                                        <th>Ngày có sẵn</th>
-                                        <th>Thời gian có sẵn</th>
                                         <th>Ngày tạo</th>
                                         <th>Thao tác</th>
                                     </tr>
@@ -45,61 +47,52 @@
                                     @if (isset($tables) && count($tables) > 0)
                                         @foreach ($tables as $index => $table)
                                             <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>{{ $table->table_number }}</td>
-                                                <td>{{ $table->capacity }}</td>
+                                                <td>{{ $tables->firstItem() + $index }}</td>
+                                                <td><strong>{{ $table->name }}</strong></td>
+                                                <td>{{ $table->limit_number }} người</td>
 
                                                 <!-- Trạng thái bàn -->
                                                 <td>
                                                     @switch($table->status)
                                                         @case('active')
-                                                            <span class="badge badge-success">Bàn trống</span>
+                                                            <span class="badge badge-success">Hoạt động</span>
                                                             @break
                                                         @case('inactive')
-                                                            <span class="badge badge-secondary">Đã được đặt</span>
+                                                            <span class="badge badge-secondary">Tạm dừng</span>
                                                             @break
                                                         @default
                                                             {{ $table->status }}
                                                     @endswitch
                                                 </td>
 
-                                                <!-- Ngày có sẵn -->
+                                                <td>{{ $table->created_at->format('d/m/Y H:i') }}</td>
                                                 <td>
-                                                    @if($table->available_date)
-                                                        {{ \Carbon\Carbon::parse($table->available_date)->format('d/m/Y') }}
-                                                    @else
-                                                        Không có dữ liệu
+                                                    <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">Sửa</a>
+                                                    
+                                                    @if($table->status == 'active')
+                                                        <form action="{{ route('admin.banAn.disable', $table->id) }}" method="POST" style="display:inline-block;">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" class="btn btn-secondary btn-sm" 
+                                                                onclick="return confirm('Bạn có chắc muốn tạm dừng bàn này?')">
+                                                                Tạm dừng
+                                                            </button>
+                                                        </form>
                                                     @endif
-                                                </td>
-
-                                                <!-- Thời gian có sẵn -->
-                                                <td>
-                                                    @if($table->available_from && $table->available_until)
-                                                        Từ {{ \Carbon\Carbon::parse($table->available_from)->format('H:i') }} đến {{ \Carbon\Carbon::parse($table->available_until)->format('H:i') }}
-                                                    @else
-                                                        Không có dữ liệu
-                                                    @endif
-                                                </td>
-
-                                                <td>{{ $table->created_at->format('d/m/Y') }}</td>
-                                                <td>
-                                                    <a href="{{ route('admin.banAn.show', $table->id) }}" class="btn btn-info btn-sm">Chi tiết</a>
-
-                                                    <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">Chỉnh sửa</a>
                                                 </td>
                                             </tr>
                                         @endforeach
                                     @else
                                         <tr>
-                                            <td colspan="8">Không có bàn ăn nào.</td>
+                                            <td colspan="6" class="text-center">Chưa có bàn ăn nào.</td>
                                         </tr>
                                     @endif
                                 </tbody>
                             </table>
 
-                            <!-- Phân trang -->
+                            <!-- Pagination -->
                             <div class="mt-3">
-                                {{ $tables->links('pagination::bootstrap-5') }}
+                                {{ $tables->links() }}
                             </div>
                         </div>
                     </div>

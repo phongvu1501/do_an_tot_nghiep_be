@@ -19,9 +19,7 @@ class DatBanController extends Controller
         $title = "Trang quản lý đặt bàn";
 
         // Lấy danh sách các bàn còn trống
-        $availableTables = BanAn::where('status', 'active')
-            ->whereDate('available_date', '>=', \Carbon\Carbon::today())
-            ->get();
+        $availableTables = BanAn::where('status', 'active')->get();
 
         return view('admin.datBan.index', compact('title', 'tables', 'availableTables'));
     }
