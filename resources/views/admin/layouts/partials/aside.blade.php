@@ -86,6 +86,14 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ url('admin/voucher') }}" class="nav-link">
+                        <i class="nav-icon fas fa-tag"></i>
+                        <p>
+                            Voucher
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-user"></i>
                         <p>Quản lý tài khoản</p>
@@ -101,7 +109,7 @@
                     </ul>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{url('admin/tai-khoan/nguoi-dung')}}" class="nav-link">
+                            <a href="{{ url('admin/tai-khoan/nguoi-dung') }}" class="nav-link">
                                 <i class="far fa-user nav-icon"></i>
                                 <p>Tài khoản khách hàng</p>
                             </a>
