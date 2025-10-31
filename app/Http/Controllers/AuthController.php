@@ -2,117 +2,111 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rules\Password as PasswordRule;
+
+use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
-    // POST /api/register
-    public function register(Request $request): JsonResponse
+    // Hiển thị form đăng ký
+    public function showRegisterForm()
     {
-        $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation errors',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $data = $validator->validated();
-
-        // Tạo user mặc định role = user
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => 'user',
-        ]);
-
-        // Token có hạn 2 giờ
-        $token = $user->createToken('api-token', ['*'], now()->addHours(2))->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User registered successfully.',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'token_type' => 'Bearer',
-                'expires_in' => now()->addHours(2)->toDateTimeString(),
-            ],
-        ], 201);
+        return view('auth.register');
     }
 
-    // POST /api/login
-    public function login(Request $request): JsonResponse
+    // Xử lý đăng ký
+   public function register(Request $request)
+{
+    $request->validate(
+        [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'required|string|max:20|unique:users|regex:/^[0-9]{9,15}$/',
+            'password' => 'required|string|min:6|confirmed',
+        ],
+        [
+            'name.required' => 'Trường họ tên là bắt buộc.',
+            'email.required' => 'Trường email là bắt buộc.',
+            'email.email' => 'Email không đúng định dạng.',
+            'email.unique' => 'Email đã tồn tại.',
+            'phone.required' => 'Trường số điện thoại là bắt buộc.',
+            'phone.unique' => 'Số điện thoại đã được sử dụng.',
+            'phone.regex' => 'Số điện thoại không hợp lệ (chỉ chứa 9–15 chữ số).',
+            'password.required' => 'Trường mật khẩu là bắt buộc.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
+        ]
+    );
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'phone' => $request->phone,
+        'password' => Hash::make($request->password),
+        'role' => 'user', // mặc định là user
+    ]);
+
+    return redirect()->route('login')->with('success', 'Đăng ký thành công! Hãy đăng nhập.');
+}
+
+
+    // Hiển thị form đăng nhập
+    public function showLoginForm()
     {
-        $validator = Validator::make($request->all(), [
+        return view('auth.login');
+    }
+
+    // Xử lý đăng nhập
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation errors',
-                'errors' => $validator->errors(),
-            ], 422);
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+
+            // Nếu là admin → vào trang quản lý admin
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.dashboard');
+            }
+
+            // Nếu là user → vào dashboard bình thường
+            return redirect()->route('dashboard');
         }
 
-        $credentials = $validator->validated();
-        $user = User::where('email', $credentials['email'])->first();
-
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials.',
-            ], 401);
-        }
-
-        $token = $user->createToken('api-token', ['*'], now()->addHours(2))->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful.',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'token_type' => 'Bearer',
-                'expires_in' => now()->addHours(2)->toDateTimeString(),
-            ],
-        ], 200);
+        return back()->with('error', 'Sai email hoặc mật khẩu!');
     }
 
-    // POST /api/logout
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request)
     {
-        $user = $request->user();
-        if ($user) {
-            $user->currentAccessToken()?->delete();
-        }
+        Auth::logout();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logged out successfully.',
-        ], 200);
+        // Hủy session hiện tại và tạo token CSRF mới
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('admin.login')->with('success', 'Bạn đã đăng xuất. Vui lòng đăng nhập lại để tiếp tục.');
     }
 
-    // GET /api/user
-    public function user(Request $request): JsonResponse
+
+    public function dashboard(): RedirectResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => $request->user(),
-        ], 200);
+        $user = Auth::user();
+
+        if ($user && $user->role === 'user') {
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')
+                ->with('error', 'Tài khoản của bạn không có quyền truy cập trang này!');
+        }
+
+        return redirect()->route('admin.dashboard');
     }
 }

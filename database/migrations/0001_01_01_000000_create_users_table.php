@@ -15,10 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone', 20)->unique(); // ✅ thêm cột phone
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
-            // $table->string('role')->default('user','admin');
+            $table->enum('role', ['user', 'admin'])->default('user');
             $table->timestamps();
         });
 
