@@ -22,6 +22,10 @@ class Reservation extends Model
         'payment_expires_at',
     ];
 
+    protected $casts = [
+        'payment_expires_at' => 'datetime',
+    ];
+
     // Quan hệ với User
     public function user()
     {

@@ -28,19 +28,40 @@
                                 </div>
                             @endif
                             
-                            <div class="d-flex justify-content-between mb-3">
-                                <a href="{{ route('admin.banAn.create') }}" class="btn btn-success btn-sm">Thêm mới bàn</a>
+                            <div class="card mb-3 bg-light">
+                                <div class="card-body">
+                                    <form action="{{ route('admin.banAn.index') }}" method="GET" class="row">
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Ngày</label>
+                                            <input type="date" name="date" class="form-control" value="{{ $filterDate }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Ca</label>
+                                            <select name="shift" class="form-control">
+                                                <option value="morning" {{ $filterShift == 'morning' ? 'selected' : '' }}>Ca sáng (6-10h)</option>
+                                                <option value="afternoon" {{ $filterShift == 'afternoon' ? 'selected' : '' }}>Ca trưa (10-14h)</option>
+                                                <option value="evening" {{ $filterShift == 'evening' ? 'selected' : '' }}>Ca chiều (14-18h)</option>
+                                                <option value="night" {{ $filterShift == 'night' ? 'selected' : '' }}>Ca tối (18-22h)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 d-flex align-items-end justify-content-between">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search"></i> Xem
+                                            </button>
+                                            <a href="{{ route('admin.banAn.create') }}" class="btn btn-success">
+                                                <i class="fas fa-plus"></i> Thêm bàn
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                             
                             <table class="table table-bordered table-hover">
-                                <thead>
+                                                <thead>
                                     <tr>
                                         <th>STT</th>
                                         <th>Tên bàn</th>
-                                        <th>Số lượng người</th>
-                                        <th>Trạng thái bàn</th>
-                                        <th>Lịch đặt</th>
-                                        <th>Ngày tạo</th>
+                                        <th>Tình trạng</th>
                                         <th>Thao tác</th>
                                     </tr>
                                 </thead>
@@ -49,55 +70,49 @@
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
                                             <td><strong>{{ $table->name }}</strong></td>
-                                            <td>{{ $table->limit_number }} người</td>
 
-                                            <!-- Trạng thái bàn -->
+                                            <!-- Tình trạng bàn theo ca -->
                                             <td>
-                                                @if($table->status == 'active')
-                                                    <span class="badge badge-success">Hoạt động</span>
-                                                @else
-                                                    <span class="badge badge-secondary">Tạm dừng</span>
-                                                @endif
-                                            </td>
+                                                    @php
+                                                        $activeReservation = $table->reservations()
+                                                            ->where('reservation_date', $filterDate)
+                                                            ->where('shift', $filterShift)
+                                                            ->where('status', 'confirmed')
+                                                            ->with('user')
+                                                            ->first();
+                                                    @endphp
+                                                    
+                                                    @if($activeReservation)
+                                                        <span class="badge badge-danger badge-lg">
+                                                            <i class="fas fa-user"></i> Bận
+                                                        </span>
+                                                        <br>
+                                                        <small class="text-muted">{{ $activeReservation->user->name }}</small>
+                                                    @else
+                                                        <span class="badge badge-success badge-lg">
+                                                            <i class="fas fa-check-circle"></i> Rỗi
+                                                        </span>
+                                                    @endif
+                                                </td>
 
-                                            <!-- Lịch đặt bàn -->
                                             <td>
-                                                @php
-                                                    $busySchedules = $table->reservations()
-                                                        ->whereIn('status', ['waiting_payment', 'pending', 'confirmed'])
-                                                        ->orderBy('reservation_date')
-                                                        ->orderByRaw("FIELD(shift, 'morning', 'afternoon', 'evening')")
-                                                        ->get();
-                                                @endphp
+                                                <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">
+                                                    <i class="fas fa-edit"></i> Sửa
+                                                </a>
                                                 
-                                                @if($busySchedules->count() > 0)
-                                                    <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#scheduleModal{{ $table->id }}">
-                                                        <i class="fas fa-calendar-alt"></i> Bận ({{ $busySchedules->count() }})
+                                                <form action="{{ route('admin.banAn.destroy', $table->id) }}" method="POST" style="display:inline-block;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm" 
+                                                        onclick="return confirm('Bạn có chắc muốn xóa bàn này?')">
+                                                        <i class="fas fa-trash"></i> Xóa
                                                     </button>
-                                                @else
-                                                    <span class="badge badge-success"><i class="fas fa-check"></i> Rỗi</span>
-                                                @endif
-                                            </td>
-
-                                            <td>{{ $table->created_at->format('d/m/Y H:i') }}</td>
-                                            <td>
-                                                <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">Sửa</a>
-                                                
-                                                @if($table->status == 'active')
-                                                    <form action="{{ route('admin.banAn.disable', $table->id) }}" method="POST" style="display:inline-block;">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <button type="submit" class="btn btn-secondary btn-sm" 
-                                                            onclick="return confirm('Bạn có chắc muốn tạm dừng bàn này?')">
-                                                            Tạm dừng
-                                                        </button>
-                                                    </form>
-                                                @endif
+                                                </form>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center">Chưa có bàn ăn nào.</td>
+                                            <td colspan="4" class="text-center">Chưa có bàn ăn nào.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -113,79 +128,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Modals - Đặt BÊN NGOÀI table -->
-    @if (isset($tables) && count($tables) > 0)
-        @foreach ($tables as $table)
-            @php
-                $busySchedules = $table->reservations()
-                    ->whereIn('status', ['waiting_payment', 'pending', 'confirmed'])
-                    ->orderBy('reservation_date')
-                    ->orderByRaw("FIELD(shift, 'morning', 'afternoon', 'evening')")
-                    ->get();
-            @endphp
-            
-            @if($busySchedules->count() > 0)
-            <div class="modal fade" id="scheduleModal{{ $table->id }}" tabindex="-1" role="dialog">
-                <div class="modal-dialog modal-lg" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header bg-info">
-                            <h5 class="modal-title">
-                                <i class="fas fa-calendar-alt"></i> Lịch đặt - {{ $table->name }}
-                            </h5>
-                            <button type="button" class="close" data-dismiss="modal">
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <table class="table table-sm table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Ngày</th>
-                                        <th>Ca</th>
-                                        <th>Khách hàng</th>
-                                        <th>Trạng thái</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($busySchedules as $schedule)
-                                        <tr>
-                                            <td>{{ \Carbon\Carbon::parse($schedule->reservation_date)->format('d/m/Y') }}</td>
-                                            <td>
-                                                @switch($schedule->shift)
-                                                    @case('morning')
-                                                        <span class="badge badge-info">Sáng (6-11h)</span>
-                                                        @break
-                                                    @case('afternoon')
-                                                        <span class="badge badge-warning">Trưa (11-14h)</span>
-                                                        @break
-                                                    @case('evening')
-                                                        <span class="badge badge-primary">Tối (17-22h)</span>
-                                                        @break
-                                                @endswitch
-                                            </td>
-                                            <td>{{ $schedule->user->name ?? 'N/A' }}</td>
-                                            <td>
-                                                @if($schedule->status == 'waiting_payment' || $schedule->status == 'pending')
-                                                    <span class="badge badge-warning">Chờ thanh toán</span>
-                                                @elseif($schedule->status == 'confirmed')
-                                                    <span class="badge badge-success">Đã xác nhận</span>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
-        @endforeach
-    @endif
 
     <script>
         $(document).ready(function() {

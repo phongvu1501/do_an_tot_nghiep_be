@@ -27,7 +27,6 @@ Route::prefix('admin')->group(function(){
     Route::delete('/menus/{id}/force-delete', [MenuController::class, 'forceDelete'])->name('admin.menus.forceDelete');
 
 
-    Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');

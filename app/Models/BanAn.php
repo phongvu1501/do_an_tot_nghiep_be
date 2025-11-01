@@ -14,7 +14,6 @@ class BanAn extends Model
     protected $fillable = [
         'name',
         'limit_number',
-        'status',
     ];
 
     public function reservations()

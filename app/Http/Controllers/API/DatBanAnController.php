@@ -21,7 +21,7 @@ class DatBanAnController extends Controller
 
         $validator = Validator::make($request->all(), [
             'reservation_date' => 'required|date|after_or_equal:' . Carbon::today()->toDateString(),
-            'shift' => 'required|in:morning,afternoon,evening',
+            'shift' => 'required|in:morning,afternoon,evening,night',
             'num_people' => 'required|integer|min:1',
             'depsection' => 'nullable|string|max:255',
             'voucher_id' => 'nullable|exists:vouchers,id',
@@ -33,7 +33,7 @@ class DatBanAnController extends Controller
             'reservation_date.date' => 'Ngày đặt bàn không hợp lệ.',
             'reservation_date.after_or_equal' => 'Ngày đặt bàn không thể là ngày quá khứ.',
             'shift.required' => 'Ca đặt bàn là bắt buộc.',
-            'shift.in' => 'Ca đặt bàn phải là: morning (sáng), afternoon (trưa), evening (tối).',
+            'shift.in' => 'Ca đặt bàn phải là: morning (sáng), afternoon (trưa), evening (chiều), night (tối).',
             'num_people.required' => 'Số lượng người là bắt buộc.',
             'num_people.integer' => 'Số lượng người phải là số nguyên.',
             'num_people.min' => 'Số lượng người phải tối thiểu 1.',
@@ -52,14 +52,32 @@ class DatBanAnController extends Controller
             return response()->json(['error' => $validator->errors()], 422);
         }
 
-        // Tính số bàn cần thiết (lấy limit_number từ bàn đầu tiên, mặc định 8)
+        $existingReservation = Reservation::where('user_id', $user->id)
+            ->where('reservation_date', $request->reservation_date)
+            ->where('shift', $request->shift)
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->first();
+
+        if ($existingReservation) {
+            return response()->json([
+                'error' => 'Đã đặt bàn rồi',
+                'message' => 'Bạn đã đặt bàn cho ca này rồi. Vui lòng chọn ca khác hoặc hủy đơn cũ.',
+                'existing_reservation' => [
+                    'id' => $existingReservation->id,
+                    'date' => $existingReservation->reservation_date,
+                    'shift' => $existingReservation->shift,
+                    'status' => $existingReservation->status,
+                ],
+            ], 400);
+        }
+
+        
         $firstTable = \App\Models\BanAn::first();
         $peoplePerTable = $firstTable ? $firstTable->limit_number : 8;
         $tablesNeeded = (int) ceil($request->num_people / $peoplePerTable);
 
-        // Tìm bàn trống theo ngày và ca đặt
-        $availableTables = \App\Models\BanAn::where('status', 'active')
-            ->whereDoesntHave('reservations', function ($query) use ($request) {
+        // tim ban trong
+        $availableTables = \App\Models\BanAn::whereDoesntHave('reservations', function ($query) use ($request) {
                 $query->where('reservation_date', $request->reservation_date)
                       ->where('shift', $request->shift)
                       ->where('status', '!=', 'cancelled');
@@ -67,7 +85,6 @@ class DatBanAnController extends Controller
             ->limit($tablesNeeded)
             ->get();
 
-        // Kiểm tra có đủ bàn không
         if ($availableTables->count() < $tablesNeeded) {
             return response()->json([
                 'error' => 'Không đủ bàn trống',
@@ -76,7 +93,7 @@ class DatBanAnController extends Controller
             ], 400);
         }
 
-        // Tạo payment token (link thanh toán giả)
+        // tao link thanh toan
         $paymentToken = Str::random(32);
         $paymentExpiresAt = Carbon::now()->addMinutes(10); // Hết hạn sau 10 phút
 
@@ -87,7 +104,7 @@ class DatBanAnController extends Controller
             'num_people' => $request->num_people,
             'depsection' => $request->depsection,
             'voucher_id' => $request->voucher_id,
-            'status' => 'waiting_payment', // Trạng thái chờ thanh toán
+            'status' => 'waiting_for_payment',
             'payment_token' => $paymentToken,
             'payment_expires_at' => $paymentExpiresAt,
         ]);
@@ -173,9 +190,10 @@ class DatBanAnController extends Controller
     private function getShiftInfo($shift)
     {
         $shifts = [
-            'morning' => ['name' => 'Ca sáng', 'time' => '6:00 - 11:00'],
-            'afternoon' => ['name' => 'Ca trưa', 'time' => '11:00 - 14:00'],
-            'evening' => ['name' => 'Ca tối', 'time' => '17:00 - 22:00'],
+            'morning' => ['name' => 'Ca sáng', 'time' => '6:00 - 10:00'],
+            'afternoon' => ['name' => 'Ca trưa', 'time' => '10:00 - 14:00'],
+            'evening' => ['name' => 'Ca chiều', 'time' => '14:00 - 18:00'],
+            'night' => ['name' => 'Ca tối', 'time' => '18:00 - 22:00'],
         ];
 
         return $shifts[$shift] ?? ['name' => 'Không xác định', 'time' => ''];

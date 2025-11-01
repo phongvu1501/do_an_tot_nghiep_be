@@ -22,8 +22,8 @@ class DatBanController extends Controller
         }
 
         if ($request->filled('status')) {
-            if ($request->status == 'waiting_payment') {
-                $query->whereIn('status', ['waiting_payment', 'pending']);
+            if ($request->status == 'waiting_for_payment') {
+                $query->whereIn('status', ['waiting_for_payment', 'pending']);
             } else {
                 $query->where('status', $request->status);
             }
@@ -33,7 +33,7 @@ class DatBanController extends Controller
 
         $title = "Trang quản lý đặt bàn";
 
-        $availableTables = BanAn::where('status', 'active')->get();
+        $availableTables = BanAn::all();
 
         return view('admin.datBan.index', compact('title', 'tables', 'availableTables'));
     }
@@ -65,20 +65,9 @@ class DatBanController extends Controller
         // Lấy reservation theo ID
         $reservation = Reservation::findOrFail($reservationId);
 
-        // Kiểm tra bàn cũ (nếu có) và cập nhật trạng thái của bàn cũ thành "trống"
-        $oldTableId = $reservation->tables->first()->id ?? null;
-
-        if ($oldTableId) {
-            BanAn::where('id', $oldTableId)->update(['status' => 'active']);
-        }
-
-        // Kiểm tra bàn mới và cập nhật trạng thái bàn mới thành "khả dụng"
-        $newTableId = $request->table_id;
-
         // Cập nhật bảng trung gian để thay thế bàn cũ với bàn mới
+        $newTableId = $request->table_id;
         $reservation->tables()->sync([$newTableId]);
-
-        BanAn::where('id', $request->table_id)->update(['status' => 'inactive']);
 
         return redirect()->route('admin.datBan.index')
                          ->with('success', 'Chọn bàn thành công!');
@@ -94,7 +83,7 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'status' => 'required|in:waiting_payment,confirmed,completed,cancelled',
+            'status' => 'required|in:waiting_for_payment,confirmed,completed,cancelled,pending',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);

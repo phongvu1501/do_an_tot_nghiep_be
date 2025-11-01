@@ -35,28 +35,6 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="status">Trạng thái</label>
-                                    <select class="form-control @error('status') is-invalid @enderror" id="status"
-                                        name="status">
-                                        @php
-                                            $statuses = [
-                                                'active' => 'Hoạt động',
-                                                'inactive' => 'Tạm dừng',
-                                            ];
-                                        @endphp
-                                        @foreach ($statuses as $value => $label)
-                                            <option value="{{ $value }}" 
-                                                {{ old('status', $banAn->status) == $value ? 'selected' : '' }}>
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('status')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Cập nhật</button>
                                     <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
                                 </div>
