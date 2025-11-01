@@ -30,6 +30,7 @@ Route::prefix('admin')->group(function(){
 
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
+    Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
 });
 
 Route::get('/register', [RegisterController::class, 'showForm'])->name('register.form');

@@ -30,24 +30,21 @@
                             
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
-                                    <form action="{{ route('admin.banAn.index') }}" method="GET" class="row">
+                                    <form action="{{ route('admin.banAn.index') }}" method="GET" class="row" id="filterForm">
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Ngày</label>
-                                            <input type="date" name="date" class="form-control" value="{{ $filterDate }}">
+                                            <input type="date" name="date" class="form-control" value="{{ $filterDate }}" onchange="document.getElementById('filterForm').submit()">
                                         </div>
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Ca</label>
-                                            <select name="shift" class="form-control">
+                                            <select name="shift" class="form-control" onchange="document.getElementById('filterForm').submit()">
                                                 <option value="morning" {{ $filterShift == 'morning' ? 'selected' : '' }}>Ca sáng (6-10h)</option>
                                                 <option value="afternoon" {{ $filterShift == 'afternoon' ? 'selected' : '' }}>Ca trưa (10-14h)</option>
                                                 <option value="evening" {{ $filterShift == 'evening' ? 'selected' : '' }}>Ca chiều (14-18h)</option>
                                                 <option value="night" {{ $filterShift == 'night' ? 'selected' : '' }}>Ca tối (18-22h)</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-6 d-flex align-items-end justify-content-between">
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-search"></i> Xem
-                                            </button>
+                                        <div class="col-md-6 d-flex align-items-end justify-content-end">
                                             <a href="{{ route('admin.banAn.create') }}" class="btn btn-success">
                                                 <i class="fas fa-plus"></i> Thêm bàn
                                             </a>
