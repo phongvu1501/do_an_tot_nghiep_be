@@ -93,4 +93,43 @@ class DatBanController extends Controller
         return redirect()->route('admin.datBan.index')
                          ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
     }
+
+    public function updateTables(Request $request, $id)
+    {
+        $request->validate([
+            'table_ids' => 'required|array|min:1',
+            'table_ids.*' => 'exists:tables,id',
+        ], [
+            'table_ids.required' => 'Vui lòng chọn ít nhất 1 bàn!',
+            'table_ids.min' => 'Vui lòng chọn ít nhất 1 bàn!',
+        ]);
+
+        $reservation = Reservation::findOrFail($id);
+
+        if (in_array($reservation->status, ['completed', 'cancelled'])) {
+            return redirect()->back()
+                ->with('error', 'Không thể chỉnh sửa bàn cho đơn đã hoàn tất hoặc đã hủy!');
+        }
+
+        foreach ($request->table_ids as $tableId) {
+            $isBusy = \App\Models\BanAn::find($tableId)
+                ->reservations()
+                ->where('reservation_date', $reservation->reservation_date)
+                ->where('shift', $reservation->shift)
+                ->where('status', 'confirmed')
+                ->where('reservations.id', '!=', $reservation->id)
+                ->exists();
+
+            if ($isBusy) {
+                $tableName = \App\Models\BanAn::find($tableId)->name;
+                return redirect()->back()
+                    ->with('error', "Bàn {$tableName} đang bận trong ca này!");
+            }
+        }
+
+        $reservation->tables()->sync($request->table_ids);
+
+        return redirect()->route('admin.datBan.index')
+            ->with('success', "Đã cập nhật bàn cho đơn #{$reservation->id} thành công! (Số bàn: " . count($request->table_ids) . ")");
+    }
 }

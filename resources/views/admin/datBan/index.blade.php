@@ -21,23 +21,24 @@
 
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
-                                    <form action="{{ route('admin.datBan.index') }}" method="GET" class="row">
+                                    <form action="{{ route('admin.datBan.index') }}" method="GET" class="row" id="filterFormDatBan">
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Ngày đặt</label>
-                                            <input type="date" name="date" class="form-control" value="{{ request('date') }}">
+                                            <input type="date" name="date" class="form-control" value="{{ request('date') }}" onchange="document.getElementById('filterFormDatBan').submit()">
                                         </div>
                                         <div class="col-md-2">
                                             <label class="font-weight-bold">Ca</label>
-                                            <select name="shift" class="form-control">
+                                            <select name="shift" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả ca</option>
                                                 <option value="morning" {{ request('shift') == 'morning' ? 'selected' : '' }}>Ca sáng</option>
                                                 <option value="afternoon" {{ request('shift') == 'afternoon' ? 'selected' : '' }}>Ca trưa</option>
-                                                <option value="evening" {{ request('shift') == 'evening' ? 'selected' : '' }}>Ca tối</option>
+                                                <option value="evening" {{ request('shift') == 'evening' ? 'selected' : '' }}>Ca chiều</option>
+                                                <option value="night" {{ request('shift') == 'night' ? 'selected' : '' }}>Ca tối</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Trạng thái</label>
-                                            <select name="status" class="form-control">
+                                            <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
                                                 <option value="waiting_for_payment" {{ request('status') == 'waiting_for_payment' ? 'selected' : '' }}>Chờ thanh toán</option>
                                                 <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
@@ -46,9 +47,6 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4 d-flex align-items-end">
-                                            <button type="submit" class="btn btn-primary mr-2">
-                                                <i class="fas fa-filter"></i> Lọc
-                                            </button>
                                             <a href="{{ route('admin.datBan.index') }}" class="btn btn-secondary">
                                                 <i class="fas fa-redo"></i> Reset
                                             </a>
@@ -205,12 +203,19 @@
                         <hr>
 
                         <h6 class="font-weight-bold">Bàn đã gán:</h6>
-                        <p>
-                            @foreach($reservation->tables as $table)
-                                <span class="badge badge-success badge-lg">{{ $table->name }}</span>
-                            @endforeach
-                            <span class="text-muted">({{ $reservation->tables->count() }} bàn)</span>
-                        </p>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                                @foreach($reservation->tables as $table)
+                                    <span class="badge badge-success badge-lg">{{ $table->name }}</span>
+                                @endforeach
+                                <span class="text-muted">({{ $reservation->tables->count() }} bàn)</span>
+                            </div>
+                            @if($reservation->status != 'completed' && $reservation->status != 'cancelled')
+                                <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#editTablesModal{{ $reservation->id }}">
+                                    <i class="fas fa-edit"></i> Chỉnh sửa bàn
+                                </button>
+                            @endif
+                        </div>
 
                         <hr>
 
@@ -256,6 +261,99 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal Chỉnh sửa bàn -->
+        @if($reservation->status != 'completed' && $reservation->status != 'cancelled')
+        <div class="modal fade" id="editTablesModal{{ $reservation->id }}" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <form action="{{ route('admin.datBan.updateTables', $reservation->id) }}" method="POST" id="editTablesForm{{ $reservation->id }}" onsubmit="return validateTableSelection({{ $reservation->id }})">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-header bg-warning">
+                            <h5 class="modal-title">
+                                <i class="fas fa-edit"></i> Chỉnh sửa bàn cho đơn #{{ $reservation->id }}
+                            </h5>
+                            <button type="button" class="close" data-dismiss="modal">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> 
+                                Số người: <strong>{{ $reservation->num_people }}</strong> | 
+                                Ngày: <strong>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</strong> | 
+                                Ca: <strong>
+                                    @if($reservation->shift == 'morning') Sáng (6-10h)
+                                    @elseif($reservation->shift == 'afternoon') Trưa (10-14h)
+                                    @elseif($reservation->shift == 'evening') Chiều (14-18h)
+                                    @else Tối (18-22h)
+                                    @endif
+                                </strong>
+                            </div>
+
+                            <div id="errorMessage{{ $reservation->id }}" class="alert alert-danger" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>Vui lòng chọn ít nhất 1 bàn!</strong>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold">Chọn bàn:</label>
+                                <div class="border p-3 bg-light" style="max-height: 300px; overflow-y: auto;">
+                                    @php
+                                        $currentTableIds = $reservation->tables->pluck('id')->toArray();
+                                        $allTables = \App\Models\BanAn::all();
+                                    @endphp
+                                    
+                                    @foreach($allTables as $table)
+                                        @php
+                                            // Check if table is busy in this shift/date (excluding current reservation)
+                                            $isBusy = $table->reservations()
+                                                ->where('reservation_date', $reservation->reservation_date)
+                                                ->where('shift', $reservation->shift)
+                                                ->where('status', 'confirmed')
+                                                ->where('reservations.id', '!=', $reservation->id)
+                                                ->exists();
+                                        @endphp
+                                        
+                                        <div class="custom-control custom-checkbox mb-2">
+                                            <input 
+                                                type="checkbox" 
+                                                class="custom-control-input table-checkbox-{{ $reservation->id }}" 
+                                                id="table{{ $table->id }}_{{ $reservation->id }}" 
+                                                name="table_ids[]" 
+                                                value="{{ $table->id }}"
+                                                {{ in_array($table->id, $currentTableIds) ? 'checked' : '' }}
+                                                {{ $isBusy ? 'disabled' : '' }}
+                                            >
+                                            <label class="custom-control-label" for="table{{ $table->id }}_{{ $reservation->id }}">
+                                                {{ $table->name }} 
+                                                @if($isBusy)
+                                                    <span class="badge badge-danger badge-sm">Đang bận</span>
+                                                @elseif(in_array($table->id, $currentTableIds))
+                                                    <span class="badge badge-success badge-sm">Đang chọn</span>
+                                                @else
+                                                    <span class="badge badge-secondary badge-sm">Rỗi</span>
+                                                @endif
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-lightbulb"></i> Bạn có thể chọn nhiều bàn. Bàn "Đang bận" không thể chọn.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endif
 
         @if($reservation->status == 'confirmed')
         <div class="modal fade" id="invoiceModal{{ $reservation->id }}" tabindex="-1" role="dialog">
@@ -362,3 +460,27 @@
         @endif
     @endforeach
 @endsection
+
+@push('scripts')
+<script>
+function validateTableSelection(reservationId) {
+    // Đếm số checkbox được chọn
+    var checkedCount = document.querySelectorAll('.table-checkbox-' + reservationId + ':checked').length;
+    var errorMessage = document.getElementById('errorMessage' + reservationId);
+    
+    if (checkedCount === 0) {
+        // Hiển thị thông báo lỗi
+        errorMessage.style.display = 'block';
+        
+        // Cuộn lên đầu modal để người dùng thấy thông báo
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        return false; // Ngăn form submit
+    }
+    
+    // Ẩn thông báo lỗi nếu đã chọn bàn
+    errorMessage.style.display = 'none';
+    return true; // Cho phép form submit
+}
+</script>
+@endpush
