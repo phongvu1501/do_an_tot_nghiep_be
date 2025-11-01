@@ -7,7 +7,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Danh sách bàn ăn</h3>
+                            <h3 class="card-title">{{ $banAn }}</h3>
                         </div>
                         <div class="card-body">
                             @if (session('success'))
@@ -18,88 +18,109 @@
                                     </button>
                                 </div>
                             @endif
-                            <div class="d-flex justify-content-between mb-3">
-                                <a href="{{ route('admin.banAn.create') }}" class="btn btn-success btn-sm">Thêm mới</a>
-
-                                <form action="{{ route('admin.banAn.index') }}" method="GET" class="d-flex align-items-center">
-                                    <input type="date" name="search_date" id="searchDate" class="form-control w-auto" value="{{ request()->get('search_date', date('Y-m-d')) }}" />
-
-                                    <!-- Nút tìm kiếm -->
-                                    <button type="submit" class="btn btn-primary btn-sm">Tìm kiếm</button>
-                                </form>
+                            
+                            @if (session('error'))
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ session('error') }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                            @endif
+                            
+                            <div class="card mb-3 bg-light">
+                                <div class="card-body">
+                                    <form action="{{ route('admin.banAn.index') }}" method="GET" class="row">
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Ngày</label>
+                                            <input type="date" name="date" class="form-control" value="{{ $filterDate }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Ca</label>
+                                            <select name="shift" class="form-control">
+                                                <option value="morning" {{ $filterShift == 'morning' ? 'selected' : '' }}>Ca sáng (6-10h)</option>
+                                                <option value="afternoon" {{ $filterShift == 'afternoon' ? 'selected' : '' }}>Ca trưa (10-14h)</option>
+                                                <option value="evening" {{ $filterShift == 'evening' ? 'selected' : '' }}>Ca chiều (14-18h)</option>
+                                                <option value="night" {{ $filterShift == 'night' ? 'selected' : '' }}>Ca tối (18-22h)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 d-flex align-items-end justify-content-between">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search"></i> Xem
+                                            </button>
+                                            <a href="{{ route('admin.banAn.create') }}" class="btn btn-success">
+                                                <i class="fas fa-plus"></i> Thêm bàn
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                            <table id="example2" class="table table-bordered table-hover">
-                                <thead>
+                            
+                            <table class="table table-bordered table-hover">
+                                                <thead>
                                     <tr>
                                         <th>STT</th>
                                         <th>Tên bàn</th>
-                                        <th>Sức chứa</th>
-                                        <th>Trạng thái</th>
-                                        <th>Ngày có sẵn</th>
-                                        <th>Thời gian có sẵn</th>
-                                        <th>Ngày tạo</th>
+                                        <th>Tình trạng</th>
                                         <th>Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if (isset($tables) && count($tables) > 0)
-                                        @foreach ($tables as $index => $table)
-                                            <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>{{ $table->table_number }}</td>
-                                                <td>{{ $table->capacity }}</td>
-
-                                                <!-- Trạng thái bàn -->
-                                                <td>
-                                                    @switch($table->status)
-                                                        @case('active')
-                                                            <span class="badge badge-success">Bàn trống</span>
-                                                            @break
-                                                        @case('inactive')
-                                                            <span class="badge badge-secondary">Đã được đặt</span>
-                                                            @break
-                                                        @default
-                                                            {{ $table->status }}
-                                                    @endswitch
-                                                </td>
-
-                                                <!-- Ngày có sẵn -->
-                                                <td>
-                                                    @if($table->available_date)
-                                                        {{ \Carbon\Carbon::parse($table->available_date)->format('d/m/Y') }}
-                                                    @else
-                                                        Không có dữ liệu
-                                                    @endif
-                                                </td>
-
-                                                <!-- Thời gian có sẵn -->
-                                                <td>
-                                                    @if($table->available_from && $table->available_until)
-                                                        Từ {{ \Carbon\Carbon::parse($table->available_from)->format('H:i') }} đến {{ \Carbon\Carbon::parse($table->available_until)->format('H:i') }}
-                                                    @else
-                                                        Không có dữ liệu
-                                                    @endif
-                                                </td>
-
-                                                <td>{{ $table->created_at->format('d/m/Y') }}</td>
-                                                <td>
-                                                    <a href="{{ route('admin.banAn.show', $table->id) }}" class="btn btn-info btn-sm">Chi tiết</a>
-
-                                                    <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">Chỉnh sửa</a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    @else
+                                    @forelse ($tables as $index => $table)
                                         <tr>
-                                            <td colspan="8">Không có bàn ăn nào.</td>
+                                            <td>{{ $tables->firstItem() + $index }}</td>
+                                            <td><strong>{{ $table->name }}</strong></td>
+
+                                            <!-- Tình trạng bàn theo ca -->
+                                            <td>
+                                                    @php
+                                                        $activeReservation = $table->reservations()
+                                                            ->where('reservation_date', $filterDate)
+                                                            ->where('shift', $filterShift)
+                                                            ->where('status', 'confirmed')
+                                                            ->with('user')
+                                                            ->first();
+                                                    @endphp
+                                                    
+                                                    @if($activeReservation)
+                                                        <span class="badge badge-danger badge-lg">
+                                                            <i class="fas fa-user"></i> Bận
+                                                        </span>
+                                                        <br>
+                                                        <small class="text-muted">{{ $activeReservation->user->name }}</small>
+                                                    @else
+                                                        <span class="badge badge-success badge-lg">
+                                                            <i class="fas fa-check-circle"></i> Rỗi
+                                                        </span>
+                                                    @endif
+                                                </td>
+
+                                            <td>
+                                                <a href="{{ route('admin.banAn.edit', $table->id) }}" class="btn btn-warning btn-sm">
+                                                    <i class="fas fa-edit"></i> Sửa
+                                                </a>
+                                                
+                                                <form action="{{ route('admin.banAn.destroy', $table->id) }}" method="POST" style="display:inline-block;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-danger btn-sm" 
+                                                        onclick="return confirm('Bạn có chắc muốn xóa bàn này?')">
+                                                        <i class="fas fa-trash"></i> Xóa
+                                                    </button>
+                                                </form>
+                                            </td>
                                         </tr>
-                                    @endif
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="text-center">Chưa có bàn ăn nào.</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
 
-                            <!-- Phân trang -->
+                            <!-- Pagination -->
                             <div class="mt-3">
-                                {{ $tables->links('pagination::bootstrap-5') }}
+                                {{ $tables->links() }}
                             </div>
                         </div>
                     </div>
@@ -107,4 +128,14 @@
             </div>
         </div>
     </div>
+
+    <script>
+        $(document).ready(function() {
+            if ($('#success-alert').length) {
+                setTimeout(function() {
+                    $('#success-alert').fadeOut('slow');
+                }, 3000);
+            }
+        });
+    </script>
 @endsection

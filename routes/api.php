@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\DatBanAnController;
-use App\Http\Controllers\Api\MenuApiController;
+use App\Http\Controllers\API\MenuApiController;
 use App\Http\Controllers\API\MenuCategoryApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
@@ -51,6 +51,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 //đăng ký
 
 // MenuCategory
-    Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
+Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
 // Menu
-    Route::get('/menus', [MenuApiController::class, 'index']);
+Route::get('/menus', [MenuApiController::class, 'index']);
+
+//coc giu ban
+Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
