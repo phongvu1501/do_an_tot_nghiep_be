@@ -15,63 +15,30 @@
                                 @method('PUT')
 
                                 <div class="form-group">
-                                    <label for="table_number">Tên bàn</label>
-                                    <input type="text" class="form-control @error('table_number') is-invalid @enderror"
-                                        id="table_number" name="table_number" placeholder="Nhập tên bàn ăn"
-                                       value="{{ old('table_number', $banAn->table_number) }}">
-                                    @error('table_number')
-                                        <span class="text-danger">{{ $message }}</span>
-                                    @enderror
-                                    @if (session('error_table_number'))
-                                        <span class="text-danger">{{ session('error_table_number') }}</span>
-                                    @endif
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="capacity">Số lượng người</label>
-                                    <input type="number" class="form-control @error('capacity') is-invalid @enderror"
-                                        id="capacity" name="capacity" placeholder="Nhập số lượng người"
-                                         value="{{ old('capacity', $banAn->capacity) }}">
-                                    @error('capacity')
+                                    <label for="name">Tên bàn</label>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                        id="name" name="name" placeholder="Nhập tên bàn"
+                                       value="{{ old('name', $banAn->name) }}">
+                                    @error('name')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="status">Trạng thái</label>
-                                    <select class="form-control @error('status') is-invalid @enderror" id="status"
-                                        name="status">
-                                        <option value="">Chọn trạng thái</option>
-                                        @php
-                                            $statuses = [
-                                                'active' => 'Hoạt động',
-                                                'inactive' => 'Tạm dừng',
-                                            ];
-
-                                            $currentStatus = old('status', $banAn->status);
-                                        @endphp
-
-                                        @foreach ($statuses as $value => $label)
-                                            <option value="{{ $value }}"
-                                                {{ $currentStatus == $value ? 'selected' : '' }}>
-                                                {{ $label }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('status')
+                                    <label for="limit_number">Số lượng người tối đa</label>
+                                    <input type="number" class="form-control @error('limit_number') is-invalid @enderror"
+                                        id="limit_number" name="limit_number" placeholder="Nhập số lượng người"
+                                        value="{{ old('limit_number', $banAn->limit_number) }}">
+                                    @error('limit_number')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Cập nhật</button>
+                                    <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
                                 </div>
                             </form>
-                        </div>
-                        <div class="row mb-3 ">
-                            <div class="col-12 ml-3">
-                                <a href="{{ route('admin.banAn.index') }}" class="btn btn-secondary">Quay lại</a>
-                            </div>
                         </div>
                     </div>
                 </div>

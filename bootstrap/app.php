@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+        ]);
+
         // Register common middleware aliases used by routes (Kernel.php removed in Laravel 12)
         // alias() expects an array mapping alias => class
         $middleware->alias([

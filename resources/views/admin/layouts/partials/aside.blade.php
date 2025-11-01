@@ -1,6 +1,6 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-   
+
 
     <!-- Sidebar -->
     <div class="sidebar">
@@ -34,19 +34,16 @@
                 <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
                 <li class="nav-item">
-
-                
                     <a href="{{ route('admin.dashboard') }}" class="nav-link">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Thống kê</p>
                     </a>
-                    
+                </li>
+
                 <li class="nav-item">
-                    <a href="{{ url('admin/ban-an') }}" class="nav-link">
-                        <i class="nav-icon fas fa-table"></i>
-                        <p>
-                           Bàn ăn
-                        </p>
+                    <a href="{{ route('admin.datBan.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-calendar-check"></i>
+                        <p>Quản lý đặt bàn</p>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -57,7 +54,7 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ url('admin/thuc-dơn/danh-muc-mon-an') }}" class="nav-link">
+                            <a href="{{ url('admin/menu-categories') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Danh mục món ăn</p>
                             </a>
@@ -65,7 +62,7 @@
                     </ul>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ url('admin/thuc-dơn/mon-an') }}" class="nav-link">
+                            <a href="{{ url('admin/menus') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Món ăn</p>
                             </a>
@@ -73,10 +70,10 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="" class="nav-link">
-                        <i class="nav-icon fas fa-file-invoice"></i>
+                    <a href="{{ route('admin.banAn.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-utensils"></i>
                         <p>
-                            Đơn hàng
+                            Quản lý bàn ăn
                         </p>
                     </a>
                 </li>

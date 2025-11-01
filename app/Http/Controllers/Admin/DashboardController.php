@@ -11,6 +11,6 @@ class DashboardController extends Controller
     {
         $dashboard = "Trang thống kê";
 
-        return view('admin.layouts.dashboard',compact('dashboard'));
+        return view('admin.layouts.dashboard', compact('dashboard'));
     }
 }
