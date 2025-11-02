@@ -35,36 +35,17 @@
                 <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
                 <li class="nav-item">
-
-
                     <a href="{{ route('admin.dashboard') }}" class="nav-link">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Thống kê</p>
                     </a>
+                </li>
 
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-table"></i>
+                    <a href="{{ route('admin.datBan.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-calendar-check"></i>
                         <p>Quản lý đặt bàn</p>
-                        <i class="right fas fa-angle-left"></i>
                     </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ url('admin/ban-an') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Khung giờ đặt bàn</p>
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ url('admin/dat-ban') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Đặt bàn</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">
@@ -90,10 +71,10 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="" class="nav-link">
-                        <i class="nav-icon fas fa-file-invoice"></i>
+                    <a href="{{ route('admin.banAn.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-utensils"></i>
                         <p>
-                            Đơn hàng
+                            Quản lý bàn ăn
                         </p>
                     </a>
                 </li>

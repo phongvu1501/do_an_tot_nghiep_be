@@ -13,7 +13,7 @@ use App\Http\Controllers\Admin\MenuCategoryController;
 
 // --- Trang chính
 Route::get('/', function () {
-    return redirect()->route('login'); 
+    return redirect()->route('login');
 });
 //
 Route::get('/login', function () {
@@ -24,13 +24,12 @@ Route::get('/login', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/accounts', [UserController::class, 'showAdmins'])->name('admin.accounts');
     Route::get('/user/accounts', [UserController::class, 'showUsers'])->name('user.accounts');
-     Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
-   Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
+    Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
+    Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
     Route::put('/admin/profile', [UserController::class, 'updateProfile'])->name('admin.profile.update');
-     Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
-Route::get('/admin/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
-Route::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');
-
+    Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
+    Route::get('/admin/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
+    Route::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');
 });
 
 
@@ -48,10 +47,16 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
     Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 
+
+
+    Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
 
 
+
+
+    Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
 });
 
 
@@ -76,5 +81,5 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name(
 
 // Route đổi mật khẩu (phải đăng nhập mới được đổi)
 
-    Route::get('/change-password', [PasswordResetController::class, 'showChangeForm'])->name('password.change.form');
-    Route::post('/change-password', [PasswordResetController::class, 'change'])->name('password.change');
+Route::get('/change-password', [PasswordResetController::class, 'showChangeForm'])->name('password.change.form');
+Route::post('/change-password', [PasswordResetController::class, 'change'])->name('password.change');

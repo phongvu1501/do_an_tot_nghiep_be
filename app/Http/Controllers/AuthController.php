@@ -79,7 +79,32 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
 
+
         return back()->with('error', 'Sai email hoặc mật khẩu!');
+
+        $credentials = $validator->validated();
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials.',
+            ], 401);
+        }
+
+        $token = $user->createToken('api-token', ['*'], now()->addHours(2))->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng nhập thành công!',
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_in' => now()->addHours(2)->toDateTimeString(),
+            ],
+        ], 200);
+
     }
 
     public function logout(Request $request)

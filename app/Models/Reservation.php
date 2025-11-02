@@ -13,10 +13,17 @@ class Reservation extends Model
         'order_code',
         'user_id',
         'reservation_date',
-        'reservation_time',
+        'shift',
         'num_people',
         'depsection',
         'voucher_id',
+        'status',
+        'payment_token',
+        'payment_expires_at',
+    ];
+
+    protected $casts = [
+        'payment_expires_at' => 'datetime',
     ];
 
     // Quan hệ với User
