@@ -146,14 +146,6 @@ class DatBanAnController extends Controller
                 'total_price' => $reservation->menus->sum(function ($menu) {
                     return $menu->price * $menu->pivot->quantity;
                 }),
-                'payment_token' => $reservation->payment_token,
-                'payment_expires_at' => $reservation->payment_expires_at,
-                'is_payment_expired' => $reservation->payment_expires_at
-                    ? Carbon::now()->greaterThan($reservation->payment_expires_at)
-                    : false,
-                'payment_url' => $reservation->payment_token && $reservation->status === 'waiting_for_payment'
-                    ? url("/api/payment/confirm/{$reservation->payment_token}")
-                    : null,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ],
@@ -309,7 +301,7 @@ class DatBanAnController extends Controller
                 'num_people' => $request->num_people,
                 'depsection' => $request->depsection,
                 'voucher_id' => $request->voucher_id,
-                'status' => 'waiting_for_payment',
+                'status' => 'deposit_pending',
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
                 'reservation_code' => 'RES-' . strtoupper(Str::random(10)),
@@ -430,8 +422,9 @@ class DatBanAnController extends Controller
     private function getStatusText($status)
     {
         $statuses = [
-            'waiting_for_payment' => 'Chờ thanh toán',
-            'confirmed' => 'Đã xác nhận',
+            // 'pending','deposit_pending','deposit_paid','serving','completed','cancelled'
+            'deposit_pending' => 'Chờ đặt cọc',
+            'deposit_paid' => 'Đã đặt cọc',
             'completed' => 'Hoàn tất',
             'cancelled' => 'Đã hủy',
             'pending' => 'Chờ thanh toán',

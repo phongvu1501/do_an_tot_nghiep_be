@@ -11,7 +11,7 @@ class DatBanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reservation::with(['menus', 'tables', 'user']);
+        $query = Reservation::with(['reservationItems', 'tables', 'user']);
 
         if ($request->filled('date')) {
             $query->whereDate('reservation_date', $request->date);
@@ -22,8 +22,8 @@ class DatBanController extends Controller
         }
 
         if ($request->filled('status')) {
-            if ($request->status == 'waiting_for_payment') {
-                $query->whereIn('status', ['waiting_for_payment', 'pending']);
+            if ($request->status == 'deposit_pending') {
+                $query->where('status', 'deposit_pending');
             } else {
                 $query->where('status', $request->status);
             }
@@ -138,7 +138,7 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'status' => 'required|in:waiting_for_payment,confirmed,completed,cancelled,pending',
+            'status' => 'required|in:deposit_pending,deposit_paid,completed,cancelled,pending',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
@@ -192,15 +192,15 @@ class DatBanController extends Controller
     {
         $date = $request->query('date');
         $shift = $request->query('shift');
-        
+
         $allTables = BanAn::all();
-        
+
         $busyTableIds = BanAn::whereHas('reservations', function ($query) use ($date, $shift) {
             $query->where('reservation_date', $date)
                   ->where('shift', $shift)
                   ->where('status', 'confirmed');
         })->pluck('id')->toArray();
-        
+
         return response()->json([
             'tables' => $allTables,
             'busyTableIds' => $busyTableIds,
