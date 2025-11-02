@@ -11,10 +11,17 @@ use App\Http\Controllers\PasswordResetController;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [PasswordResetController::class, 'forgot']);
+Route::post('/reset-password', [PasswordResetController::class, 'reset']);
+
+Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
+
+Route::get('/menus', [MenuApiController::class, 'index']);
+
+Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -24,12 +31,6 @@ Route::middleware('auth:sanctum')->group(function () {
             return response()->json(['message' => 'Welcome Admin']);
         });
     });
-    // gửi token quên mật khẩu
-// Public routes
-Route::post('/forgot-password', [PasswordResetController::class, 'forgot']);
-Route::post('/reset-password', [PasswordResetController::class, 'reset']);
-
-
 
     // User + Admin route
     Route::middleware([RoleMiddleware::class . ':user,admin'])->group(function () {
@@ -37,23 +38,16 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset']);
             return response()->json(['message' => 'Hello, this is your profile']);
         });
     });
-});
 
-// Keep top-level protected routes too (optional)
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'user']);
-
-    // đặt bàn ăn
+    // Đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
+    
+    // Lịch sử đặt bàn
+    Route::get('/dat-ban-an/history', [DatBanAnController::class, 'history']);
+    
+    // Chi tiết đơn đặt bàn
+    Route::get('/dat-ban-an/{id}', [DatBanAnController::class, 'show']);
+    
+    // Hủy đơn đặt bàn
+    Route::put('/dat-ban-an/{id}/cancel', [DatBanAnController::class, 'cancel']);
 });
-
-//đăng ký
-
-// MenuCategory
-Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
-// Menu
-Route::get('/menus', [MenuApiController::class, 'index']);
-
-//coc giu ban
-Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
