@@ -7,12 +7,26 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h3>Trang quản lý đặt bàn</h3>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h3 class="mb-0">Trang quản lý đặt bàn</h3>
+                                <a href="{{ route('admin.datBan.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Tạo đơn mới
+                                </a>
+                            </div>
                         </div>
                         <div class="card-body">
                             @if (session('success'))
                                 <div class="alert alert-success alert-dismissible fade show">
                                     {{ session('success') }}
+                                    <button type="button" class="close" data-dismiss="alert">
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                            @endif
+
+                            @if (session('error'))
+                                <div class="alert alert-danger alert-dismissible fade show">
+                                    {{ session('error') }}
                                     <button type="button" class="close" data-dismiss="alert">
                                         <span>&times;</span>
                                     </button>
