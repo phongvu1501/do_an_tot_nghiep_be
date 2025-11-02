@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\API\VnPayController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -19,6 +20,9 @@ Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
 Route::get('/menus', [MenuApiController::class, 'index']);
 
 Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
+
+// VNPAY return route
+Route::get('/vnpay-return', [VnPayController::class, 'vnpayReturn']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -41,13 +45,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
-    
+
     // Lịch sử đặt bàn
     Route::get('/dat-ban-an/history', [DatBanAnController::class, 'history']);
-    
+
     // Chi tiết đơn đặt bàn
     Route::get('/dat-ban-an/{id}', [DatBanAnController::class, 'show']);
-    
+
     // Hủy đơn đặt bàn
     Route::put('/dat-ban-an/{id}/cancel', [DatBanAnController::class, 'cancel']);
+
+    // VNPAY Payment Routes
+    Route::get('/payment', [VnPayController::class, 'createPayment']);
 });
