@@ -10,7 +10,7 @@ class Reservation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_code',
+        'reservation_code',
         'user_id',
         'reservation_date',
         'shift',
@@ -18,8 +18,10 @@ class Reservation extends Model
         'depsection',
         'voucher_id',
         'status',
-        'payment_token',
-        'payment_expires_at',
+        'deposit',
+        'total_amount',
+        // 'payment_token',
+        // 'payment_expires_at',
     ];
 
     protected $casts = [
@@ -49,4 +51,10 @@ class Reservation extends Model
     {
         return $this->belongsToMany(BanAn::class, 'reservation_tables', 'reservation_id', 'table_id');
     }
+
+    public function reservationItems()
+    {
+        return $this->hasMany(ReservationItem::class);
+    }
+
 }
