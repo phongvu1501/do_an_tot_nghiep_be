@@ -22,8 +22,8 @@ class DatBanController extends Controller
         }
 
         if ($request->filled('status')) {
-            if ($request->status == 'waiting_for_payment') {
-                $query->whereIn('status', ['waiting_for_payment', 'pending']);
+            if ($request->status == 'deposit_pending') {
+                $query->whereIn('status', ['deposit_pending', 'pending']);
             } else {
                 $query->where('status', $request->status);
             }
@@ -73,7 +73,7 @@ class DatBanController extends Controller
                 ->reservations()
                 ->where('reservation_date', $request->reservation_date)
                 ->where('shift', $request->shift)
-                ->where('status', 'confirmed')
+                ->whereIn('status', ['deposit_paid', 'serving'])
                 ->exists();
 
             if ($isBusy) {
@@ -84,7 +84,7 @@ class DatBanController extends Controller
             }
         }
 
-        // Tạo reservation (admin tạo thì confirmed luôn, không cần payment)
+        // Tạo reservation (admin tạo thì deposit_paid luôn, không cần payment)
         $reservation = Reservation::create([
             'user_id' => auth()->id() ?? 1, // Nếu admin chưa login thì dùng user_id = 1
             'customer_name' => $request->customer_name,
@@ -93,7 +93,7 @@ class DatBanController extends Controller
             'reservation_date' => $request->reservation_date,
             'shift' => $request->shift,
             'note' => $request->note,
-            'status' => 'confirmed', // Admin tạo thì xác nhận luôn
+            'status' => 'deposit_paid', // Admin tạo thì đã đặt cọc luôn
         ]);
 
         // Gán bàn
@@ -138,7 +138,7 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'status' => 'required|in:waiting_for_payment,confirmed,completed,cancelled,pending',
+            'status' => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
@@ -171,7 +171,7 @@ class DatBanController extends Controller
                 ->reservations()
                 ->where('reservation_date', $reservation->reservation_date)
                 ->where('shift', $reservation->shift)
-                ->where('status', 'confirmed')
+                ->whereIn('status', ['deposit_paid', 'serving'])
                 ->where('reservations.id', '!=', $reservation->id)
                 ->exists();
 
@@ -198,7 +198,7 @@ class DatBanController extends Controller
         $busyTableIds = BanAn::whereHas('reservations', function ($query) use ($date, $shift) {
             $query->where('reservation_date', $date)
                   ->where('shift', $shift)
-                  ->where('status', 'confirmed');
+                  ->whereIn('status', ['deposit_paid', 'serving']);
         })->pluck('id')->toArray();
         
         return response()->json([

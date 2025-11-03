@@ -42,7 +42,20 @@ class DatBanAnController extends Controller
 
         $reservations = $query->orderBy('id', 'desc')->paginate(10);
 
-        $data = $reservations->map(function ($reservation) {
+        $data = $reservations->map(function ($reservation) use ($request) {
+            $paymentUrl = null;
+            if ($reservation->status === 'deposit_pending') {
+                $orderData = [
+                    'code' => $reservation->reservation_code,
+                    'total' => $reservation->deposit,
+                    'bankCode' => self::BANK_CODE,
+                    'type' => 'billpayment',
+                    'info' => 'Đặt cọc bàn ăn - Mã đơn: ' . $reservation->reservation_code,
+                ];
+                $vnpayController = new VnPayController();
+                $paymentUrl = $vnpayController->createPayment($orderData, $request);
+            }
+
             return [
                 'id' => $reservation->id,
                 'reservation_date' => $reservation->reservation_date,
@@ -71,6 +84,8 @@ class DatBanAnController extends Controller
                 'total_price' => $reservation->menus->sum(function ($menu) {
                     return $menu->price * $menu->pivot->quantity;
                 }),
+                'deposit' => $reservation->deposit,
+                'payment_url' => $paymentUrl,
                 'payment_token' => $reservation->payment_token,
                 'payment_expires_at' => $reservation->payment_expires_at,
                 'is_payment_expired' => $reservation->payment_expires_at
@@ -116,6 +131,20 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
+        // Tạo payment URL nếu đơn đang chờ thanh toán
+        $paymentUrl = null;
+        if ($reservation->status === 'deposit_pending') {
+            $orderData = [
+                'code' => $reservation->reservation_code,
+                'total' => $reservation->deposit,
+                'bankCode' => self::BANK_CODE,
+                'type' => 'billpayment',
+                'info' => 'Đặt cọc bàn ăn - Mã đơn: ' . $reservation->reservation_code,
+            ];
+            $vnpayController = new VnPayController();
+            $paymentUrl = $vnpayController->createPayment($orderData, $request);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -146,14 +175,13 @@ class DatBanAnController extends Controller
                 'total_price' => $reservation->menus->sum(function ($menu) {
                     return $menu->price * $menu->pivot->quantity;
                 }),
+                'deposit' => $reservation->deposit,
+                'payment_url' => $paymentUrl,
                 'payment_token' => $reservation->payment_token,
                 'payment_expires_at' => $reservation->payment_expires_at,
                 'is_payment_expired' => $reservation->payment_expires_at
                     ? Carbon::now()->greaterThan($reservation->payment_expires_at)
                     : false,
-                'payment_url' => $reservation->payment_token && $reservation->status === 'waiting_for_payment'
-                    ? url("/api/payment/confirm/{$reservation->payment_token}")
-                    : null,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ],
@@ -180,8 +208,8 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        // Chỉ cho phép hủy nếu trạng thái là waiting_for_payment hoặc confirmed
-        if (!in_array($reservation->status, ['waiting_for_payment', 'confirmed'])) {
+        // Chỉ cho phép hủy nếu trạng thái là deposit_pending hoặc deposit_paid
+        if (!in_array($reservation->status, ['deposit_pending', 'deposit_paid', 'pending'])) {
             return response()->json([
                 'error' => 'Không thể hủy',
                 'message' => 'Không thể hủy đơn đặt bàn đã hoàn tất hoặc đã bị hủy trước đó.'
@@ -262,26 +290,50 @@ class DatBanAnController extends Controller
                 ], 400);
             }
 
-            $firstTable = \App\Models\BanAn::first();
-            $peoplePerTable = $firstTable ? $firstTable->limit_number : 8;
-            $tablesNeeded = (int) ceil($request->num_people / $peoplePerTable);
-
-            // tim ban trong
-            $availableTables = \App\Models\BanAn::whereDoesntHave('reservations', function ($query) use ($request) {
+            // Lấy danh sách tất cả bàn trống trong ca này
+            $allAvailableTables = \App\Models\BanAn::whereDoesntHave('reservations', function ($query) use ($request) {
                     $query->where('reservation_date', $request->reservation_date)
                         ->where('shift', $request->shift)
                         ->where('status', '!=', 'cancelled');
                 })
-                ->limit($tablesNeeded)
+                ->orderBy('limit_number', 'asc') // Sắp xếp theo sức chứa tăng dần
                 ->get();
 
-            if ($availableTables->count() < $tablesNeeded) {
+            if ($allAvailableTables->isEmpty()) {
                 return response()->json([
-                    'error' => 'Không đủ bàn trống',
-                    'message' => "Cần {$tablesNeeded} bàn nhưng chỉ còn {$availableTables->count()} bàn trống vào ca này.",
+                    'error' => 'Hết bàn trống',
+                    'message' => 'Không còn bàn trống nào trong ca này. Vui lòng chọn ca khác.',
                     'shift_info' => $this->getShiftInfo($request->shift),
                 ], 400);
             }
+
+            // Sắp xếp bàn tự động dựa vào số người
+            $numPeople = $request->num_people;
+            $selectedTables = collect();
+            $totalCapacity = 0;
+
+            // Chiến lược: Chọn bàn sao cho tổng sức chứa vừa đủ hoặc hơn một chút số người
+            foreach ($allAvailableTables as $table) {
+                if ($totalCapacity >= $numPeople) {
+                    break; // Đã đủ chỗ
+                }
+                $selectedTables->push($table);
+                $totalCapacity += $table->limit_number;
+            }
+
+            // Kiểm tra xem có đủ chỗ không
+            if ($totalCapacity < $numPeople) {
+                return response()->json([
+                    'error' => 'Hết bàn trống',
+                    'message' => "Cần chỗ cho {$numPeople} người nhưng chỉ còn chỗ cho {$totalCapacity} người trong ca này. Vui lòng chọn ca khác hoặc giảm số người.",
+                    'shift_info' => $this->getShiftInfo($request->shift),
+                    'people_needed' => $numPeople,
+                    'capacity_available' => $totalCapacity,
+                ], 400);
+            }
+
+            $availableTables = $selectedTables;
+            $tablesNeeded = $availableTables->count();
 
             // Tính toán số tiền cọc. Mỗi bàn cần đặt cọc 300 nghìn đồng
             $depositPerTable = self::DEPOSIT_PER_TABLE;
@@ -309,13 +361,16 @@ class DatBanAnController extends Controller
                 'num_people' => $request->num_people,
                 'depsection' => $request->depsection,
                 'voucher_id' => $request->voucher_id,
-                'status' => 'waiting_for_payment',
+                'status' => 'deposit_pending',
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
                 'reservation_code' => 'RES-' . strtoupper(Str::random(10)),
                 // 'payment_token' => $paymentToken,
                 // 'payment_expires_at' => $paymentExpiresAt,
             ]);
+
+            // Gán bàn ăn vào reservation
+            $reservation->tables()->attach($availableTables->pluck('id'));
 
             // Lưu thông tin đặt món vào bảng Reservation_items
             if ($request->has('menus')) {
@@ -356,9 +411,12 @@ class DatBanAnController extends Controller
                     return [
                         'id' => $table->id,
                         'name' => $table->name,
+                        'capacity' => $table->limit_number,
                     ];
                 }),
                 'tables_count' => $tablesNeeded,
+                'total_capacity' => $totalCapacity,
+                'num_people' => $numPeople,
                 'reservation' => $reservation->load(['menus', 'tables']),
             ], 201);
         } catch (\Exception $e) {
@@ -391,7 +449,7 @@ class DatBanAnController extends Controller
             ], 400);
         }
 
-        if ($reservation->status == 'confirmed') {
+        if ($reservation->status == 'deposit_paid') {
             return response()->json([
                 'success' => true,
                 'message' => 'Đơn đặt bàn này đã được thanh toán rồi.'
@@ -399,7 +457,7 @@ class DatBanAnController extends Controller
         }
 
         $reservation->update([
-            'status' => 'confirmed',
+            'status' => 'deposit_paid',
         ]);
 
         $reservation->refresh();
@@ -430,11 +488,12 @@ class DatBanAnController extends Controller
     private function getStatusText($status)
     {
         $statuses = [
-            'waiting_for_payment' => 'Chờ thanh toán',
-            'confirmed' => 'Đã xác nhận',
+            'pending' => 'Chờ xác nhận',
+            'deposit_pending' => 'Chờ đặt cọc',
+            'deposit_paid' => 'Đã đặt cọc',
+            'serving' => 'Đang phục vụ',
             'completed' => 'Hoàn tất',
             'cancelled' => 'Đã hủy',
-            'pending' => 'Chờ thanh toán',
         ];
 
         return $statuses[$status] ?? 'Không xác định';
