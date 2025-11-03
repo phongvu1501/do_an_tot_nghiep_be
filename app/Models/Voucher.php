@@ -19,6 +19,7 @@ class Voucher extends Model
         'min_order_value',
         'status',
         'start_date',
-        'end_date'
+        'end_date',
+        'order_value_allowed'
     ];
 }

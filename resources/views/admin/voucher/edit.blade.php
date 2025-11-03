@@ -93,6 +93,18 @@
                                         @enderror
                                     </div>
 
+                                    <!-- Giá trị đơn hàng áp dụng -->
+                                    <div class="form-group">
+                                        <label for="order_value_allowed">Giá trị đơn hàng áp dụng</label>
+                                        <input type="number" step="0.01" id="order_value_allowed" name="order_value_allowed"
+                                            class="form-control @error('order_value_allowed') is-invalid @enderror"
+                                            placeholder="Nhập giá trị đơn hàng áp dụng"
+                                            value="{{ old('order_value_allowed', $voucher->order_value_allowed) }}">
+                                        @error('order_value_allowed')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
                                     <!-- Ngày bắt đầu -->
                                     <div class="form-group">
                                         <label for="start_date">Ngày bắt đầu</label>

@@ -18,6 +18,7 @@
                                         <th>Loại giảm</th>
                                         <th>Giá trị giảm</th>
                                         <th>Giá trị đơn hàng tối thiểu</th>
+                                        <th>Giá trị đơn hàng áp dụng</th>
                                         <th>Số lần sử dụng tối đa</th>
                                         <th>Trạng thái</th>
                                         <th>Ngày bắt đầu</th>
@@ -44,6 +45,7 @@
                                             @endif
                                         </td>
                                         <td>{{ number_format($voucher->min_order_value ?? 0, 0, ',', '.') }}đ</td>
+                                        <td>{{ number_format($voucher->order_value_allowed ?? 0, 0, ',', '.') }}đ</td>
                                         <td>{{ $voucher->max_uses ?? 'Không giới hạn' }}</td>
                                         <td>
                                             @switch($voucher->status)
@@ -93,6 +95,7 @@
                                         <th>Loại giảm</th>
                                         <th>Giá trị giảm</th>
                                         <th>Giá trị đơn hàng tối thiểu</th>
+                                        <th>Giá trị đơn hàng áp dụng</th>
                                         <th>Số lần sử dụng tối đa</th>
                                         <th>Trạng thái</th>
                                         <th>Ngày bắt đầu</th>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\admin;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Voucher;
@@ -11,23 +11,22 @@ class VoucherController extends Controller
     public function index()
     {
         $title = "Trang voucher";
-
         $vouchers = Voucher::all();
-
         return view('admin.voucher.index', compact('title', 'vouchers'));
     }
+
     public function show(Voucher $voucher)
     {
         $title = "Chi tiết voucher";
-
         return view('admin.voucher.show', compact('title', 'voucher'));
     }
+
     public function create()
     {
         $title = "Thêm voucher mới";
-
         return view('admin.voucher.create', compact('title'));
     }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -43,6 +42,7 @@ class VoucherController extends Controller
                     }
                 },
             ],
+            'order_value_allowed' => 'nullable|numeric|min:0',
             'max_uses' => 'nullable|integer|min:1',
             'min_order_value' => 'nullable|numeric|min:0',
             'status' => 'required|in:active,inactive',
@@ -58,10 +58,21 @@ class VoucherController extends Controller
             'end_date' => date('Y-m-d', strtotime($request->end_date)),
         ]);
 
-        Voucher::create($request->all());
+        Voucher::create([
+            'code' => $request->code,
+            'discount_type' => $request->discount_type,
+            'discount_value' => $request->discount_value,
+            'order_value_allowed' => $request->order_value_allowed,
+            'max_uses' => $request->max_uses,
+            'min_order_value' => $request->min_order_value,
+            'status' => $request->status,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+        ]);
 
         return redirect()->route('admin.voucher.index')->with('success', 'Voucher được tạo thành công.');
     }
+
     public function edit($id)
     {
         $voucher = Voucher::findOrFail($id);
@@ -75,7 +86,7 @@ class VoucherController extends Controller
 
         $request->validate([
             'code' => 'required|string|unique:vouchers,code,' . $voucher->id,
-            'discount_type' => 'required|in:percent,amount',
+            'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [
                 'required',
                 'numeric',
@@ -86,6 +97,7 @@ class VoucherController extends Controller
                     }
                 },
             ],
+            'order_value_allowed' => 'nullable|numeric|min:0',
             'max_uses' => 'nullable|integer|min:1',
             'min_order_value' => 'nullable|numeric|min:0',
             'status' => 'required|in:active,inactive',
@@ -97,6 +109,7 @@ class VoucherController extends Controller
             'code' => $request->code,
             'discount_type' => $request->discount_type,
             'discount_value' => $request->discount_value,
+            'order_value_allowed' => $request->order_value_allowed,
             'max_uses' => $request->max_uses,
             'min_order_value' => $request->min_order_value,
             'status' => $request->status,
@@ -106,20 +119,18 @@ class VoucherController extends Controller
 
         return redirect()->route('admin.voucher.index')->with('success', 'Cập nhật voucher thành công.');
     }
+
     public function disable(Voucher $voucher)
     {
         try {
             $voucher->status = 'inactive';
-
             $voucher->save();
 
             return redirect()->route('admin.voucher.index')
                 ->with('success', 'Đã chuyển voucher ' . $voucher->code . ' sang trạng thái Tạm dừng.');
         } catch (\Exception $e) {
-            // \Log::error("Lỗi vô hiệu hóa voucher: " . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'Không thể chuyển trạng thái voucher. Vui lòng thử lại.');
         }
     }
-   
 }

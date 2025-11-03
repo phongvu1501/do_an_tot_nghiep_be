@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
+            $table->decimal('order_value_allowed', 10, 2)->nullable();
             $table->timestamps();
         });
     }

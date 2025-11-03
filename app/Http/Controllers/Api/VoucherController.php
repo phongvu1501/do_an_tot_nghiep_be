@@ -35,6 +35,15 @@ class VoucherController extends Controller
         if ($voucher->used_count >= $voucher->max_uses) {
             return response()->json(['message' => 'Voucher đã đạt giới hạn sử dụng'], 400);
         }
+        if (!is_null($voucher->order_value_allowed)) {
+            if ($request->order_total > $voucher->order_value_allowed) {
+                return response()->json([
+                    'message' => 'Voucher này chỉ áp dụng cho đơn hàng có giá trị từ '
+                        . number_format($voucher->order_value_allowed, 0, ',', '.')
+                        . ' VNĐ trở xuống',
+                ], 400);
+            }
+        }
 
         $discountAmount = 0;
         if ($voucher->discount_type === 'percent') {
