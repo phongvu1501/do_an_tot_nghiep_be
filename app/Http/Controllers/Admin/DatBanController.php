@@ -11,7 +11,7 @@ class DatBanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reservation::with(['reservationItems', 'tables', 'user']);
+        $query = Reservation::with(['reservationItems.menu', 'tables', 'user']);
 
         if ($request->filled('date')) {
             $query->whereDate('reservation_date', $request->date);
@@ -139,10 +139,16 @@ class DatBanController extends Controller
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
             'status' => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
+            'cancellation_reason' => 'required_if:status,cancelled',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
         $reservation->status = $request->status;
+        
+        if ($request->status === 'cancelled' && $request->filled('cancellation_reason')) {
+            $reservation->cancellation_reason = $request->cancellation_reason;
+        }
+        
         $reservation->save();
 
         return redirect()->route('admin.datBan.index')

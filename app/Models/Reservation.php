@@ -21,6 +21,7 @@ class Reservation extends Model
         'deposit',
         'total_amount',
         'payment_url',
+        'cancellation_reason',
     ];
 
     protected $casts = [

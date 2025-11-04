@@ -71,10 +71,11 @@
                                             <!-- Tình trạng bàn theo ca -->
                                             <td>
                                                     @php
+                                                        // Bàn BẬN khi có reservation với status khác cancelled và completed
                                                         $activeReservation = $table->reservations()
                                                             ->where('reservation_date', $filterDate)
                                                             ->where('shift', $filterShift)
-                                                            ->whereIn('status', ['deposit_paid', 'serving'])
+                                                            ->whereNotIn('status', ['cancelled', 'completed'])
                                                             ->with('user')
                                                             ->first();
                                                     @endphp
@@ -84,7 +85,18 @@
                                                             <i class="fas fa-user"></i> Bận
                                                         </span>
                                                         <br>
-                                                        <small class="text-muted">{{ $activeReservation->user->name }}</small>
+                                                        <small class="text-muted">
+                                                            {{ $activeReservation->user->name }}
+                                                            @if($activeReservation->status == 'pending')
+                                                                <span class="badge badge-secondary badge-sm">Chờ xác nhận</span>
+                                                            @elseif($activeReservation->status == 'deposit_pending')
+                                                                <span class="badge badge-warning badge-sm">Chờ đặt cọc</span>
+                                                            @elseif($activeReservation->status == 'deposit_paid')
+                                                                <span class="badge badge-info badge-sm">Đã đặt cọc</span>
+                                                            @elseif($activeReservation->status == 'serving')
+                                                                <span class="badge badge-primary badge-sm">Đang phục vụ</span>
+                                                            @endif
+                                                        </small>
                                                     @else
                                                         <span class="badge badge-success badge-lg">
                                                             <i class="fas fa-check-circle"></i> Rỗi

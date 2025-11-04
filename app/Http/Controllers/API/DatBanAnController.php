@@ -171,7 +171,7 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        // Chỉ cho phép hủy nếu trạng thái là deposit_pending hoặc deposit_paid
+        // Chỉ cho phép hủy nếu trạng thái là deposit_pending hoặc deposit_paid hoặc pending
         if (!in_array($reservation->status, ['deposit_pending', 'deposit_paid', 'pending'])) {
             return response()->json([
                 'error' => 'Không thể hủy',
