@@ -74,7 +74,7 @@
                                                         $activeReservation = $table->reservations()
                                                             ->where('reservation_date', $filterDate)
                                                             ->where('shift', $filterShift)
-                                                            ->where('status', 'confirmed')
+                                                            ->whereIn('status', ['deposit_paid', 'serving'])
                                                             ->with('user')
                                                             ->first();
                                                     @endphp
@@ -116,8 +116,14 @@
                             </table>
 
                             <!-- Pagination -->
-                            <div class="mt-3">
-                                {{ $tables->links() }}
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    Hiển thị {{ $tables->firstItem() ?? 0 }} đến {{ $tables->lastItem() ?? 0 }} 
+                                    trong tổng số {{ $tables->total() }} kết quả
+                                </div>
+                                <div>
+                                    {{ $tables->links('pagination::bootstrap-4') }}
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -12,6 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Update existing data before changing enum
+        DB::table('reservations')
+            ->where('status', 'waiting_for_payment')
+            ->update(['status' => 'deposit_pending']);
+        
+        DB::table('reservations')
+            ->where('status', 'confirmed')
+            ->update(['status' => 'deposit_paid']);
+        
+        DB::table('reservations')
+            ->where('status', 'suspended')
+            ->update(['status' => 'pending']);
+        
         Schema::table('reservations', function (Blueprint $table) {
             $table->dropColumn(['payment_token', 'payment_expires_at']);
             DB::statement("

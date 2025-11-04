@@ -54,8 +54,10 @@
                                             <label class="font-weight-bold">Trạng thái</label>
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
-                                                <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ cọc</option>
+                                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
+                                                <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt cọc</option>
                                                 <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đã đặt cọc</option>
+                                                <option value="serving" {{ request('status') == 'serving' ? 'selected' : '' }}>Đang phục vụ</option>
                                                 <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn tất</option>
                                                 <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
                                             </select>
@@ -119,14 +121,17 @@
                                             </td>
                                             <td>
                                                 @switch($reservation->status)
+                                                    @case('pending')
+                                                        <span class="badge badge-secondary">Chờ xác nhận</span>
+                                                        @break
                                                     @case('deposit_pending')
                                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                                         @break
-                                                    @case('pending')
-                                                        <span class="badge badge-warning">Chờ thanh toán</span>
-                                                        @break
                                                     @case('deposit_paid')
                                                         <span class="badge badge-success">Đã đặt cọc</span>
+                                                        @break
+                                                    @case('serving')
+                                                        <span class="badge badge-primary">Đang phục vụ</span>
                                                         @break
                                                     @case('completed')
                                                         <span class="badge badge-info">Hoàn tất</span>
@@ -140,8 +145,8 @@
                                                 <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#detailModal{{ $reservation->id }}">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-
-                                                @if($reservation->status == 'confirmed')
+                                                
+                                                @if($reservation->status == 'deposit_paid' || $reservation->status == 'serving')
                                                     <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#invoiceModal{{ $reservation->id }}">
                                                         <i class="fas fa-receipt"></i> Hoàn tất
                                                     </button>
@@ -165,8 +170,14 @@
                                 </tbody>
                             </table>
 
-                            <div class="mt-3">
-                                {{ $tables->links() }}
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    Hiển thị {{ $tables->firstItem() ?? 0 }} đến {{ $tables->lastItem() ?? 0 }} 
+                                    trong tổng số {{ $tables->total() }} kết quả
+                                </div>
+                                <div>
+                                    {{ $tables->links('pagination::bootstrap-4') }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -209,7 +220,7 @@
                                     @endif
                                     <br>
                                     <strong>Số người:</strong> {{ $reservation->num_people }} người<br>
-                                    <strong>Mô tả:</strong> {{ $reservation->depsection ?? 'Không chỉ định' }}
+                                    <strong>Ghi chú :</strong> {{ $reservation->depsection }}
                                 </p>
                             </div>
                         </div>
@@ -324,7 +335,7 @@
                                             $isBusy = $table->reservations()
                                                 ->where('reservation_date', $reservation->reservation_date)
                                                 ->where('shift', $reservation->shift)
-                                                ->where('status', 'confirmed')
+                                                ->whereIn('status', ['deposit_paid', 'serving'])
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
                                         @endphp
@@ -369,7 +380,7 @@
         </div>
         @endif
 
-        @if($reservation->status == 'confirmed')
+        @if($reservation->status == 'deposit_paid' || $reservation->status == 'serving')
         <div class="modal fade" id="invoiceModal{{ $reservation->id }}" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
