@@ -200,7 +200,7 @@
                 <div class="modal-content">
                     <div class="modal-header bg-info text-white">
                         <h5 class="modal-title">
-                            <i class="fas fa-info-circle"></i> Chi tiết đơn đặt bàn #{{ $reservation->id }}
+                            <i class="fas fa-info-circle"></i> Chi tiết đơn đặt bàn {{ $reservation->reservation_code }}
                         </h5>
                         <button type="button" class="close text-white" data-dismiss="modal">
                             <span>&times;</span>
@@ -428,45 +428,6 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <h6 class="font-weight-bold">Thông tin đặt bàn:</h6>
-                        <table class="table table-sm">
-                            <tr>
-                                <td width="150"><strong>Khách hàng:</strong></td>
-                                <td>{{ $reservation->user->name }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Email:</strong></td>
-                                <td>{{ $reservation->user->email }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Ngày đặt:</strong></td>
-                                <td>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Ca:</strong></td>
-                                <td>
-                                    @if($reservation->shift == 'morning') Ca sáng (6h-11h)
-                                    @elseif($reservation->shift == 'afternoon') Ca trưa (11h-14h)
-                                    @else Ca tối (17h-22h)
-                                    @endif
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Số người:</strong></td>
-                                <td>{{ $reservation->num_people }} người</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Bàn:</strong></td>
-                                <td>
-                                    @foreach($reservation->tables as $table)
-                                        <span class="badge badge-success">{{ $table->name }}</span>
-                                    @endforeach
-                                </td>
-                            </tr>
-                        </table>
-
-                        <hr>
-
                         <h6 class="font-weight-bold">Chi tiết món ăn:</h6>
                         @if($reservation->reservationItems->count() > 0)
                             <table class="table table-bordered">
