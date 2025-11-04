@@ -70,7 +70,7 @@
                                     </form>
                                 </div>
                             </div>
-                            
+
                             <table class="table table-bordered table-hover">
                                 <thead>
                                     <tr>
@@ -151,7 +151,7 @@
                                                         <i class="fas fa-receipt"></i> Hoàn tất
                                                     </button>
                                                 @endif
-                                                
+
                                                 @if($reservation->status != 'cancelled' && $reservation->status != 'completed')
                                                     <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                                                         @csrf
@@ -212,7 +212,7 @@
                                 <h6 class="font-weight-bold">Thông tin đặt bàn:</h6>
                                 <p>
                                     <strong>Ngày:</strong> {{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}<br>
-                                    <strong>Ca:</strong> 
+                                    <strong>Ca:</strong>
                                     @if($reservation->shift == 'morning') Ca sáng (6-10h)
                                     @elseif($reservation->shift == 'afternoon') Ca trưa (10-14h)
                                     @elseif($reservation->shift == 'evening') Ca chiều (14-18h)
@@ -245,7 +245,7 @@
                         <hr>
 
                         <h6 class="font-weight-bold">Món ăn đã đặt:</h6>
-                        @if($reservation->menus->count() > 0)
+                        @if($reservation->reservationItems->count() > 0)
                             <table class="table table-sm table-bordered">
                                 <thead>
                                     <tr>
@@ -256,12 +256,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($reservation->menus as $menu)
+                                    @foreach($reservation->reservationItems as $menu)
                                         <tr>
-                                            <td>{{ $menu->name }}</td>
-                                            <td class="text-center">{{ $menu->pivot->quantity }}</td>
+                                            <td>{{ $menu->menu->name }}</td>
+                                            <td class="text-center">{{ $menu->quantity }}</td>
                                             <td class="text-right">{{ number_format($menu->price, 0, ',', '.') }}đ</td>
-                                            <td class="text-right">{{ number_format($menu->price * $menu->pivot->quantity, 0, ',', '.') }}đ</td>
+                                            <td class="text-right">{{ number_format($menu->price * $menu->quantity, 0, ',', '.') }}đ</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -269,8 +269,8 @@
                                     <tr>
                                         <th colspan="3" class="text-right">Tổng:</th>
                                         <th class="text-right text-danger">
-                                            {{ number_format($reservation->menus->sum(function($m) {
-                                                return $m->price * $m->pivot->quantity;
+                                            {{ number_format($reservation->reservationItems->sum(function($m) {
+                                                return $m->price * $m->quantity;
                                             }), 0, ',', '.') }}đ
                                         </th>
                                     </tr>
@@ -305,9 +305,9 @@
                         </div>
                         <div class="modal-body">
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> 
-                                Số người: <strong>{{ $reservation->num_people }}</strong> | 
-                                Ngày: <strong>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</strong> | 
+                                <i class="fas fa-info-circle"></i>
+                                Số người: <strong>{{ $reservation->num_people }}</strong> |
+                                Ngày: <strong>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</strong> |
                                 Ca: <strong>
                                     @if($reservation->shift == 'morning') Sáng (6-10h)
                                     @elseif($reservation->shift == 'afternoon') Trưa (10-14h)
@@ -328,7 +328,7 @@
                                         $currentTableIds = $reservation->tables->pluck('id')->toArray();
                                         $allTables = \App\Models\BanAn::all();
                                     @endphp
-                                    
+
                                     @foreach($allTables as $table)
                                         @php
                                             // Check if table is busy in this shift/date (excluding current reservation)
@@ -339,19 +339,19 @@
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
                                         @endphp
-                                        
+
                                         <div class="custom-control custom-checkbox mb-2">
-                                            <input 
-                                                type="checkbox" 
-                                                class="custom-control-input table-checkbox-{{ $reservation->id }}" 
-                                                id="table{{ $table->id }}_{{ $reservation->id }}" 
-                                                name="table_ids[]" 
+                                            <input
+                                                type="checkbox"
+                                                class="custom-control-input table-checkbox-{{ $reservation->id }}"
+                                                id="table{{ $table->id }}_{{ $reservation->id }}"
+                                                name="table_ids[]"
                                                 value="{{ $table->id }}"
                                                 {{ in_array($table->id, $currentTableIds) ? 'checked' : '' }}
                                                 {{ $isBusy ? 'disabled' : '' }}
                                             >
                                             <label class="custom-control-label" for="table{{ $table->id }}_{{ $reservation->id }}">
-                                                {{ $table->name }} 
+                                                {{ $table->name }}
                                                 @if($isBusy)
                                                     <span class="badge badge-danger badge-sm">Đang bận</span>
                                                 @elseif(in_array($table->id, $currentTableIds))
@@ -492,17 +492,17 @@ function validateTableSelection(reservationId) {
     // Đếm số checkbox được chọn
     var checkedCount = document.querySelectorAll('.table-checkbox-' + reservationId + ':checked').length;
     var errorMessage = document.getElementById('errorMessage' + reservationId);
-    
+
     if (checkedCount === 0) {
         // Hiển thị thông báo lỗi
         errorMessage.style.display = 'block';
-        
+
         // Cuộn lên đầu modal để người dùng thấy thông báo
         errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+
         return false; // Ngăn form submit
     }
-    
+
     // Ẩn thông báo lỗi nếu đã chọn bàn
     errorMessage.style.display = 'none';
     return true; // Cho phép form submit

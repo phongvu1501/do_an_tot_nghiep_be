@@ -11,7 +11,7 @@ class DatBanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reservation::with(['menus', 'tables', 'user']);
+        $query = Reservation::with(['reservationItems', 'tables', 'user']);
 
         if ($request->filled('date')) {
             $query->whereDate('reservation_date', $request->date);
@@ -192,15 +192,15 @@ class DatBanController extends Controller
     {
         $date = $request->query('date');
         $shift = $request->query('shift');
-        
+
         $allTables = BanAn::all();
-        
+
         $busyTableIds = BanAn::whereHas('reservations', function ($query) use ($date, $shift) {
             $query->where('reservation_date', $date)
                   ->where('shift', $shift)
                   ->whereIn('status', ['deposit_paid', 'serving']);
         })->pluck('id')->toArray();
-        
+
         return response()->json([
             'tables' => $allTables,
             'busyTableIds' => $busyTableIds,

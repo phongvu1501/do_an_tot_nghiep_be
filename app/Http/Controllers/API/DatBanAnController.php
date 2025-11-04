@@ -42,20 +42,7 @@ class DatBanAnController extends Controller
 
         $reservations = $query->orderBy('id', 'desc')->paginate(10);
 
-        $data = $reservations->map(function ($reservation) use ($request) {
-            $paymentUrl = null;
-            if ($reservation->status === 'deposit_pending') {
-                $orderData = [
-                    'code' => $reservation->reservation_code,
-                    'total' => $reservation->deposit,
-                    'bankCode' => self::BANK_CODE,
-                    'type' => 'billpayment',
-                    'info' => 'Đặt cọc bàn ăn - Mã đơn: ' . $reservation->reservation_code,
-                ];
-                $vnpayController = new VnPayController();
-                $paymentUrl = $vnpayController->createPayment($orderData, $request);
-            }
-
+        $data = $reservations->map(function ($reservation) {
             return [
                 'id' => $reservation->id,
                 'reservation_date' => $reservation->reservation_date,
@@ -85,12 +72,7 @@ class DatBanAnController extends Controller
                     return $menu->price * $menu->pivot->quantity;
                 }),
                 'deposit' => $reservation->deposit,
-                'payment_url' => $paymentUrl,
-                'payment_token' => $reservation->payment_token,
-                'payment_expires_at' => $reservation->payment_expires_at,
-                'is_payment_expired' => $reservation->payment_expires_at
-                    ? Carbon::now()->greaterThan($reservation->payment_expires_at)
-                    : false,
+                'reservation_code' => $reservation->reservation_code,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ];
@@ -131,20 +113,6 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        // Tạo payment URL nếu đơn đang chờ thanh toán
-        $paymentUrl = null;
-        if ($reservation->status === 'deposit_pending') {
-            $orderData = [
-                'code' => $reservation->reservation_code,
-                'total' => $reservation->deposit,
-                'bankCode' => self::BANK_CODE,
-                'type' => 'billpayment',
-                'info' => 'Đặt cọc bàn ăn - Mã đơn: ' . $reservation->reservation_code,
-            ];
-            $vnpayController = new VnPayController();
-            $paymentUrl = $vnpayController->createPayment($orderData, $request);
-        }
-
         return response()->json([
             'success' => true,
             'data' => [
@@ -176,12 +144,7 @@ class DatBanAnController extends Controller
                     return $menu->price * $menu->pivot->quantity;
                 }),
                 'deposit' => $reservation->deposit,
-                'payment_url' => $paymentUrl,
-                'payment_token' => $reservation->payment_token,
-                'payment_expires_at' => $reservation->payment_expires_at,
-                'is_payment_expired' => $reservation->payment_expires_at
-                    ? Carbon::now()->greaterThan($reservation->payment_expires_at)
-                    : false,
+                'reservation_code' => $reservation->reservation_code,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ],
@@ -365,8 +328,6 @@ class DatBanAnController extends Controller
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
                 'reservation_code' => 'RES-' . strtoupper(Str::random(10)),
-                // 'payment_token' => $paymentToken,
-                // 'payment_expires_at' => $paymentExpiresAt,
             ]);
 
             // Gán bàn ăn vào reservation
@@ -396,8 +357,8 @@ class DatBanAnController extends Controller
             $vnpayController = new VnPayController();
             $paymentUrl = $vnpayController->createPayment($orderData, $request);
 
-            // tao limk thanh toan
-            // $paymentUrl = url("/api/payment/confirm/{$paymentToken}");
+            // Lưu payment_url vào database
+            $reservation->update(['payment_url' => $paymentUrl]);
 
             DB::commit();
 
@@ -430,44 +391,45 @@ class DatBanAnController extends Controller
         }
     }
 
-    public function confirmPayment($token)
-    {
-        $reservation = Reservation::where('payment_token', $token)->first();
+    // Không còn sử dụng - VNPay callback được xử lý bởi VnPayController::vnpayReturn()
+    // public function confirmPayment($token)
+    // {
+    //     $reservation = Reservation::where('payment_token', $token)->first();
 
-        if (!$reservation) {
-            return response()->json([
-                'error' => 'Link thanh toán không hợp lệ'
-            ], 404);
-        }
+    //     if (!$reservation) {
+    //         return response()->json([
+    //             'error' => 'Link thanh toán không hợp lệ'
+    //         ], 404);
+    //     }
 
-        if (Carbon::now()->greaterThan($reservation->payment_expires_at)) {
-            $reservation->update(['status' => 'cancelled']);
+    //     if (Carbon::now()->greaterThan($reservation->payment_expires_at)) {
+    //         $reservation->update(['status' => 'cancelled']);
 
-            return response()->json([
-                'error' => 'Link thanh toán đã hết hạn (quá 10 phút)',
-                'message' => 'Đơn đặt bàn đã bị hủy. Vui lòng đặt lại.'
-            ], 400);
-        }
+    //         return response()->json([
+    //             'error' => 'Link thanh toán đã hết hạn (quá 10 phút)',
+    //             'message' => 'Đơn đặt bàn đã bị hủy. Vui lòng đặt lại.'
+    //         ], 400);
+    //     }
 
-        if ($reservation->status == 'deposit_paid') {
-            return response()->json([
-                'success' => true,
-                'message' => 'Đơn đặt bàn này đã được thanh toán rồi.'
-            ], 200);
-        }
+    //     if ($reservation->status == 'deposit_paid') {
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Đơn đặt bàn này đã được thanh toán rồi.'
+    //         ], 200);
+    //     }
 
-        $reservation->update([
-            'status' => 'deposit_paid',
-        ]);
+    //     $reservation->update([
+    //         'status' => 'deposit_paid',
+    //     ]);
 
-        $reservation->refresh();
+    //     $reservation->refresh();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Thanh toán thành công! Đơn đặt bàn đã được xác nhận.',
-            'reservation' => $reservation->load(['tables', 'user']),
-        ], 200);
-    }
+    //     return response()->json([
+    //         'success' => true,
+    //         'message' => 'Thanh toán thành công! Đơn đặt bàn đã được xác nhận.',
+    //         'reservation' => $reservation->load(['tables', 'user']),
+    //     ], 200);
+    // }
 
     /**
      * Lấy thông tin ca

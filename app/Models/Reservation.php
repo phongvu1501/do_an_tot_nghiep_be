@@ -20,12 +20,11 @@ class Reservation extends Model
         'status',
         'deposit',
         'total_amount',
-        // 'payment_token',
-        // 'payment_expires_at',
+        'payment_url',
     ];
 
     protected $casts = [
-        'payment_expires_at' => 'datetime',
+        'reservation_date' => 'date',
     ];
 
     // Quan hệ với User
