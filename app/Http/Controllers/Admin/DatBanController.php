@@ -84,16 +84,16 @@ class DatBanController extends Controller
             }
         }
 
-        // Tạo reservation (admin tạo thì deposit_paid luôn, không cần payment)
+        // admin tao don
         $reservation = Reservation::create([
-            'user_id' => auth()->id() ?? 1, // Nếu admin chưa login thì dùng user_id = 1
+            'user_id' => auth()->id() ?? 1,
             'customer_name' => $request->customer_name,
             'customer_phone' => $request->customer_phone,
             'num_people' => $request->num_people,
             'reservation_date' => $request->reservation_date,
             'shift' => $request->shift,
             'note' => $request->note,
-            'status' => 'deposit_paid', // Admin tạo thì đã đặt cọc luôn
+            'status' => 'deposit_paid',
         ]);
 
         // Gán bàn
@@ -150,6 +150,13 @@ class DatBanController extends Controller
         }
         
         $reservation->save();
+
+        if ($request->redirect_to === 'banAn') {
+            $filterDate = $request->filter_date ?? now()->toDateString();
+            $filterShift = $request->filter_shift ?? 'morning';
+            return redirect()->route('admin.banAn.index', ['date' => $filterDate, 'shift' => $filterShift])
+                             ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
+        }
 
         return redirect()->route('admin.datBan.index')
                          ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
