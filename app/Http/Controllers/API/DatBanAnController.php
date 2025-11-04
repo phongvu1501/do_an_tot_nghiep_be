@@ -26,7 +26,7 @@ class DatBanAnController extends Controller
         }
 
         $query = Reservation::where('user_id', $user->id)
-            ->with(['tables', 'menus']);
+            ->with(['tables', 'reservationItems.menu']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -59,19 +59,20 @@ class DatBanAnController extends Controller
                     ];
                 }),
                 'tables_count' => $reservation->tables->count(),
-                'menus' => $reservation->menus->map(function ($menu) {
+                'menus' => $reservation->reservationItems->map(function ($item) {
                     return [
-                        'id' => $menu->id,
-                        'name' => $menu->name,
-                        'price' => $menu->price,
-                        'quantity' => $menu->pivot->quantity,
-                        'total' => $menu->price * $menu->pivot->quantity,
+                        'id' => $item->menu->id,
+                        'name' => $item->menu->name,
+                        'price' => $item->price,
+                        'quantity' => $item->quantity,
+                        'total' => $item->price * $item->quantity,
                     ];
                 }),
-                'total_price' => $reservation->menus->sum(function ($menu) {
-                    return $menu->price * $menu->pivot->quantity;
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
                 }),
                 'deposit' => $reservation->deposit,
+                'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
@@ -101,7 +102,7 @@ class DatBanAnController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $reservation = Reservation::with(['tables', 'menus', 'user'])
+        $reservation = Reservation::with(['tables', 'reservationItems.menu', 'user'])
             ->where('id', $id)
             ->where('user_id', $user->id)
             ->first();
@@ -131,19 +132,20 @@ class DatBanAnController extends Controller
                     ];
                 }),
                 'tables_count' => $reservation->tables->count(),
-                'menus' => $reservation->menus->map(function ($menu) {
+                'menus' => $reservation->reservationItems->map(function ($item) {
                     return [
-                        'id' => $menu->id,
-                        'name' => $menu->name,
-                        'price' => $menu->price,
-                        'quantity' => $menu->pivot->quantity,
-                        'total' => $menu->price * $menu->pivot->quantity,
+                        'id' => $item->menu->id,
+                        'name' => $item->menu->name,
+                        'price' => $item->price,
+                        'quantity' => $item->quantity,
+                        'total' => $item->price * $item->quantity,
                     ];
                 }),
-                'total_price' => $reservation->menus->sum(function ($menu) {
-                    return $menu->price * $menu->pivot->quantity;
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
                 }),
                 'deposit' => $reservation->deposit,
+                'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
