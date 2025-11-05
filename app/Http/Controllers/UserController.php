@@ -48,4 +48,17 @@ class UserController extends Controller
 
         return redirect()->back()->with('success', 'Cập nhật thông tin thành công!');
     }
+
+    public function index()
+    {
+        $users = User::where('role', 'user')->get();
+        return view('admin.users.index', compact('users'));
+    }
+
+    // Xem chi tiết user (bao gồm bàn và món đã đặt)
+    public function show($id)
+    {
+        $user = User::with(['reservations.menus', 'reservations.tables'])->findOrFail($id);
+        return view('admin.accounts.show', compact('user'));
+    }
 }

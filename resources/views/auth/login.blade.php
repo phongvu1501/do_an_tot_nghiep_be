@@ -38,12 +38,23 @@
         .btn-primary:hover {
             background-color: #b58c4e;
         }
-        a {
-            color: #f5d88f;
-            text-decoration: none;
+        .auth-links {
+            text-align: center;
+          
         }
-        a:hover {
-            text-decoration: underline;
+        .auth-links a {
+            display: inline-block;
+            margin: 5px 10px;
+            padding: 6px 14px;
+           
+            color: #f5d88f;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .auth-links a:hover {
+        
+            text-decoration: none;
         }
         small.text-warning {
             display: block;
@@ -83,11 +94,10 @@
         </div>
 
         <button class="btn btn-primary w-100 py-2 mt-2">Đăng nhập</button>
-        
-       <a href="{{ route('password.change.form') }}" class="d-block text-center mt-3">Đổi mật khẩu</a>
-
-
-
+        <div class="auth-links">
+            <a href="{{ route('password.change.form') }}"> Đổi mật khẩu</a>
+            <a href="{{ route('register') }}"> Đăng ký tài khoản</a>
+        </div>
     </form>
 </div>
 

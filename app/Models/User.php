@@ -53,4 +53,10 @@ class User extends Authenticatable
     {
         return $this->role === 'user';
     }
+
+    public function reservations()
+{
+    return $this->hasMany(\App\Models\Reservation::class, 'user_id');
+}
+
 }
