@@ -143,7 +143,19 @@ class DatBanController extends Controller
 
         $reservation = Reservation::findOrFail($request->reservation_id);
         $reservation->status = $request->status;
+        
+        if ($request->status === 'cancelled' && $request->filled('cancellation_reason')) {
+            $reservation->cancellation_reason = $request->cancellation_reason;
+        }
+        
         $reservation->save();
+
+        if ($request->redirect_to === 'banAn') {
+            $filterDate = $request->filter_date ?? now()->toDateString();
+            $filterShift = $request->filter_shift ?? 'morning';
+            return redirect()->route('admin.banAn.index', ['date' => $filterDate, 'shift' => $filterShift])
+                             ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
+        }
 
         return redirect()->route('admin.datBan.index')
                          ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
