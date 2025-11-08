@@ -307,6 +307,7 @@ class DatBanAnController extends Controller
                     'quantity' => $menuItem['quantity'],
                 ]);
             }
+        }
 
         // tao limk thanh toan
         $paymentUrl = url("/api/payment/confirm/{$paymentToken}");
