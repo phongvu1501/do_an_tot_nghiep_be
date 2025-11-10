@@ -12,15 +12,32 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reservations', function (Blueprint $table) {
-            $table->decimal('deposit', 10, 2)->default(0)->after('user_id');
-            $table->decimal('total_amount', 10, 2)->default(0)->after('deposit');
+            if (!Schema::hasColumn('reservations', 'deposit')) {
+                $table->decimal('deposit', 10, 2)->default(0)->after('user_id');
+            }
+
+            if (!Schema::hasColumn('reservations', 'total_amount')) {
+                $table->decimal('total_amount', 10, 2)->default(0)->after('deposit');
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            $table->dropColumn(['deposit', 'total_amount']);
-        });
+        $columnsToDrop = [];
+
+        if (Schema::hasColumn('reservations', 'deposit')) {
+            $columnsToDrop[] = 'deposit';
+        }
+
+        if (Schema::hasColumn('reservations', 'total_amount')) {
+            $columnsToDrop[] = 'total_amount';
+        }
+
+        if (!empty($columnsToDrop)) {
+            Schema::table('reservations', function (Blueprint $table) use ($columnsToDrop) {
+                $table->dropColumn($columnsToDrop);
+            });
+        }
     }
 };
