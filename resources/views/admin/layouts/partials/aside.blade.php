@@ -7,10 +7,11 @@
         <!-- Sidebar user (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
-                <img src="{{ asset('./assets/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2" alt="User Image">
+                <img src="{{ asset('./assets/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2"
+                    alt="User Image">
             </div>
             <div class="info">
-                <a href="{{route('admin.dashboard')}}" class="d-block">Admin</a>
+                <a href="{{ route('admin.profile') }}" class="d-block">Admin</a>
             </div>
         </div>
 
@@ -85,22 +86,28 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="" class="nav-link">
+                            <a href="{{ route('admin.accounts') }}" class="nav-link">
                                 <i class="far fa-user nav-icon"></i>
-                                <p>Tài khoản quản trị viên</p>
+                                <p>Tài khoản quản trị viên</p>
                             </a>
                         </li>
-                    </ul>
-                    <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="" class="nav-link">
+                            <a href="{{ route('user.accounts') }}" class="nav-link">
                                 <i class="far fa-user nav-icon"></i>
-                                <p>Tài khoản khách hàng</p>
+                                <p>Tài khoản khách hàng</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('admin.profile') }}" class="nav-link">
+                                <i class="far fa-user nav-icon"></i>
+                                <p>Thông tin tài khoản</p>
                             </a>
                         </li>
                     </ul>
+
                 </li>
             </ul>
+
         </nav>
         <!-- /.sidebar-menu -->
     </div>

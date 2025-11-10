@@ -9,14 +9,16 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\API\VnPayController;
 
-// Public routes
+// ======================================================
+// 🔓 PUBLIC ROUTES (Không cần token)
+// ======================================================
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [PasswordResetController::class, 'forgot']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
+// Menu và danh mục (cho tất cả)
 Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
-
 Route::get('/menus', [MenuApiController::class, 'index']);
 
 // Không còn sử dụng - VNPay callback được xử lý bởi vnpayReturn
@@ -25,9 +27,15 @@ Route::get('/menus', [MenuApiController::class, 'index']);
 // VNPAY return route
 Route::get('/vnpay-return', [VnPayController::class, 'vnpayReturn']);
 
-// Protected routes
+// ======================================================
+// 🔐 PROTECTED ROUTES (Cần token Sanctum)
+// ======================================================
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Thông tin người dùng hiện tại
     Route::get('/user', [AuthController::class, 'user']);
+    
+    // Logout
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Admin-only route
@@ -55,7 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Hủy đơn đặt bàn
     Route::put('/dat-ban-an/{id}/cancel', [DatBanAnController::class, 'cancel']);
-
+ 
     // VNPAY Payment Routes
     Route::get('/payment', [VnPayController::class, 'createPayment']);
 });
