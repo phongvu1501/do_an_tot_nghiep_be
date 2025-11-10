@@ -8,6 +8,7 @@ use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\API\VnPayController;
+use App\Http\Controllers\API\ReviewApiController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -20,6 +21,8 @@ Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
 Route::get('/menus', [MenuApiController::class, 'index']);
 
 Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
+
+Route::get('/reviews/{menu_id}', [ReviewApiController::class, 'index']);
 
 // VNPAY return route
 Route::get('/vnpay-return', [VnPayController::class, 'vnpayReturn']);
@@ -57,4 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // VNPAY Payment Routes
     Route::get('/payment', [VnPayController::class, 'createPayment']);
+
+    // Thêm, sửa, xoá review
+    Route::post('/reviews/{menu_id}', [ReviewApiController::class, 'store']);
+    Route::put('/reviews/{id}', [ReviewApiController::class, 'update']);
+    Route::delete('/reviews/{id}', [ReviewApiController::class, 'destroy']);
 });
