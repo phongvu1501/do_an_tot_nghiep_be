@@ -74,6 +74,8 @@ class DatBanAnController extends Controller
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
+                'cancellation_reason' => $reservation->cancellation_reason,
+                'deposit' => $reservation->deposit,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ];
@@ -147,6 +149,7 @@ class DatBanAnController extends Controller
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
+                'cancellation_reason' => $reservation->cancellation_reason,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ],
@@ -267,7 +270,7 @@ class DatBanAnController extends Controller
             if ($allAvailableTables->isEmpty()) {
                 return response()->json([
                     'error' => 'Hết bàn trống',
-                    'message' => 'Không còn bàn trống nào trong ca này. Vui lòng chọn ca khác.',
+                    'message' => 'Không còn đủ bàn trống, vui lòng chọn ca khác hoặc liên hệ với quán',
                     'shift_info' => $this->getShiftInfo($request->shift),
                 ], 400);
             }
