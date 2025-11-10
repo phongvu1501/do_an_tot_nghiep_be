@@ -18,12 +18,14 @@ class Reservation extends Model
         'depsection',
         'voucher_id',
         'status',
-        'payment_token',
-        'payment_expires_at',
+        'deposit',
+        'total_amount',
+        'payment_url',
+        'cancellation_reason',
     ];
 
     protected $casts = [
-        'payment_expires_at' => 'datetime',
+        'reservation_date' => 'date',
     ];
 
     // Quan hệ với User
