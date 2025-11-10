@@ -11,7 +11,7 @@ class DatBanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reservation::with(['reservationItems', 'tables', 'user']);
+        $query = Reservation::with(['reservationItems.menu', 'tables', 'user']);
 
         if ($request->filled('date')) {
             $query->whereDate('reservation_date', $request->date);
@@ -23,7 +23,7 @@ class DatBanController extends Controller
 
         if ($request->filled('status')) {
             if ($request->status == 'deposit_pending') {
-                $query->where('status', 'deposit_pending');
+                $query->whereIn('status', ['deposit_pending', 'pending']);
             } else {
                 $query->where('status', $request->status);
             }
@@ -73,7 +73,7 @@ class DatBanController extends Controller
                 ->reservations()
                 ->where('reservation_date', $request->reservation_date)
                 ->where('shift', $request->shift)
-                ->where('status', 'confirmed')
+                ->whereIn('status', ['deposit_paid', 'serving'])
                 ->exists();
 
             if ($isBusy) {
@@ -84,16 +84,16 @@ class DatBanController extends Controller
             }
         }
 
-        // Tạo reservation (admin tạo thì confirmed luôn, không cần payment)
+        // admin tao don
         $reservation = Reservation::create([
-            'user_id' => auth()->id() ?? 1, // Nếu admin chưa login thì dùng user_id = 1
+            'user_id' => auth()->id() ?? 1,
             'customer_name' => $request->customer_name,
             'customer_phone' => $request->customer_phone,
             'num_people' => $request->num_people,
             'reservation_date' => $request->reservation_date,
             'shift' => $request->shift,
             'note' => $request->note,
-            'status' => 'confirmed', // Admin tạo thì xác nhận luôn
+            'status' => 'deposit_paid',
         ]);
 
         // Gán bàn
@@ -138,12 +138,25 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'status' => 'required|in:deposit_pending,deposit_paid,completed,cancelled,pending',
+            'status' => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
+            'cancellation_reason' => 'required_if:status,cancelled',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
         $reservation->status = $request->status;
+        
+        if ($request->status === 'cancelled' && $request->filled('cancellation_reason')) {
+            $reservation->cancellation_reason = $request->cancellation_reason;
+        }
+        
         $reservation->save();
+
+        if ($request->redirect_to === 'banAn') {
+            $filterDate = $request->filter_date ?? now()->toDateString();
+            $filterShift = $request->filter_shift ?? 'morning';
+            return redirect()->route('admin.banAn.index', ['date' => $filterDate, 'shift' => $filterShift])
+                             ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
+        }
 
         return redirect()->route('admin.datBan.index')
                          ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
@@ -171,7 +184,7 @@ class DatBanController extends Controller
                 ->reservations()
                 ->where('reservation_date', $reservation->reservation_date)
                 ->where('shift', $reservation->shift)
-                ->where('status', 'confirmed')
+                ->whereIn('status', ['deposit_paid', 'serving'])
                 ->where('reservations.id', '!=', $reservation->id)
                 ->exists();
 
@@ -198,7 +211,7 @@ class DatBanController extends Controller
         $busyTableIds = BanAn::whereHas('reservations', function ($query) use ($date, $shift) {
             $query->where('reservation_date', $date)
                   ->where('shift', $shift)
-                  ->where('status', 'confirmed');
+                  ->whereIn('status', ['deposit_paid', 'serving']);
         })->pluck('id')->toArray();
 
         return response()->json([

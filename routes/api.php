@@ -20,7 +20,8 @@ Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
 
 Route::get('/menus', [MenuApiController::class, 'index']);
 
-Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
+// Không còn sử dụng - VNPay callback được xử lý bởi vnpayReturn
+// Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
 
 Route::get('/reviews/{menu_id}', [ReviewApiController::class, 'index']);
 
