@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            $table->decimal('deposit', 10, 2)->nullable()->after('status')->comment('Số tiền đặt cọc');
-            $table->decimal('total_amount', 10, 2)->nullable()->after('deposit')->comment('Tổng số tiền');
-        });
+        // Schema::table('reservations', function (Blueprint $table) {
+        //     $table->decimal('deposit', 10, 2)->nullable()->after('status')->comment('Số tiền đặt cọc');
+        //     $table->decimal('total_amount', 10, 2)->nullable()->after('deposit')->comment('Tổng số tiền');
+        // });
     }
 
     /**
@@ -22,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            $table->dropColumn(['deposit', 'total_amount']);
-        });
+        // Schema::table('reservations', function (Blueprint $table) {
+        //     $table->dropColumn(['deposit', 'total_amount']);
+        // });
     }
 };

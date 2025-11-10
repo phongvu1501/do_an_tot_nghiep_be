@@ -23,8 +23,6 @@ Route::get('/menus', [MenuApiController::class, 'index']);
 // Không còn sử dụng - VNPay callback được xử lý bởi vnpayReturn
 // Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
 
-Route::get('/reviews/{menu_id}', [ReviewApiController::class, 'index']);
-
 // VNPAY return route
 Route::get('/vnpay-return', [VnPayController::class, 'vnpayReturn']);
 
@@ -39,7 +37,6 @@ Route::middleware('auth:sanctum')->group(function () {
             return response()->json(['message' => 'Welcome Admin']);
         });
     });
-
     // User + Admin route
     Route::middleware([RoleMiddleware::class . ':user,admin'])->group(function () {
         Route::get('/profile', function () {
@@ -62,8 +59,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // VNPAY Payment Routes
     Route::get('/payment', [VnPayController::class, 'createPayment']);
 
-    // Thêm, sửa, xoá review
-    Route::post('/reviews/{menu_id}', [ReviewApiController::class, 'store']);
-    Route::put('/reviews/{id}', [ReviewApiController::class, 'update']);
-    Route::delete('/reviews/{id}', [ReviewApiController::class, 'destroy']);
+    // Gửi đánh giá cho lần đặt bàn (chỉ user sở hữu, status = completed)
+    Route::post('/reservations/{reservation}/review', [ReviewApiController::class, 'store'])
+        ->name('api.review.store');
+    // Xem đánh giá của lần đặt bàn
+    Route::get('/reservations/{reservation}/review', [ReviewApiController::class, 'show'])
+        ->name('api.review.show');
+    Route::get('/reservations/{reservation}/reviews', [ReviewApiController::class, 'index']);
+    Route::put('/reviews/{review}', [ReviewApiController::class, 'update']);
+    Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
 });

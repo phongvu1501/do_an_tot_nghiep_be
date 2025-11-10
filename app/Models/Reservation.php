@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Reservation extends Model
 {
@@ -55,6 +56,19 @@ class Reservation extends Model
     public function reservationItems()
     {
         return $this->hasMany(ReservationItem::class);
+    }
+
+    
+    // Quan hệ 1-1 với Review
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
+    // Kiểm tra xem đã đánh giá chưa
+    public function hasReviewed(): bool
+    {
+        return $this->review()->exists();
     }
 
 }
