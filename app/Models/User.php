@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,28 +9,21 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Các cột được phép gán hàng loạt.
      */
-
-   protected $fillable = [
-    'name',
-    'email',
-    'password',
-    'role',
-];
-
-
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'phone',
+        'role',
+    ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Các cột sẽ bị ẩn khi trả về JSON.
      */
     protected $hidden = [
         'password',
@@ -39,17 +31,32 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Các kiểu dữ liệu được cast tự động.
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 
-    public function reservations()
+    /**
+     * Kiểm tra xem user có phải admin không.
+     */
+    public function isAdmin()
     {
-        return $this->hasMany(Reservation::class);
+        return $this->role === 'admin';
     }
+
+    /**
+     * Kiểm tra xem user có phải user thường không.
+     */
+    public function isUser()
+    {
+        return $this->role === 'user';
+    }
+
+    public function reservations()
+{
+    return $this->hasMany(\App\Models\Reservation::class, 'user_id');
+}
+
 }
