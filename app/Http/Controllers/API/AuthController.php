@@ -112,4 +112,7 @@ class AuthController extends Controller
             'message' => 'Đăng xuất thành công!'
         ]);
     }
+
 }
+
+

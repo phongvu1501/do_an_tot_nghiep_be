@@ -61,4 +61,8 @@ class UserController extends Controller
         $user = User::with(['reservations.menus', 'reservations.tables'])->findOrFail($id);
         return view('admin.accounts.show', compact('user'));
     }
+
 }
+
+
+
