@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -9,21 +10,28 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * Các cột được phép gán hàng loạt.
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'phone',
-        'role',
-    ];
+
+   protected $fillable = [
+    'name',
+    'email',
+    'password',
+    'role',
+];
+
+
 
     /**
-     * Các cột sẽ bị ẩn khi trả về JSON.
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
      */
     protected $hidden = [
         'password',
@@ -31,36 +39,33 @@ class User extends Authenticatable
     ];
 
     /**
-     * Các kiểu dữ liệu được cast tự động.
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 
-    /**
-     * Kiểm tra xem user có phải admin không.
-     */
-    public function isAdmin()
+    public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    /**
-     * Kiểm tra xem user có phải user thường không.
-     */
-    public function isUser()
+    public function isUser(): bool
     {
         return $this->role === 'user';
     }
 
     public function reservations()
-{
-    return $this->hasMany(\App\Models\Reservation::class, 'user_id');
+    {
+        return $this->hasMany(\App\Models\Reservation::class, 'user_id');
+    }
 
-
+    // Quan hệ: 1 user có nhiều đánh giá
+    public function reviews()
+    {
+        return $this->hasMany(\App\Models\Review::class);
+    }
 }
-
-
-}
-
