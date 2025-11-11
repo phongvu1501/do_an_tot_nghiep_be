@@ -50,12 +50,12 @@ class User extends Authenticatable
 
     public function reservations()
     {
-        return $this->hasMany(Reservation::class);
+        return $this->hasMany(\App\Models\Reservation::class);
     }
 
     // Quan hệ: 1 user có nhiều đánh giá
     public function reviews()
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(\App\Models\Review::class);
     }
 }
