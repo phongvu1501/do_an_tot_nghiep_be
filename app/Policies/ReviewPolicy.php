@@ -11,7 +11,8 @@ class ReviewPolicy
 {
     public function view(User $user, Reservation $reservation): bool
     {
-        return $user->id === $reservation->user_id;
+        // User là người tạo reservation hoặc role = admin mới được xem
+        return $user->id === $reservation->user_id || $user->role === 'admin';
     }
 
     public function store(User $user, Reservation $reservation): bool
