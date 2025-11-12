@@ -5,7 +5,7 @@ use App\Http\Controllers\API\MenuApiController;
 use App\Http\Controllers\API\MenuCategoryApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\API\ReviewApiController;
