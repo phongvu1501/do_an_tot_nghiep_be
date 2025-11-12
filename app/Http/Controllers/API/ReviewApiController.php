@@ -31,19 +31,19 @@ class ReviewApiController extends Controller
     {
         $reservations = Reservation::where('user_id', auth()->id())
             ->where('status', 'completed')
-            ->with('review')
+            ->with('review.user')
             ->latest('reservation_date')
             ->get()
             ->map(function ($reservation) {
                 $hasReview = $reservation->review()->exists();
                 return [
-                    'reservation_id'     => $reservation->id,
-                    'reservation_code'   => $reservation->reservation_code,
-                    'date'               => $reservation->reservation_date->format('d/m/Y'),
-                    'shift'              => ucfirst($reservation->shift),
-                    'num_people'         => $reservation->num_people,
-                    'can_review'         => !$hasReview,
-                    'review'             => $hasReview ? [
+                    'reservation_id'    => $reservation->id,
+                    'reservation_code'  => $reservation->reservation_code,
+                    'date'              => $reservation->reservation_date->format('d/m/Y'),
+                    'shift'             => ucfirst($reservation->shift),
+                    'num_people'        => $reservation->num_people,
+                    'can_review'        => !$hasReview,
+                    'review'            => $hasReview ? [
                         'id'         => $reservation->review->id,
                         'rating'     => $reservation->review->rating,
                         'comment'    => $reservation->review->comment,
@@ -65,6 +65,9 @@ class ReviewApiController extends Controller
      */
     public function store(StoreReviewRequest $request, Reservation $reservation): JsonResponse
     {
+        // BẮT BUỘC REFRESH: Đảm bảo Policy nhận dữ liệu mới nhất từ DB
+        $reservation->refresh();
+
         $this->authorize('store', $reservation);
 
         $review = $reservation->review()->updateOrCreate(
@@ -81,7 +84,7 @@ class ReviewApiController extends Controller
         return response()->json([
             'message' => "Đánh giá đã được {$action} thành công!",
             'data'    => new ReviewResource($review),
-        ], 201);
+        ], $review->wasRecentlyCreated ? 201 : 200);
     }
 
     /**
@@ -90,13 +93,26 @@ class ReviewApiController extends Controller
      */
     public function show(Reservation $reservation): JsonResponse
     {
+        // Kiểm tra quyền
         $this->authorize('view', $reservation);
+
+        // Nạp luôn user để tránh N+1
+        $reservation->load('review.user');
 
         $review = $reservation->review;
 
+        // Nếu chưa có đánh giá
+        if (!$review) {
+            return response()->json([
+                'message' => 'Đặt bàn này chưa có đánh giá.',
+            ], 404);
+        }
+
+        // Nếu có, trả về chi tiết review
         return response()->json([
-            'data' => $review ? new ReviewResource($review) : null,
-        ]);
+            'message' => 'Lấy thông tin đánh giá thành công.',
+            'data'    => new ReviewResource($review),
+        ], 200);
     }
 
     /**
