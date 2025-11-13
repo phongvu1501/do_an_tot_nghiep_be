@@ -20,6 +20,7 @@
                 <div class="col-md-6">
                     <p><strong>Vai trò:</strong> {{ ucfirst($user->role ?? 'user') }}</p>
                     <p><strong>Ngày tạo:</strong> {{ $user->created_at->format('d/m/Y H:i') }}</p>
+                    <p><strong>Số điểm hiện tại:</strong> {{ $user->points ?? 0 }}</p>
                 </div>
             </div>
         </div>
