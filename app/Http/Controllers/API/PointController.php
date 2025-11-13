@@ -36,7 +36,7 @@ class PointController extends Controller
         ]);
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'Tích điểm thành công!',
             'data' => [
                 'user_id' => $user->id,
@@ -66,7 +66,7 @@ class PointController extends Controller
         ]);
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'Admin đã cộng điểm cho người dùng thành công!',
             'data' => [
                 'username' => $user->username ?? $user->email,
@@ -86,7 +86,7 @@ class PointController extends Controller
             ->get();
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'Lịch sử tích điểm của bạn',
             'data' => $logs,
         ]);

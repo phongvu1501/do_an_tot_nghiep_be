@@ -69,7 +69,7 @@ class PointVoucherController extends Controller
         ]);
 
         return response()->json([
-            'status' => true,
+            'status' => 'success',
             'message' => 'Đổi điểm thành công!',
             'data' => [
                 'voucher' => $voucher,
