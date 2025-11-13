@@ -48,8 +48,24 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
+
     public function reservations()
     {
-        return $this->hasMany(Reservation::class);
+        return $this->hasMany(\App\Models\Reservation::class, 'user_id');
+    }
+
+    // Quan hệ: 1 user có nhiều đánh giá
+    public function reviews()
+    {
+        return $this->hasMany(\App\Models\Review::class);
     }
 }

@@ -1,22 +1,29 @@
 <?php
 
+use App\Http\Controllers\API\PointController;
 use App\Http\Controllers\API\DatBanAnController;
 use App\Http\Controllers\API\MenuApiController;
 use App\Http\Controllers\API\MenuCategoryApiController;
+use App\Http\Controllers\Api\PointVoucherController;
+use App\Http\Controllers\Api\RedemptionApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\API\VnPayController;
+use App\Http\Controllers\API\ReviewApiController;
+use App\Http\Controllers\Api\VoucherController;
 
-// Public routes
+// ======================================================
+// 🔓 PUBLIC ROUTES (Không cần token)
+// ======================================================
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [PasswordResetController::class, 'forgot']);
 Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
+// Menu và danh mục (cho tất cả)
 Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
-
 Route::get('/menus', [MenuApiController::class, 'index']);
 
 // Không còn sử dụng - VNPay callback được xử lý bởi vnpayReturn
@@ -25,9 +32,15 @@ Route::get('/menus', [MenuApiController::class, 'index']);
 // VNPAY return route
 Route::get('/vnpay-return', [VnPayController::class, 'vnpayReturn']);
 
-// Protected routes
+// ======================================================
+// 🔐 PROTECTED ROUTES (Cần token Sanctum)
+// ======================================================
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Thông tin người dùng hiện tại
     Route::get('/user', [AuthController::class, 'user']);
+
+    // Logout
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Admin-only route
@@ -58,4 +71,42 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // VNPAY Payment Routes
     Route::get('/payment', [VnPayController::class, 'createPayment']);
+
+    // Danh sách đặt bàn có thể đánh giá
+    Route::get('/reviewable', [ReviewApiController::class, 'index']);
+
+    // Gửi / cập nhật đánh giá
+    Route::post('/reservations/{reservation}/review', [ReviewApiController::class, 'store'])
+        ->name('api.review.store');
+
+    // Xem đánh giá
+    Route::get('/reservations/{reservation}/review', [ReviewApiController::class, 'show']);
+
+    // Cập nhật / xóa đánh giá
+    Route::put('/reviews/{review}', [ReviewApiController::class, 'update']);
+    Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
+
+    // Áp dụng voucher
+    Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
+    Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
+
+    //Tích điểm đổi voucher
+    
+    // Lấy danh sách tier đổi điểm đang hoạt động
+    Route::get('/redeem/tiers', [RedemptionApiController::class, 'getTiers']);
+    
+    // Thực hiện đổi điểm lấy voucher
+    Route::post('/redeem/exchange', [RedemptionApiController::class, 'exchange']);
+
+    //Quản lý lịch sử đổi điểm lấy voucher
+    Route::get('/point-voucher/tiers', [PointVoucherController::class, 'tiers']);
+    Route::post('/point-voucher/redeem', [PointVoucherController::class, 'redeem']);
+    Route::get('/point-voucher/history', [PointVoucherController::class, 'history']);
+
+    // Tích điểm
+    Route::post('/points/add', [PointController::class, 'addPoints']);
+    // Xem tổng điểm
+    Route::get('/points', [PointController::class, 'getPoints']);
+    // Lịch sử tích điểm
+    Route::get('/points/history', [PointController::class, 'history']);
 });

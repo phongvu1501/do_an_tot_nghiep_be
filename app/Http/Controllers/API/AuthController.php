@@ -3,68 +3,116 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    /**
+     * Đăng ký tài khoản
+     */
+    public function register(Request $request): JsonResponse
     {
-        // ✅ Validate dữ liệu đầu vào
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|digits_between:9,11|unique:users,phone',
-            'password' => 'required|min:6|confirmed',
+            'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'required|string|max:20|unique:users|regex:/^[0-9]{9,15}$/',
+            'password' => 'required|string|min:6|confirmed',
         ], [
-            'name.required' => 'Vui lòng nhập họ tên.',
-            'email.required' => 'Vui lòng nhập email.',
-            'email.email' => 'Email không hợp lệ.',
-            'email.unique' => 'Email này đã được sử dụng.',
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
-            'phone.digits_between' => 'Số điện thoại phải có từ 9 đến 11 chữ số.',
-            'phone.unique' => 'Số điện thoại này đã được sử dụng.',
-            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'name.required' => 'Trường họ tên là bắt buộc.',
+            'email.required' => 'Trường email là bắt buộc.',
+            'email.email' => 'Email không đúng định dạng.',
+            'email.unique' => 'Email đã tồn tại.',
+            'phone.required' => 'Trường số điện thoại là bắt buộc.',
+            'phone.unique' => 'Số điện thoại đã được sử dụng.',
+            'phone.regex' => 'Số điện thoại không hợp lệ (chỉ chứa 9–15 chữ số).',
+            'password.required' => 'Trường mật khẩu là bắt buộc.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        // ✅ Tạo tài khoản
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
+            'role' => 'user', // mặc định user
         ]);
 
-        // ✅ Gửi email xác nhận
-        try {
-            Mail::raw("Xin chào {$user->name}, bạn đã đăng ký thành công tài khoản!", function ($m) use ($user) {
-                $m->to($user->email)->subject('Đăng ký tài khoản thành công');
-            });
-        } catch (\Exception $e) {
-            // Nếu gửi mail lỗi, vẫn trả về kết quả thành công nhưng có thông báo
-            return response()->json([
-                'status' => true,
-                'message' => 'Đăng ký thành công, nhưng không thể gửi email xác nhận.',
-                'user' => $user,
-            ], 201);
-        }
-
         return response()->json([
-            'status' => true,
-            'message' => 'Đăng ký thành công! Vui lòng kiểm tra email của bạn.',
-            'user' => $user,
+            'success' => true,
+            'message' => 'Đăng ký thành công! Hãy đăng nhập.',
+            'user' => $user
         ], 201);
     }
+
+    /**
+     * Đăng nhập
+     */
+    public function login(Request $request): JsonResponse
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email hoặc mật khẩu không đúng.'
+            ], 401);
+        }
+
+        // Tạo token Sanctum
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng nhập thành công!',
+            'data' => [
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ], 200);
+    }
+
+    /**
+     * Thông tin user hiện tại
+     */
+    public function user(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'user' => $request->user()
+        ]);
+    }
+
+    /**
+     * Logout (Xóa token hiện tại)
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng xuất thành công!'
+        ]);
+    }
+
 }
+
+
