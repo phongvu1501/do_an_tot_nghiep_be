@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Reservation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'order_code',
+        'reservation_code',
         'user_id',
         'reservation_date',
         'shift',
@@ -18,12 +19,14 @@ class Reservation extends Model
         'depsection',
         'voucher_id',
         'status',
-        'payment_token',
-        'payment_expires_at',
+        'deposit',
+        'total_amount',
+        'payment_url',
+        'cancellation_reason',
     ];
 
     protected $casts = [
-        'payment_expires_at' => 'datetime',
+        'reservation_date' => 'date',
     ];
 
     // Quan hệ với User
@@ -49,4 +52,22 @@ class Reservation extends Model
     {
         return $this->belongsToMany(BanAn::class, 'reservation_tables', 'reservation_id', 'table_id');
     }
+
+    public function reservationItems()
+    {
+        return $this->hasMany(ReservationItem::class);
+    }
+
+    // Quan hệ 1-1 với Review
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
+    // Kiểm tra xem đã đánh giá chưa
+    public function hasReviewed(): bool
+    {
+        return $this->review()->exists();
+    }
+
 }
