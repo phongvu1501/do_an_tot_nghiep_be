@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DatBanController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuCategoryController;
+use App\Http\Controllers\Admin\VoucherController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -51,6 +52,9 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
+
+    Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
+    Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
 
 
     Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');

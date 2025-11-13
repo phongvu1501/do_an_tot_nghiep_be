@@ -6,13 +6,14 @@
     <div class="sidebar">
         <!-- Sidebar user (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-            <div class="image">
+            {{-- <div class="image">
                 <img src="{{ asset('./assets/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2"
                     alt="User Image">
             </div>
             <div class="info">
+                <a href="{{ route('admin.dashboard') }}" class="d-block">Admin</a>
                 <a href="{{ route('admin.profile') }}" class="d-block">Admin</a>
-            </div>
+            </div> --}}
         </div>
 
         <!-- SidebarSearch Form -->
@@ -72,11 +73,34 @@
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('admin.banAn.index') }}" class="nav-link">
-                        <i class="nav-icon fas fa-utensils"></i>
+                        <i class="nav-icon fas fa-table"></i>
                         <p>
                             Quản lý bàn ăn
                         </p>
                     </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-tag"></i>
+                        <p>Quản lý vouchers</p>
+                        <i class="right fas fa-angle-left"></i>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('admin.vouchers.voucher.index') }}" class="nav-link">
+                                <i class="far fa-credit-card nav-icon"></i>
+                                <p>Vouchers</p>
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="" class="nav-link">
+                                <i class="far fa-credit-card nav-icon"></i>
+                                <p>Tích điểm</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">

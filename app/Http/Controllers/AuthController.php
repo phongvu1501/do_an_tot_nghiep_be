@@ -18,39 +18,39 @@ class AuthController extends Controller
     }
 
     // Xử lý đăng ký
-   public function register(Request $request)
-{
-    $request->validate(
-        [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'phone' => 'required|string|max:20|unique:users|regex:/^[0-9]{9,15}$/',
-            'password' => 'required|string|min:6|confirmed',
-        ],
-        [
-            'name.required' => 'Trường họ tên là bắt buộc.',
-            'email.required' => 'Trường email là bắt buộc.',
-            'email.email' => 'Email không đúng định dạng.',
-            'email.unique' => 'Email đã tồn tại.',
-            'phone.required' => 'Trường số điện thoại là bắt buộc.',
-            'phone.unique' => 'Số điện thoại đã được sử dụng.',
-            'phone.regex' => 'Số điện thoại không hợp lệ (chỉ chứa 9–15 chữ số).',
-            'password.required' => 'Trường mật khẩu là bắt buộc.',
-            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
-            'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
-        ]
-    );
+    public function register(Request $request)
+    {
+        $request->validate(
+            [
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'phone' => 'required|string|max:20|unique:users|regex:/^[0-9]{9,15}$/',
+                'password' => 'required|string|min:6|confirmed',
+            ],
+            [
+                'name.required' => 'Trường họ tên là bắt buộc.',
+                'email.required' => 'Trường email là bắt buộc.',
+                'email.email' => 'Email không đúng định dạng.',
+                'email.unique' => 'Email đã tồn tại.',
+                'phone.required' => 'Trường số điện thoại là bắt buộc.',
+                'phone.unique' => 'Số điện thoại đã được sử dụng.',
+                'phone.regex' => 'Số điện thoại không hợp lệ (chỉ chứa 9-15 chữ số).',
+                'password.required' => 'Trường mật khẩu là bắt buộc.',
+                'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+                'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
+            ]
+        );
 
-    $user = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'phone' => $request->phone,
-        'password' => Hash::make($request->password),
-        'role' => 'user', // mặc định là user
-    ]);
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+            'role' => 'user', // mặc định là user
+        ]);
 
-    return redirect()->route('login')->with('success', 'Đăng ký thành công! Hãy đăng nhập.');
-}
+        return redirect()->route('login')->with('success', 'Đăng ký thành công! Hãy đăng nhập.');
+    }
 
 
     // Hiển thị form đăng nhập
@@ -60,6 +60,47 @@ class AuthController extends Controller
     }
 
     // Xử lý đăng nhập
+    // public function login(Request $request)
+    // {
+    //     $credentials = $request->validate([
+    //         'email' => ['required', 'email'],
+    //         'password' => ['required'],
+    //     ]);
+
+    //     $user = User::where('email', $credentials['email'])->first();
+
+    //     if (!$user || !Hash::check($credentials['password'], $user->password)) {
+    //         return response()->json([
+    //             'message' => 'Sai email hoặc mật khẩu!',
+    //         ], 401);
+    //     }
+
+    //     $token = $user->createToken('api-token')->plainTextToken;
+
+    //     if ($user->role === 'admin') {
+    //         return response()->json([
+    //             'message' => 'Đăng nhập thành công! (Admin)',
+    //             'data' => [
+    //                 'email' => $user->email,
+    //                 'username' => $user->username,
+    //                 'role' => $user->role,
+    //                 'token' => $token,
+    //                 'redirect' => route('admin.dashboard'),
+    //             ]
+    //         ], 200);
+    //     } else {
+    //         return response()->json([
+    //             'message' => 'Đăng nhập thành công!',
+    //             'data' => [
+    //                 'email' => $user->email,
+    //                 'username' => $user->username,
+    //                 'role' => $user->role,
+    //                 'token' => $token,
+    //             ]
+    //         ], 200);
+    //     }
+    // }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -104,8 +145,9 @@ class AuthController extends Controller
                 'expires_in' => now()->addHours(2)->toDateTimeString(),
             ],
         ], 200);
-
     }
+
+
 
     public function logout(Request $request)
     {
@@ -134,8 +176,4 @@ class AuthController extends Controller
 
         return redirect()->route('admin.dashboard');
     }
-
 }
-
-
-
