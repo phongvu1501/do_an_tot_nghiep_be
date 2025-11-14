@@ -3,91 +3,40 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Carbon\Carbon;
-use App\Models\User;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ResetPasswordMail;
 
 class PasswordResetController extends Controller
 {
-    // 1️⃣ Gửi email quên mật khẩu
-    public function forgot(Request $request)
+
+    public function showChangeForm()
     {
-        $validator = Validator::make($request->all(), [
-            'email' => ['required','email','exists:users,email'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success'=>false,
-                'message'=>'Validation error',
-                'errors'=>$validator->errors()
-            ], 422);
-        }
-
-        $email = $request->email;
-        $token = Str::random(64);
-
-        // Lưu token hashed vào DB
-        DB::table('password_resets')->updateOrInsert(
-            ['email' => $email],
-            [
-                'token' => Hash::make($token),
-                'created_at' => Carbon::now()
-            ]
-        );
-
-        // Gửi email (hoặc log nếu MAIL_MAILER=log)
-        Mail::to($email)->send(new ResetPasswordMail($token, $email));
-
-        return response()->json([
-            'success'=>true,
-            'message'=>'Reset password token sent to your email.'
-        ]);
+        return view('auth.change-password');  // file đổi mật khẩu bạn gửi
     }
 
-    // 2️⃣ Reset password
-    public function reset(Request $request)
+    public function change(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => ['required','email','exists:users,email'],
-            'token' => ['required'],
-            'password' => ['required','confirmed'],
-        ]);
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed',
+        ],
+    [
+         'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại.',
+            'new_password.required' => 'Vui lòng nhập mật khẩu mới.',
+            'new_password.min' => 'Mật khẩu mới phải có ít nhất :min ký tự.',
+            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp.',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success'=>false,
-                'message'=>'Validation error',
-                'errors'=>$validator->errors()
-            ], 422);
+        $user = $request->user();
+
+        // Kiểm tra mật khẩu hiện tại có đúng không
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Mật khẩu hiện tại không đúng']);
         }
 
-        $record = DB::table('password_resets')->where('email', $request->email)->first();
-
-     if (!$record || !Hash::check($request->token, $record->token) || Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
-    return response()->json([
-        'success'=>false,
-        'message'=>'Invalid or expired token.'
-    ], 400);
-}
-
-
-        // Cập nhật password mới
-        $user = User::where('email', $request->email)->first();
-        $user->password = Hash::make($request->password);
+        // Cập nhật mật khẩu mới
+        $user->password = Hash::make($request->new_password);
         $user->save();
 
-        // Xóa token trong password_resets
-        DB::table('password_resets')->where('email', $request->email)->delete();
-
-        return response()->json([
-            'success'=>true,
-            'message'=>'Password reset successfully.'
-        ]);
+        return redirect()->route('login')->with('success', 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.');
     }
 }

@@ -19,12 +19,16 @@ class User extends Authenticatable
      * @var list<string>
      */
 
-   protected $fillable = [
-    'name',
-    'email',
-    'password',
-    'role',
-];
+    protected $fillable = [
+        'name',
+        'email',
+        'phone',
+        'password',
+        'role',
+        'password',
+        'role',
+        'points',
+    ];
 
 
 
@@ -48,14 +52,54 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
+
     public function reservations()
     {
-        return $this->hasMany(\App\Models\Reservation::class);
+        return $this->hasMany(\App\Models\Reservation::class, 'user_id');
     }
 
     // Quan hệ: 1 user có nhiều đánh giá
     public function reviews()
     {
         return $this->hasMany(\App\Models\Review::class);
+    }
+    public function getCurrentPoints(): int
+    {
+        return $this->points  ?? 0;
+    }
+    public function usePoints(int $amount, string $description = ''): bool
+    {
+        if ($this->points < $amount) {
+            return false; // không đủ điểm
+        }
+
+        $this->points -= $amount;
+        $this->save();
+
+        
+
+        return true;
+    }
+
+    /**
+     * Thêm điểm cho user (nếu muốn)
+     *
+     * @param int $amount Số điểm thêm
+     * @param string $description Mô tả giao dịch
+     */
+    public function addPoints(int $amount, string $description = ''): void
+    {
+        $this->points += $amount;
+        $this->save();
+
     }
 }
