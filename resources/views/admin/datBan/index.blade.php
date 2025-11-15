@@ -84,6 +84,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @php
+                                        $shiftStartTimes = [
+                                            'morning' => '06:00',
+                                            'afternoon' => '10:00',
+                                            'evening' => '14:00',
+                                            'night' => '18:00',
+                                        ];
+                                    @endphp
                                     @forelse ($tables as $index => $reservation)
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
@@ -146,15 +154,26 @@
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
+                                                @php
+                                                    $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
+                                                    $canStartServing = false;
+                                                    if ($reservation->status === 'deposit_paid' && $shiftStart) {
+                                                        $reservationStart = \Carbon\Carbon::parse($reservation->reservation_date)
+                                                            ->setTimeFromTimeString($shiftStart);
+                                                        $canStartServing = now()->greaterThanOrEqualTo($reservationStart);
+                                                    }
+                                                @endphp
+
                                                 @if($reservation->status == 'deposit_paid')
                                                     <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                                                         @csrf
                                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                                                         <input type="hidden" name="status" value="serving">
-                                                        <button type="submit" class="btn btn-primary btn-sm">
+                                                        <button type="submit" class="btn btn-primary btn-sm" {{ $canStartServing ? '' : 'disabled' }} title="{{ $canStartServing ? '' : 'Chưa đến giờ phục vụ' }}">
                                                             <i class="fas fa-concierge-bell"></i> Bắt đầu phục vụ
                                                         </button>
                                                     </form>
+                    
                                                 @endif
 
                                                 @if($reservation->status == 'serving')
