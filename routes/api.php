@@ -93,27 +93,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/reviews/{review}', [ReviewApiController::class, 'update']);
     Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
 
-    // Áp dụng voucher
-    Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
-    Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
+    // // Áp dụng voucher 
+    // Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
+    // Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
 
-    //Tích điểm đổi voucher
-    
-    // Lấy danh sách tier đổi điểm đang hoạt động
-    Route::get('/redeem/tiers', [RedemptionApiController::class, 'getTiers']);
-    
-    // Thực hiện đổi điểm lấy voucher
-    Route::post('/redeem/exchange', [RedemptionApiController::class, 'exchange']);
+    // // Tích điểm đổi voucher 
+    // Route::get('/redeem/tiers', [RedemptionApiController::class, 'getTiers']);
+    // Route::post('/redeem/exchange', [RedemptionApiController::class, 'exchange']);
+    // Route::get('/point-voucher/tiers', [PointVoucherController::class, 'tiers']);
+    // Route::post('/point-voucher/redeem', [PointVoucherController::class, 'redeem']);
+    // Route::get('/point-voucher/history', [PointVoucherController::class, 'history']);
 
-    //Quản lý lịch sử đổi điểm lấy voucher
-    Route::get('/point-voucher/tiers', [PointVoucherController::class, 'tiers']);
-    Route::post('/point-voucher/redeem', [PointVoucherController::class, 'redeem']);
-    Route::get('/point-voucher/history', [PointVoucherController::class, 'history']);
-
-    // Tích điểm
-    Route::post('/points/add', [PointController::class, 'addPoints']);
-    // Xem tổng điểm
-    Route::get('/points', [PointController::class, 'getPoints']);
-    // Lịch sử tích điểm
-    Route::get('/points/history', [PointController::class, 'history']);
+    // // Tích điểm nội bộ 
+    // Route::post('/points/add', [PointController::class, 'addPoints']);
+    // Route::get('/points', [PointController::class, 'getPoints']);
+    // Route::get('/points/history', [PointController::class, 'history']);
 });
