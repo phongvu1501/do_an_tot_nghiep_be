@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\PointController;
 use App\Http\Controllers\API\DatBanAnController;
+use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\MenuApiController;
 use App\Http\Controllers\API\MenuCategoryApiController;
 use App\Http\Controllers\Api\PointVoucherController;
@@ -60,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Đặt bàn ăn
     Route::post('/dat-ban-an', [DatBanAnController::class, 'store']);
 
+    //
     // Lịch sử đặt bàn
     Route::get('/dat-ban-an/history', [DatBanAnController::class, 'history']);
 
@@ -69,6 +71,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Hủy đơn đặt bàn
     Route::put('/dat-ban-an/{id}/cancel', [DatBanAnController::class, 'cancel']);
 
+    // order thêm món ăn vào đơn đặt bàn
+    Route::post('/dat-ban-an/order-items', [OrderController::class, 'store']);
+
+    // Xóa món hoặc giảm số lượng món khỏi đơn đặt bàn
+    Route::delete('/dat-ban-an/{reservationId}/order-items', [OrderController::class, 'destroy']);
     // VNPAY Payment Routes
     Route::get('/payment', [VnPayController::class, 'createPayment']);
 
