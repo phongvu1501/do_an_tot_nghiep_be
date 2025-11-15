@@ -21,7 +21,7 @@
         <!-- Right navbar links -->
         <ul class="navbar-nav ml-auto">
             <!-- Navbar Search -->
-            <li class="nav-item">
+            {{-- <li class="nav-item">
                 <a class="nav-link" data-widget="navbar-search" href="#" role="button">
                     <i class="fas fa-search"></i>
                 </a>
@@ -52,7 +52,7 @@
                     role="button">
                     <i class="fas fa-th-large"></i>
                 </a>
-            </li>
+            </li> --}}
         </ul>
    <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle d-flex align-items-center text-dark fw-semibold" href="#" id="userDropdown"

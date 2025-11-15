@@ -25,6 +25,9 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'password',
+        'role',
+        'points',
     ];
 
 
@@ -68,5 +71,35 @@ class User extends Authenticatable
     public function reviews()
     {
         return $this->hasMany(\App\Models\Review::class);
+    }
+    public function getCurrentPoints(): int
+    {
+        return $this->points  ?? 0;
+    }
+    public function usePoints(int $amount, string $description = ''): bool
+    {
+        if ($this->points < $amount) {
+            return false; // không đủ điểm
+        }
+
+        $this->points -= $amount;
+        $this->save();
+
+        
+
+        return true;
+    }
+
+    /**
+     * Thêm điểm cho user (nếu muốn)
+     *
+     * @param int $amount Số điểm thêm
+     * @param string $description Mô tả giao dịch
+     */
+    public function addPoints(int $amount, string $description = ''): void
+    {
+        $this->points += $amount;
+        $this->save();
+
     }
 }
