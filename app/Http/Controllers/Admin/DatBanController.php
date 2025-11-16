@@ -29,11 +29,7 @@ class DatBanController extends Controller
 
         // Lọc theo trạng thái
         if ($request->filled('status')) {
-            if ($request->status === 'deposit_pending') {
-                $query->whereIn('status', ['deposit_pending', 'pending']);
-            } else {
-                $query->where('status', $request->status);
-            }
+            $query->where('status', $request->status);
         }
 
         $reservations = $query->orderByDesc('id')
@@ -152,7 +148,7 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id'       => 'required|exists:reservations,id',
-            'status'               => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
+            'status'               => 'required|in:deposit_pending,deposit_paid,serving,completed,cancelled',
             'cancellation_reason'  => 'required_if:status,cancelled',
         ]);
 

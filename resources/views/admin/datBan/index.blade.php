@@ -54,7 +54,6 @@
                                             <label class="font-weight-bold">Trạng thái</label>
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
-                                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
                                                 <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt cọc</option>
                                                 <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đã đặt cọc</option>
                                                 <option value="serving" {{ request('status') == 'serving' ? 'selected' : '' }}>Đang phục vụ</option>
@@ -129,9 +128,6 @@
                                             </td>
                                             <td>
                                                 @switch($reservation->status)
-                                                    @case('pending')
-                                                        <span class="badge badge-secondary">Chờ xác nhận</span>
-                                                        @break
                                                     @case('deposit_pending')
                                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                                         @break
@@ -250,9 +246,6 @@
                                     <strong>Ghi chú :</strong> {{ $reservation->depsection }}<br>
                                     <strong>Trạng thái:</strong> 
                                     @switch($reservation->status)
-                                        @case('pending')
-                                            <span class="badge badge-secondary">Chờ xác nhận</span>
-                                            @break
                                         @case('deposit_pending')
                                             <span class="badge badge-warning">Chờ đặt cọc</span>
                                             @break

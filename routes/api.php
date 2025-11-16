@@ -65,6 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Lịch sử đặt bàn
     Route::get('/dat-ban-an/history', [DatBanAnController::class, 'history']);
 
+    // Danh sách đơn đặt bàn đang phục vụ 
+    Route::get('/dat-ban-an/serving', [DatBanAnController::class, 'getServingReservations']);
+
     // Chi tiết đơn đặt bàn
     Route::get('/dat-ban-an/{id}', [DatBanAnController::class, 'show']);
 
