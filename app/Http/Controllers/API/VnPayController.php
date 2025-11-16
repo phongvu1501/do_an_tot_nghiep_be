@@ -121,18 +121,25 @@ class VnPayController extends Controller
                 }
 
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Thanh toán thành công!',
-                    'data' => $inputData
-                ]);
+                // return response()->json([
+                //     'success' => true,
+                //     'message' => 'Thanh toán thành công!',
+                //     'data' => $inputData
+                // ]);
+
+                $url = env('URL_PAYMENT_SUSSCES', url('/'));
+                return redirect()->away($url);
+
             } else {
                 // Thanh toán không thành công
 
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Thanh toán không thành công!',
-                ]);
+                // return response()->json([
+                //     'success' => false,
+                //     'message' => 'Thanh toán không thành công!',
+                // ]);
+
+                $url =  env('URL_PAYMENT_FAILED', url('/'));
+                return redirect()->away($url);
             }
         } else {
             // Dữ liệu không hợp lệ
