@@ -461,6 +461,7 @@ class DatBanAnController extends Controller
 
         $data = $reservations->map(function ($reservation) {
             return [
+                'id' => $reservation->id,
                 'reservation_code' => $reservation->reservation_code,
                 'tables' => $reservation->tables->map(function ($table) {
                     return [
