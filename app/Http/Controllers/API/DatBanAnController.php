@@ -436,6 +436,58 @@ class DatBanAnController extends Controller
     //     ], 200);
     // }
 
+   
+    public function getServingReservations(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // Chỉ admin mới được xem
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'error' => 'Forbidden',
+                'message' => 'Bạn không có quyền truy cập chức năng này.'
+            ], 403);
+        }
+
+        $reservations = Reservation::where('status', 'serving')
+            ->with(['tables', 'reservationItems.menu', 'user'])
+            ->orderBy('reservation_date', 'asc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $data = $reservations->map(function ($reservation) {
+            return [
+                'id' => $reservation->id,
+                'reservation_code' => $reservation->reservation_code,
+                'tables' => $reservation->tables->map(function ($table) {
+                    return [
+                        'id' => $table->id,
+                        'name' => $table->name,
+                    ];
+                }),
+                'menus' => $reservation->reservationItems->map(function ($item) {
+                    return [
+                        'id' => $item->menu->id,
+                        'name' => $item->menu->name,
+                        'price' => $item->price,
+                        'quantity' => $item->quantity,
+                        'total' => $item->price * $item->quantity,
+                    ];
+                }),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'count' => $data->count(),
+        ], 200);
+    }
+
     /**
      * Lấy thông tin ca
      */

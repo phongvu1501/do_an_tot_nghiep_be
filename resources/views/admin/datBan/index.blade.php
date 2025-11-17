@@ -54,7 +54,6 @@
                                             <label class="font-weight-bold">Trạng thái</label>
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
-                                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
                                                 <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt cọc</option>
                                                 <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đã đặt cọc</option>
                                                 <option value="serving" {{ request('status') == 'serving' ? 'selected' : '' }}>Đang phục vụ</option>
@@ -84,6 +83,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @php
+                                        $shiftStartTimes = [
+                                            'morning' => '06:00',
+                                            'afternoon' => '10:00',
+                                            'evening' => '14:00',
+                                            'night' => '18:00',
+                                        ];
+                                    @endphp
                                     @forelse ($tables as $index => $reservation)
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
@@ -121,9 +128,6 @@
                                             </td>
                                             <td>
                                                 @switch($reservation->status)
-                                                    @case('pending')
-                                                        <span class="badge badge-secondary">Chờ xác nhận</span>
-                                                        @break
                                                     @case('deposit_pending')
                                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                                         @break
@@ -146,15 +150,26 @@
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
+                                                @php
+                                                    $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
+                                                    $canStartServing = false;
+                                                    if ($reservation->status === 'deposit_paid' && $shiftStart) {
+                                                        $reservationStart = \Carbon\Carbon::parse($reservation->reservation_date)
+                                                            ->setTimeFromTimeString($shiftStart);
+                                                        $canStartServing = now()->greaterThanOrEqualTo($reservationStart);
+                                                    }
+                                                @endphp
+
                                                 @if($reservation->status == 'deposit_paid')
                                                     <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                                                         @csrf
                                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                                                         <input type="hidden" name="status" value="serving">
-                                                        <button type="submit" class="btn btn-primary btn-sm">
+                                                        <button type="submit" class="btn btn-primary btn-sm" {{ $canStartServing ? '' : 'disabled' }} title="{{ $canStartServing ? '' : 'Chưa đến giờ phục vụ' }}">
                                                             <i class="fas fa-concierge-bell"></i> Bắt đầu phục vụ
                                                         </button>
                                                     </form>
+                    
                                                 @endif
 
                                                 @if($reservation->status == 'serving')
@@ -231,9 +246,6 @@
                                     <strong>Ghi chú :</strong> {{ $reservation->depsection }}<br>
                                     <strong>Trạng thái:</strong> 
                                     @switch($reservation->status)
-                                        @case('pending')
-                                            <span class="badge badge-secondary">Chờ xác nhận</span>
-                                            @break
                                         @case('deposit_pending')
                                             <span class="badge badge-warning">Chờ đặt cọc</span>
                                             @break
