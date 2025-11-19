@@ -97,18 +97,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
 
     // // Áp dụng voucher 
-    // Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
-    // Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
+    Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
+    Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
 
     // // Tích điểm đổi voucher 
-    // Route::get('/redeem/tiers', [RedemptionApiController::class, 'getTiers']);
-    // Route::post('/redeem/exchange', [RedemptionApiController::class, 'exchange']);
-    // Route::get('/point-voucher/tiers', [PointVoucherController::class, 'tiers']);
-    // Route::post('/point-voucher/redeem', [PointVoucherController::class, 'redeem']);
-    // Route::get('/point-voucher/history', [PointVoucherController::class, 'history']);
+    Route::get('/redeem/tiers', [RedemptionApiController::class, 'getTiers']);
+    Route::post('/redeem/exchange', [RedemptionApiController::class, 'exchange']);
+    Route::get('/point-voucher/tiers', [PointVoucherController::class, 'tiers']);
+    Route::post('/point-voucher/redeem', [PointVoucherController::class, 'redeem']);
+    Route::get('/point-voucher/history', [PointVoucherController::class, 'history']);
 
     // // Tích điểm nội bộ 
-    // Route::post('/points/add', [PointController::class, 'addPoints']);
-    // Route::get('/points', [PointController::class, 'getPoints']);
-    // Route::get('/points/history', [PointController::class, 'history']);
+    Route::post('/points/add', [PointController::class, 'addPoints']);
+    Route::get('/points', [PointController::class, 'getPoints']);
+    Route::get('/points/history', [PointController::class, 'history']);
 });

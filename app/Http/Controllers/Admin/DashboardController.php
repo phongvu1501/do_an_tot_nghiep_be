@@ -48,7 +48,13 @@ class DashboardController extends Controller
             ->where('status', 'completed')
             ->sum('total_amount');
 
+
+        //Người dùng 
         $newUsers = User::whereBetween('created_at', [$from, $to])->count();
+
+        $listUsers = User::whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         // --- BIỂU ĐỒ THEO NGÀY ---
         $period = CarbonPeriod::create($from, '1 day', $to);
@@ -89,7 +95,7 @@ class DashboardController extends Controller
             'totalCompleted',
             'totalRevenue',
             'newUsers',
-
+            'listUsers',
             'labels',
             'chartReserved',
             'chartCancelled',

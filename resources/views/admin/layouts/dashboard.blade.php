@@ -223,7 +223,7 @@
                                         <td>{{ $item->depsection ?? '—' }}</td>
                                         @php
                                             $statusColors = [
-                                                'cancelled' => 'badge badge-danger'
+                                                'cancelled' => 'badge badge-danger',
                                             ];
                                         @endphp
 
@@ -259,7 +259,7 @@
                 </div>
 
                 <div class="modal-body">
-                    @if (isset($newUsersList) && $newUsersList->count())
+                    @if (isset($listUsers) && $listUsers->count())
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
@@ -270,14 +270,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{-- @foreach ($newUsersList as $user)
-                        <tr>
-                            <td>{{ $user->id }}</td>
-                            <td>{{ $user->email }}</td>
-                            <td>{{ $user->name ?? '—' }}</td>
-                            <td>{{ $user->created_at }}</td>
-                        </tr>
-                        @endforeach --}}
+                                @foreach ($listUsers as $index => $user)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ $user->email }}</td>
+                                        <td>{{ $user->name ?? '—' }}</td>
+                                        <td>{{ $user->created_at }}</td>
+                                    </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     @else

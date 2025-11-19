@@ -56,7 +56,6 @@ class RedemptionApiController extends Controller
         // 2. Lấy thông tin người dùng và cấp độ đổi điểm
         $user = Auth::user(); // User must be authenticated
 
-        // **FIX LỖI: get_class() trên NULL**
         // Nếu người dùng chưa đăng nhập (hoặc token không hợp lệ), $user sẽ là null.
         // Cần kiểm tra $user trước khi gọi các phương thức trên nó.
         if (!$user) {
@@ -73,7 +72,6 @@ class RedemptionApiController extends Controller
             return response()->json(['success' => false, 'message' => 'The redemption rule is invalid or has been disabled.'], 404);
         }
 
-        // **Đã xóa khối dd(...) gây lỗi và đã debug xong**
         // Lấy số điểm hiện tại từ Trait HasLoyaltyPoints
         $currentPoints = $user->getCurrentPoints();
 
