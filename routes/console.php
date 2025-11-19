@@ -12,3 +12,8 @@ Schedule::command('reservations:cancel-expired')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('reservations:cancel-overdue')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();

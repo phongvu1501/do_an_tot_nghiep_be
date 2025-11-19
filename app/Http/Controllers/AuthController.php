@@ -60,80 +60,24 @@ class AuthController extends Controller
     }
 
     // Xử lý đăng nhập
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
-
-        $user = User::where('email', $credentials['email'])->first();
-
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
-            return response()->json([
-                'message' => 'Sai email hoặc mật khẩu!',
-            ], 401);
-        }
-
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        if ($user->role === 'admin') {
-            return response()->json([
-                'message' => 'Đăng nhập thành công! (Admin)',
-                'data' => [
-                    'email' => $user->email,
-                    'username' => $user->username,
-                    'role' => $user->role,
-                    'token' => $token,
-                    'redirect' => route('admin.dashboard'),
-                ]
-            ], 200);
-        } else {
-            return response()->json([
-                'message' => 'Đăng nhập thành công!',
-                'data' => [
-                    'email' => $user->email,
-                    'username' => $user->username,
-                    'role' => $user->role,
-                    'token' => $token,
-                ]
-            ], 200);
-        }
-    }
-
     // public function login(Request $request)
     // {
     //     $credentials = $request->validate([
-    //         'email' => ['required', 'email'],
-    //         'password' => ['required'],
+    //         'email' => 'required|email',
+    //         'password' => 'required|string',
     //     ]);
 
-    //     if (Auth::attempt($credentials)) {
-    //         $user = Auth::user();
-
-    //         // Nếu là admin → vào trang quản lý admin
-    //         if ($user->role === 'admin') {
-    //             return redirect()->route('admin.dashboard');
-    //         }
-
-    //         // Nếu là user → vào dashboard bình thường
-    //         return redirect()->route('dashboard');
-    //     }
-
-
-    //     return back()->with('error', 'Sai email hoặc mật khẩu!');
-
-    //     $credentials = $validator->validated();
     //     $user = User::where('email', $credentials['email'])->first();
 
     //     if (!$user || !Hash::check($credentials['password'], $user->password)) {
     //         return response()->json([
     //             'success' => false,
-    //             'message' => 'Invalid credentials.',
+    //             'message' => 'Email hoặc mật khẩu không đúng.'
     //         ], 401);
     //     }
 
-    //     $token = $user->createToken('api-token', ['*'], now()->addHours(2))->plainTextToken;
+    //     // Tạo token Sanctum
+    //     $token = $user->createToken('api-token')->plainTextToken;
 
     //     return response()->json([
     //         'success' => true,
@@ -142,12 +86,31 @@ class AuthController extends Controller
     //             'user' => $user,
     //             'token' => $token,
     //             'token_type' => 'Bearer',
-    //             'expires_in' => now()->addHours(2)->toDateTimeString(),
     //         ],
     //     ], 200);
     // }
 
 
+
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+
+            // Nếu là admin → vào trang quản lý admin
+            if ($user->role === 'admin') {
+                return redirect()->route('admin.dashboard');
+            }
+
+            // Nếu là user → vào dashboard bình thường
+            return redirect()->route('dashboard');
+        }
+    }
 
     public function logout(Request $request)
     {

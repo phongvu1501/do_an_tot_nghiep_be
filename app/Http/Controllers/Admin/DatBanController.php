@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BanAn;
 use App\Models\Reservation;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DatBanController extends Controller
@@ -28,11 +29,7 @@ class DatBanController extends Controller
 
         // Lọc theo trạng thái
         if ($request->filled('status')) {
-            if ($request->status === 'deposit_pending') {
-                $query->whereIn('status', ['deposit_pending', 'pending']);
-            } else {
-                $query->where('status', $request->status);
-            }
+            $query->where('status', $request->status);
         }
 
         $reservations = $query->orderByDesc('id')
@@ -151,11 +148,32 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id'       => 'required|exists:reservations,id',
-            'status'               => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
+            'status'               => 'required|in:deposit_pending,deposit_paid,serving,completed,cancelled',
             'cancellation_reason'  => 'required_if:status,cancelled',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
+
+        if ($request->status === 'serving') {
+            $shiftStartTimes = [
+                'morning'   => '06:00',
+                'afternoon' => '10:00',
+                'evening'   => '14:00',
+                'night'     => '18:00',
+            ];
+
+            $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
+
+            if ($shiftStart) {
+                $reservationStart = Carbon::parse($reservation->reservation_date, config('app.timezone'))
+                    ->setTimeFromTimeString($shiftStart);
+
+                if (now()->lt($reservationStart)) {
+                    return back()->with('error', 'Chưa đến khung giờ phục vụ của đơn đặt bàn này nên chưa thể bắt đầu phục vụ.');
+                }
+            }
+        }
+
         $reservation->status = $request->status;
 
         if ($request->status === 'cancelled' && $request->filled('cancellation_reason')) {

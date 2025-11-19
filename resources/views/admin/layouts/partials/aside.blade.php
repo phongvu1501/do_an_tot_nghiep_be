@@ -80,7 +80,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('admin.vouchers.voucher.index') }}" class="nav-link">
+                    <a href="#" class="nav-link">
+                        {{-- {{ route('admin.vouchers.voucher.index') }} --}}
                         <i class="nav-icon fas fa-ticket-alt"></i>
                         <p>
                             Quản lý vouchers
