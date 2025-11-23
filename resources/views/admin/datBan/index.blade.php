@@ -54,6 +54,8 @@
                                             <label class="font-weight-bold">Trạng thái</label>
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
+                                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
+                                                <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
                                                 <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt cọc</option>
                                                 <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đã đặt cọc</option>
                                                 <option value="serving" {{ request('status') == 'serving' ? 'selected' : '' }}>Đang phục vụ</option>
@@ -128,6 +130,12 @@
                                             </td>
                                             <td>
                                                 @switch($reservation->status)
+                                                    @case('pending')
+                                                        <span class="badge badge-secondary">Chờ xác nhận</span>
+                                                        @break
+                                                    @case('confirmed')
+                                                        <span class="badge badge-info">Đã xác nhận</span>
+                                                        @break
                                                     @case('deposit_pending')
                                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                                         @break
@@ -153,14 +161,23 @@
                                                 @php
                                                     $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
                                                     $canStartServing = false;
-                                                    if ($reservation->status === 'deposit_paid' && $shiftStart) {
+                                                    if ($reservation->status === 'confirmed' && $shiftStart) {
                                                         $reservationStart = \Carbon\Carbon::parse($reservation->reservation_date)
                                                             ->setTimeFromTimeString($shiftStart);
                                                         $canStartServing = now()->greaterThanOrEqualTo($reservationStart);
                                                     }
                                                 @endphp
 
-                                                @if($reservation->status == 'deposit_paid')
+                                                @if($reservation->status == 'pending')
+                                                    <form action="{{ route('admin.datBan.confirm', $reservation->id) }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm" title="Xác nhận đơn đặt bàn">
+                                                            <i class="fas fa-check-circle"></i> Xác nhận
+                                                        </button>
+                                                    </form>
+                                                @endif
+
+                                                @if($reservation->status == 'confirmed')
                                                     <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                                                         @csrf
                                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
@@ -169,7 +186,6 @@
                                                             <i class="fas fa-concierge-bell"></i> Bắt đầu phục vụ
                                                         </button>
                                                     </form>
-                    
                                                 @endif
 
                                                 @if($reservation->status == 'serving')
@@ -246,6 +262,12 @@
                                     <strong>Ghi chú :</strong> {{ $reservation->depsection }}<br>
                                     <strong>Trạng thái:</strong> 
                                     @switch($reservation->status)
+                                        @case('pending')
+                                            <span class="badge badge-secondary">Chờ xác nhận</span>
+                                            @break
+                                        @case('confirmed')
+                                            <span class="badge badge-info">Đã xác nhận</span>
+                                            @break
                                         @case('deposit_pending')
                                             <span class="badge badge-warning">Chờ đặt cọc</span>
                                             @break
@@ -305,7 +327,7 @@
                                 <tbody>
                                     @foreach($reservation->reservationItems as $menu)
                                         <tr>
-                                            <td>{{ $menu->menu->name }}</td>
+                                            <td>{{ $menu->name }}</td>
                                             <td class="text-center">{{ $menu->quantity }}</td>
                                             <td class="text-right">{{ number_format($menu->price, 0, ',', '.') }}đ</td>
                                             <td class="text-right">{{ number_format($menu->price * $menu->quantity, 0, ',', '.') }}đ</td>

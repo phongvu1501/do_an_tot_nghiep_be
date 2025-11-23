@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\Controller;
+use App\Models\DepositRequiredDate;
 use App\Models\Order;
 use App\Models\Reservation;
 use Carbon\Carbon;
@@ -176,8 +177,8 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        // Chỉ cho phép hủy nếu trạng thái là deposit_pending hoặc deposit_paid hoặc pending
-        if (!in_array($reservation->status, ['deposit_pending', 'deposit_paid', 'pending'])) {
+        // Chỉ cho phép hủy nếu trạng thái là pending, confirmed, deposit_pending hoặc deposit_paid
+        if (!in_array($reservation->status, ['pending', 'confirmed', 'deposit_pending', 'deposit_paid'])) {
             return response()->json([
                 'error' => 'Không thể hủy',
                 'message' => 'Không thể hủy đơn đặt bàn đã hoàn tất hoặc đã bị hủy trước đó.'
@@ -303,15 +304,7 @@ class DatBanAnController extends Controller
             $availableTables = $selectedTables;
             $tablesNeeded = $availableTables->count();
 
-            // Tính toán số tiền cọc. Mỗi bàn cần đặt cọc 300 nghìn đồng
-            $depositPerTable = self::DEPOSIT_PER_TABLE;
-            $totalDeposit = $tablesNeeded * $depositPerTable;
-
-            // tao link thanh toan
-            // $paymentToken = Str::random(32);
-            // $paymentExpiresAt = Carbon::now()->addMinutes(10); // Hết hạn sau 10 phút
-
-            // tính tổng total_price = tổng tiền món ăn
+            // Tính tổng total_price = tổng tiền món ăn
             $totalPrice = 0;
             if ($request->has('menus')) {
                 foreach ($request->menus as $menuItem) {
@@ -322,6 +315,37 @@ class DatBanAnController extends Controller
                 }
             }
 
+            // Kiểm tra ngày có yêu cầu đặt cọc hay không (ngày lễ)
+            // Nếu có nhiều bản ghi cùng ngày, lấy bản ghi mới nhất (created_at mới nhất)
+            $holidayDate = DepositRequiredDate::where('is_active', true)
+                ->whereDate('date', $request->reservation_date)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            $isHoliday = $holidayDate !== null;
+
+            $totalDeposit = 0;
+            $tableDeposit = 0;
+            $menuDeposit = 0;
+            $initialStatus = 'pending';
+            $paymentUrl = null;
+
+            if ($isHoliday) {
+                $depositPerTable = $holidayDate->deposit_per_table ?? self::DEPOSIT_PER_TABLE;
+                $tableDeposit = $tablesNeeded * $depositPerTable;
+                $menuDeposit = $totalPrice; // Cọc toàn bộ tiền món ăn
+                $totalDeposit = $tableDeposit + $menuDeposit;
+            } else {
+                if ($totalPrice > 0) {
+                    $menuDeposit = $totalPrice; // Cọc toàn bộ tiền món ăn
+                    $totalDeposit = $menuDeposit;
+                }
+            }
+
+            if ($totalDeposit > 0) {
+                $initialStatus = 'deposit_pending';
+            }
+
             $reservation = Reservation::create([
                 'user_id' => $user->id,
                 'reservation_date' => $request->reservation_date,
@@ -329,7 +353,7 @@ class DatBanAnController extends Controller
                 'num_people' => $request->num_people,
                 'depsection' => $request->depsection,
                 'voucher_id' => $request->voucher_id,
-                'status' => 'deposit_pending',
+                'status' => $initialStatus,
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
                 'reservation_code' => 'RES-' . strtoupper(Str::random(10)),
@@ -349,29 +373,50 @@ class DatBanAnController extends Controller
                 }
             }
 
-            // Dữ liệu để gửi sang VNPay
-            $orderData = [
-                'code' => $reservation->reservation_code,
-                'total' => $reservation->deposit,
-                'bankCode' => self::BANK_CODE,
-                'type' => 'billpayment',
-                'info' => 'Đặt cọc bàn ăn - Mã đơn: ' . $reservation->reservation_code,
-            ];
+            if ($totalDeposit > 0) {
+                $depositDetails = [];
+                
+                if ($tableDeposit > 0) {
+                    $depositDetails[] = 'Cọc bàn: ' . number_format($tableDeposit, 0, ',', '.') . ' VND';
+                }
+                
+                if ($menuDeposit > 0) {
+                    $depositDetails[] = 'Cọc món ăn: ' . number_format($menuDeposit, 0, ',', '.') . ' VND';
+                }
+                
+                $depositInfo = !empty($depositDetails) 
+                    ? implode(' | ', $depositDetails) 
+                    : 'Đặt cọc đơn hàng';
+                
+                $depositInfo .= ' - Mã đơn: ' . $reservation->reservation_code;
+                
+                $orderData = [
+                    'code' => $reservation->reservation_code,
+                    'total' => $totalDeposit,
+                    'bankCode' => self::BANK_CODE,
+                    'type' => 'billpayment',
+                    'info' => $depositInfo,
+                ];
 
-            // Tạo link thanh toán VNPay
-            $vnpayController = new VnPayController();
-            $paymentUrl = $vnpayController->createPayment($orderData, $request);
+                $vnpayController = new VnPayController();
+                $paymentUrl = $vnpayController->createPayment($orderData, $request);
 
-            // Lưu payment_url vào database
-            $reservation->update(['payment_url' => $paymentUrl]);
+                $reservation->update(['payment_url' => $paymentUrl]);
+            }
 
             DB::commit();
 
+            $message = $totalDeposit > 0
+                ? 'Đặt bàn thành công! Vui lòng thanh toán tiền cọc trong 15 phút.' 
+                : 'Đặt bàn thành công! Đơn đặt bàn của bạn đang chờ xác nhận.';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Đặt bàn thành công! Vui lòng thanh toán trong 15 phút.',
+                'message' => $message,
+                'requires_deposit' => $totalDeposit > 0,
+                'is_holiday' => $isHoliday,
+                'deposit_amount' => $totalDeposit,
                 'payment_url' => $paymentUrl,
-                // 'payment_expires_at' => $paymentExpiresAt->toDateTimeString(),
                 'shift_info' => $this->getShiftInfo($request->shift),
                 'tables_assigned' => $availableTables->map(function($table) {
                     return [
@@ -383,7 +428,7 @@ class DatBanAnController extends Controller
                 'tables_count' => $tablesNeeded,
                 'total_capacity' => $totalCapacity,
                 'num_people' => $numPeople,
-                'reservation' => $reservation->load(['menus', 'tables']),
+                'reservation' => $reservation->load(['reservationItems.menu', 'tables']),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -508,6 +553,7 @@ class DatBanAnController extends Controller
     {
         $statuses = [
             'pending' => 'Chờ xác nhận',
+            'confirmed' => 'Đã xác nhận',
             'deposit_pending' => 'Chờ đặt cọc',
             'deposit_paid' => 'Đã đặt cọc',
             'serving' => 'Đang phục vụ',

@@ -24,7 +24,7 @@
                                     @enderror
                                 </div>
 
-                                <div class="form-group">
+                                <!-- <div class="form-group">
                                     <label for="limit_number">Số lượng người tối đa</label>
                                     <input type="number" class="form-control @error('limit_number') is-invalid @enderror"
                                         id="limit_number" name="limit_number" placeholder="Nhập số lượng người"
@@ -32,7 +32,7 @@
                                     @error('limit_number')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
-                                </div>
+                                </div> -->
 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Cập nhật</button>

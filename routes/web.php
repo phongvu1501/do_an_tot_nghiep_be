@@ -11,6 +11,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuCategoryController;
 use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Admin\DepositRequiredDateController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -50,8 +51,15 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
     Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
+    Route::post('dat-ban/{id}/confirm', [DatBanController::class, 'confirm'])->name('admin.datBan.confirm');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
+
+    Route::resource('deposit-required-dates', DepositRequiredDateController::class)->names('admin.depositRequiredDate');
+    Route::post('deposit-required-dates/range', [DepositRequiredDateController::class, 'storeRange'])->name('admin.depositRequiredDate.storeRange');
+    Route::put('deposit-required-dates/range/update', [DepositRequiredDateController::class, 'updateRange'])->name('admin.depositRequiredDate.updateRange');
+    Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
+    Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
 
     // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
