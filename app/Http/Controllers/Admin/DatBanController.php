@@ -7,6 +7,7 @@ use App\Models\BanAn;
 use App\Models\Reservation;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DatBanController extends Controller
 {
@@ -171,27 +172,45 @@ class DatBanController extends Controller
         $reservation = Reservation::findOrFail($request->reservation_id);
 
         if ($request->status === 'serving') {
-            $shiftStartTimes = [
-                'morning'   => '06:00',
-                'afternoon' => '10:00',
-                'evening'   => '14:00',
-                'night'     => '18:00',
-            ];
+            if ($reservation->status !== 'confirmed') {
+                return back()->with('error', 'Đơn đặt bàn phải được xác nhận trước khi bắt đầu phục vụ.');
+            }
 
-            $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
+            $conflictingTables = [];
+            foreach ($reservation->tables as $table) {
+                $conflictingReservation = DB::table('reservation_tables')
+                    ->join('reservations', 'reservation_tables.reservation_id', '=', 'reservations.id')
+                    ->where('reservation_tables.table_id', $table->id)
+                    ->where('reservations.status', 'serving')
+                    ->where('reservations.id', '!=', $reservation->id)
+                    ->first();
 
-            if ($shiftStart) {
-                $reservationStart = Carbon::parse($reservation->reservation_date, config('app.timezone'))
-                    ->setTimeFromTimeString($shiftStart);
-
-                if (now()->lt($reservationStart)) {
-                    return back()->with('error', 'Chưa đến khung giờ phục vụ của đơn đặt bàn này nên chưa thể bắt đầu phục vụ.');
+                if ($conflictingReservation) {
+                    $conflictingReservationModel = Reservation::find($conflictingReservation->reservation_id);
+                    $conflictingTables[] = [
+                        'table' => $table,
+                        'conflicting_reservation' => $conflictingReservationModel,
+                    ];
                 }
             }
 
-            // Chỉ cho phép bắt đầu phục vụ nếu đã confirmed
-            if ($reservation->status !== 'confirmed') {
-                return back()->with('error', 'Đơn đặt bàn phải được xác nhận hoặc đã đặt cọc trước khi bắt đầu phục vụ.');
+            if (!empty($conflictingTables)) {
+                $tableNames = collect($conflictingTables)->pluck('table.name')->implode(', ');
+                $conflictingReservationIds = collect($conflictingTables)->pluck('conflicting_reservation.id')->unique()->implode(', ');
+                $conflictingTableIds = collect($conflictingTables)->pluck('table.id')->toArray();
+                
+                $conflictingInfo = collect($conflictingTables)->map(function ($item) {
+                    return [
+                        'table_id' => $item['table']->id,
+                        'table_name' => $item['table']->name,
+                        'conflicting_reservation_id' => $item['conflicting_reservation']->id,
+                    ];
+                })->toArray();
+                
+                return redirect()->route('admin.datBan.index')
+                    ->with('error', "Không thể bắt đầu phục vụ! Các bàn sau đang được sử dụng bởi đơn khác (đang phục vụ): {$tableNames}. Vui lòng chỉnh sửa bàn trước.")
+                    ->with('open_edit_modal', $reservation->id)
+                    ->with('conflicting_tables', $conflictingInfo);
             }
         }
 
@@ -235,19 +254,53 @@ class DatBanController extends Controller
         }
 
         // Kiểm tra trùng bàn
+        $conflictingTables = [];
         foreach ($request->table_ids as $tableId) {
             $ban = BanAn::findOrFail($tableId);
 
-            $isBusy = $ban->reservations()
-                ->where('reservation_date', $reservation->reservation_date)
-                ->where('shift', $reservation->shift)
-                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
+            $conflictingReservation = DB::table('reservation_tables')
+                ->join('reservations', 'reservation_tables.reservation_id', '=', 'reservations.id')
+                ->where('reservation_tables.table_id', $tableId)
                 ->where('reservations.id', '!=', $reservation->id)
-                ->exists();
+                ->where(function($query) use ($reservation) {
+                    if ($reservation->status === 'serving') {
+                        $query->where('reservations.status', 'serving');
+                    } else {
+                        $query->where('reservations.reservation_date', $reservation->reservation_date)
+                              ->where('reservations.shift', $reservation->shift)
+                              ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving']);
+                    }
+                })
+                ->first();
 
-            if ($isBusy) {
-                return back()->with('error', "Bàn {$ban->name} đang bận trong ca này!");
+            if ($conflictingReservation) {
+                $conflictingReservationModel = Reservation::find($conflictingReservation->reservation_id);
+                $conflictingTables[] = [
+                    'table' => $ban,
+                    'conflicting_reservation' => $conflictingReservationModel,
+                ];
             }
+        }
+
+        if (!empty($conflictingTables) && $reservation->status === 'serving') {
+            $tableNames = collect($conflictingTables)->pluck('table.name')->implode(', ');
+            $conflictingInfo = collect($conflictingTables)->map(function ($item) {
+                return [
+                    'table_id' => $item['table']->id,
+                    'table_name' => $item['table']->name,
+                    'conflicting_reservation_id' => $item['conflicting_reservation']->id,
+                ];
+            })->toArray();
+            
+            return redirect()->route('admin.datBan.index')
+                ->with('error', "Không thể cập nhật bàn! Các bàn sau đang được sử dụng bởi đơn khác (đang phục vụ): {$tableNames}.")
+                ->with('open_edit_modal', $reservation->id)
+                ->with('conflicting_tables', $conflictingInfo);
+        }
+
+        if (!empty($conflictingTables)) {
+            $tableNames = collect($conflictingTables)->pluck('table.name')->implode(', ');
+            return back()->with('error', "Các bàn sau đang bận trong ca này: {$tableNames}. Vui lòng chọn bàn khác!");
         }
 
         $reservation->tables()->sync($request->table_ids);

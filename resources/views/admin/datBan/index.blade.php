@@ -85,14 +85,6 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php
-                                        $shiftStartTimes = [
-                                            'morning' => '06:00',
-                                            'afternoon' => '10:00',
-                                            'evening' => '14:00',
-                                            'night' => '18:00',
-                                        ];
-                                    @endphp
                                     @forelse ($tables as $index => $reservation)
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
@@ -157,17 +149,6 @@
                                                 <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#detailModal{{ $reservation->id }}">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                
-                                                @php
-                                                    $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
-                                                    $canStartServing = false;
-                                                    if ($reservation->status === 'confirmed' && $shiftStart) {
-                                                        $reservationStart = \Carbon\Carbon::parse($reservation->reservation_date)
-                                                            ->setTimeFromTimeString($shiftStart);
-                                                        $canStartServing = now()->greaterThanOrEqualTo($reservationStart);
-                                                    }
-                                                @endphp
-
                                                 @if($reservation->status == 'pending')
                                                     <form action="{{ route('admin.datBan.confirm', $reservation->id) }}" method="POST" style="display:inline;">
                                                         @csrf
@@ -182,7 +163,7 @@
                                                         @csrf
                                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                                                         <input type="hidden" name="status" value="serving">
-                                                        <button type="submit" class="btn btn-primary btn-sm" {{ $canStartServing ? '' : 'disabled' }} title="{{ $canStartServing ? '' : 'Chưa đến giờ phục vụ' }}">
+                                                        <button type="submit" class="btn btn-primary btn-sm" title="Bắt đầu phục vụ">
                                                             <i class="fas fa-concierge-bell"></i> Bắt đầu phục vụ
                                                         </button>
                                                     </form>
@@ -390,12 +371,31 @@
                                 <i class="fas fa-exclamation-triangle"></i> <strong>Vui lòng chọn ít nhất 1 bàn!</strong>
                             </div>
 
+                            @if(session('conflicting_tables') && session('open_edit_modal') == $reservation->id)
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Cảnh báo:</strong> Các bàn sau đang được sử dụng bởi đơn khác:
+                                    <ul class="mb-0 mt-2">
+                                        @foreach(session('conflicting_tables') as $conflict)
+                                            <li>
+                                                <strong>Bàn {{ $conflict['table_name'] }}</strong> - 
+                                                Đang phục vụ cho đơn #{{ $conflict['conflicting_reservation_id'] }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                    <p class="mb-0 mt-2"><strong>Vui lòng chọn bàn khác để tiếp tục!</strong></p>
+                                </div>
+                            @endif
+
                             <div class="form-group">
                                 <label class="font-weight-bold">Chọn bàn:</label>
                                 <div class="border p-3 bg-light" style="max-height: 300px; overflow-y: auto;">
                                     @php
                                         $currentTableIds = $reservation->tables->pluck('id')->toArray();
                                         $allTables = \App\Models\BanAn::all();
+                                        $conflictingTableIds = session('conflicting_tables') && session('open_edit_modal') == $reservation->id 
+                                            ? collect(session('conflicting_tables'))->pluck('table_id')->toArray() 
+                                            : [];
                                     @endphp
 
                                     @foreach($allTables as $table)
@@ -407,9 +407,12 @@
                                                 ->whereIn('status', ['deposit_paid', 'serving'])
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
+                                            
+                                            // Check if this table is conflicting (being served by another reservation)
+                                            $isConflicting = in_array($table->id, $conflictingTableIds);
                                         @endphp
 
-                                        <div class="custom-control custom-checkbox mb-2">
+                                        <div class="custom-control custom-checkbox mb-2 {{ $isConflicting ? 'border border-danger p-2 rounded bg-light' : '' }}">
                                             <input
                                                 type="checkbox"
                                                 class="custom-control-input table-checkbox-{{ $reservation->id }}"
@@ -417,10 +420,13 @@
                                                 name="table_ids[]"
                                                 value="{{ $table->id }}"
                                                 {{ in_array($table->id, $currentTableIds) ? 'checked' : '' }}
-                                                {{ $isBusy ? 'disabled' : '' }}
+                                                {{ ($isBusy || $isConflicting) ? 'disabled' : '' }}
                                             >
-                                            <label class="custom-control-label" for="table{{ $table->id }}_{{ $reservation->id }}">
+                                            <label class="custom-control-label {{ $isConflicting ? 'text-danger font-weight-bold' : '' }}" for="table{{ $table->id }}_{{ $reservation->id }}">
                                                 {{ $table->name }}
+                                                @if($isConflicting)
+                                                    <span class="badge badge-danger ml-2">Đang phục vụ</span>
+                                                @endif
                                                 @if($isBusy)
                                                     <span class="badge badge-danger badge-sm">Đang bận</span>
                                                 @elseif(in_array($table->id, $currentTableIds))
@@ -589,6 +595,13 @@
 
 @push('scripts')
 <script>
+// Tự động mở modal chỉnh sửa bàn nếu có bàn trùng
+@if(session('open_edit_modal'))
+    $(document).ready(function() {
+        $('#editTablesModal{{ session('open_edit_modal') }}').modal('show');
+    });
+@endif
+
 function validateTableSelection(reservationId) {
     // Đếm số checkbox được chọn
     var checkedCount = document.querySelectorAll('.table-checkbox-' + reservationId + ':checked').length;
