@@ -91,7 +91,9 @@ class VnPayController extends Controller
 
     public function vnpayReturn(Request $request)
     {
-        $reservation = Reservation::where('reservation_code', $request->vnp_TxnRef)->first();
+        $reservation = Reservation::with(['tables', 'reservationItems.menu'])
+            ->where('reservation_code', $request->vnp_TxnRef)
+            ->first();
 
         $vnp_SecureHash = $request->vnp_SecureHash;
         $inputData = $request->all();
@@ -108,13 +110,15 @@ class VnPayController extends Controller
 
         if ($secureHash === $vnp_SecureHash) {
             if ($request->vnp_ResponseCode == '00') {
-                // Thanh toán thành công cọc
-                $reservation->update([
-                    'status' => 'deposit_paid',
-                ]);
-
-                // Thanh toán thành công số tiền còn lại
-                if ($reservation->status !== 'deposit_paid') {
+                // Kiểm tra xem đây có phải thanh toán cọc không
+                if ($reservation->status === 'deposit_pending') {
+                    // Thanh toán thành công cọc -> chuyển sang 'pending' (Chờ xác nhận)
+                    // Dù có cọc hay không cọc, đều phải qua bước admin xác nhận trước khi chuyển sang 'confirmed'
+                    $reservation->update([
+                        'status' => 'pending',
+                    ]);
+                } else {
+                    // Thanh toán thành công số tiền còn lại -> hoàn tất
                     $reservation->update([
                         'status' => 'completed',
                     ]);
@@ -127,8 +131,10 @@ class VnPayController extends Controller
                 //     'data' => $inputData
                 // ]);
 
-                $url = env('URL_PAYMENT_SUSSCES', url('/'));
-                return redirect()->away($url);
+                // Hiển thị trang thanh toán thành công
+                return view('payment.success', [
+                    'reservation' => $reservation
+                ]);
 
             } else {
                 // Thanh toán không thành công
@@ -138,8 +144,11 @@ class VnPayController extends Controller
                 //     'message' => 'Thanh toán không thành công!',
                 // ]);
 
-                $url =  env('URL_PAYMENT_FAILED', url('/'));
-                return redirect()->away($url);
+                // Hiển thị trang thanh toán thất bại
+                return view('payment.failed', [
+                    'reservation_code' => $reservation ? $reservation->reservation_code : null,
+                    'payment_url' => $reservation ? $reservation->payment_url : null,
+                ]);
             }
         } else {
             // Dữ liệu không hợp lệ

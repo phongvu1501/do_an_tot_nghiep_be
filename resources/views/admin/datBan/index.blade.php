@@ -54,6 +54,8 @@
                                             <label class="font-weight-bold">Trạng thái</label>
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
+                                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
+                                                <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
                                                 <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt cọc</option>
                                                 <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đã đặt cọc</option>
                                                 <option value="serving" {{ request('status') == 'serving' ? 'selected' : '' }}>Đang phục vụ</option>
@@ -83,14 +85,6 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @php
-                                        $shiftStartTimes = [
-                                            'morning' => '06:00',
-                                            'afternoon' => '10:00',
-                                            'evening' => '14:00',
-                                            'night' => '18:00',
-                                        ];
-                                    @endphp
                                     @forelse ($tables as $index => $reservation)
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
@@ -128,6 +122,12 @@
                                             </td>
                                             <td>
                                                 @switch($reservation->status)
+                                                    @case('pending')
+                                                        <span class="badge badge-secondary">Chờ xác nhận</span>
+                                                        @break
+                                                    @case('confirmed')
+                                                        <span class="badge badge-info">Đã xác nhận</span>
+                                                        @break
                                                     @case('deposit_pending')
                                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                                         @break
@@ -149,27 +149,24 @@
                                                 <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#detailModal{{ $reservation->id }}">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                
-                                                @php
-                                                    $shiftStart = $shiftStartTimes[$reservation->shift] ?? null;
-                                                    $canStartServing = false;
-                                                    if ($reservation->status === 'deposit_paid' && $shiftStart) {
-                                                        $reservationStart = \Carbon\Carbon::parse($reservation->reservation_date)
-                                                            ->setTimeFromTimeString($shiftStart);
-                                                        $canStartServing = now()->greaterThanOrEqualTo($reservationStart);
-                                                    }
-                                                @endphp
+                                                @if($reservation->status == 'pending')
+                                                    <form action="{{ route('admin.datBan.confirm', $reservation->id) }}" method="POST" style="display:inline;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-success btn-sm" title="Xác nhận đơn đặt bàn">
+                                                            <i class="fas fa-check-circle"></i> Xác nhận
+                                                        </button>
+                                                    </form>
+                                                @endif
 
-                                                @if($reservation->status == 'deposit_paid')
+                                                @if($reservation->status == 'confirmed')
                                                     <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                                                         @csrf
                                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                                                         <input type="hidden" name="status" value="serving">
-                                                        <button type="submit" class="btn btn-primary btn-sm" {{ $canStartServing ? '' : 'disabled' }} title="{{ $canStartServing ? '' : 'Chưa đến giờ phục vụ' }}">
+                                                        <button type="submit" class="btn btn-primary btn-sm" title="Bắt đầu phục vụ">
                                                             <i class="fas fa-concierge-bell"></i> Bắt đầu phục vụ
                                                         </button>
                                                     </form>
-                    
                                                 @endif
 
                                                 @if($reservation->status == 'serving')
@@ -246,6 +243,12 @@
                                     <strong>Ghi chú :</strong> {{ $reservation->depsection }}<br>
                                     <strong>Trạng thái:</strong> 
                                     @switch($reservation->status)
+                                        @case('pending')
+                                            <span class="badge badge-secondary">Chờ xác nhận</span>
+                                            @break
+                                        @case('confirmed')
+                                            <span class="badge badge-info">Đã xác nhận</span>
+                                            @break
                                         @case('deposit_pending')
                                             <span class="badge badge-warning">Chờ đặt cọc</span>
                                             @break
@@ -303,12 +306,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($reservation->reservationItems as $menu)
+                                    @foreach($reservation->reservationItems as $item)
                                         <tr>
-                                            <td>{{ $menu->menu->name }}</td>
-                                            <td class="text-center">{{ $menu->quantity }}</td>
-                                            <td class="text-right">{{ number_format($menu->price, 0, ',', '.') }}đ</td>
-                                            <td class="text-right">{{ number_format($menu->price * $menu->quantity, 0, ',', '.') }}đ</td>
+                                            <td>{{ $item->menu->name ?? 'N/A' }}</td>
+                                            <td class="text-center">{{ $item->quantity }}</td>
+                                            <td class="text-right">{{ number_format($item->price, 0, ',', '.') }}đ</td>
+                                            <td class="text-right">{{ number_format($item->price * $item->quantity, 0, ',', '.') }}đ</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -368,12 +371,31 @@
                                 <i class="fas fa-exclamation-triangle"></i> <strong>Vui lòng chọn ít nhất 1 bàn!</strong>
                             </div>
 
+                            @if(session('conflicting_tables') && session('open_edit_modal') == $reservation->id)
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>Cảnh báo:</strong> Các bàn sau đang được sử dụng bởi đơn khác:
+                                    <ul class="mb-0 mt-2">
+                                        @foreach(session('conflicting_tables') as $conflict)
+                                            <li>
+                                                <strong>Bàn {{ $conflict['table_name'] }}</strong> - 
+                                                Đang phục vụ cho đơn #{{ $conflict['conflicting_reservation_id'] }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                    <p class="mb-0 mt-2"><strong>Vui lòng chọn bàn khác để tiếp tục!</strong></p>
+                                </div>
+                            @endif
+
                             <div class="form-group">
                                 <label class="font-weight-bold">Chọn bàn:</label>
                                 <div class="border p-3 bg-light" style="max-height: 300px; overflow-y: auto;">
                                     @php
                                         $currentTableIds = $reservation->tables->pluck('id')->toArray();
                                         $allTables = \App\Models\BanAn::all();
+                                        $conflictingTableIds = session('conflicting_tables') && session('open_edit_modal') == $reservation->id 
+                                            ? collect(session('conflicting_tables'))->pluck('table_id')->toArray() 
+                                            : [];
                                     @endphp
 
                                     @foreach($allTables as $table)
@@ -385,9 +407,12 @@
                                                 ->whereIn('status', ['deposit_paid', 'serving'])
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
+                                            
+                                            // Check if this table is conflicting (being served by another reservation)
+                                            $isConflicting = in_array($table->id, $conflictingTableIds);
                                         @endphp
 
-                                        <div class="custom-control custom-checkbox mb-2">
+                                        <div class="custom-control custom-checkbox mb-2 {{ $isConflicting ? 'border border-danger p-2 rounded bg-light' : '' }}">
                                             <input
                                                 type="checkbox"
                                                 class="custom-control-input table-checkbox-{{ $reservation->id }}"
@@ -395,10 +420,13 @@
                                                 name="table_ids[]"
                                                 value="{{ $table->id }}"
                                                 {{ in_array($table->id, $currentTableIds) ? 'checked' : '' }}
-                                                {{ $isBusy ? 'disabled' : '' }}
+                                                {{ ($isBusy || $isConflicting) ? 'disabled' : '' }}
                                             >
-                                            <label class="custom-control-label" for="table{{ $table->id }}_{{ $reservation->id }}">
+                                            <label class="custom-control-label {{ $isConflicting ? 'text-danger font-weight-bold' : '' }}" for="table{{ $table->id }}_{{ $reservation->id }}">
                                                 {{ $table->name }}
+                                                @if($isConflicting)
+                                                    <span class="badge badge-danger ml-2">Đang phục vụ</span>
+                                                @endif
                                                 @if($isBusy)
                                                     <span class="badge badge-danger badge-sm">Đang bận</span>
                                                 @elseif(in_array($table->id, $currentTableIds))
@@ -463,14 +491,28 @@
                                 </tbody>
                                 <tfoot class="bg-light">
                                     @php
-                                        $totalMenuPrice = $reservation->reservationItems->sum(function($item) {
+                                        $subtotal = $reservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
+                                        $vat = $subtotal * 0.1;
+                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền đã có VAT
                                         $depositPaid = $reservation->deposit ?? 0;
                                         $remainingAmount = $totalMenuPrice - $depositPaid;
                                     @endphp
                                     <tr>
-                                        <th colspan="3" class="text-right">Tổng tiền món ăn:</th>
+                                        <th colspan="3" class="text-right">Tạm tính:</th>
+                                        <th class="text-right">
+                                            {{ number_format($subtotal, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th class="text-right">
+                                            {{ number_format($vat, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tổng tiền:</th>
                                         <th class="text-right">
                                             {{ number_format($totalMenuPrice, 0, ',', '.') }}đ
                                         </th>
@@ -567,6 +609,13 @@
 
 @push('scripts')
 <script>
+// Tự động mở modal chỉnh sửa bàn nếu có bàn trùng
+@if(session('open_edit_modal'))
+    $(document).ready(function() {
+        $('#editTablesModal{{ session('open_edit_modal') }}').modal('show');
+    });
+@endif
+
 function validateTableSelection(reservationId) {
     // Đếm số checkbox được chọn
     var checkedCount = document.querySelectorAll('.table-checkbox-' + reservationId + ':checked').length;

@@ -14,6 +14,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\API\ReviewApiController;
 use App\Http\Controllers\Api\VoucherController;
+use App\Http\Controllers\API\DepositRequiredDateController;
 
 // ======================================================
 // 🔓 PUBLIC ROUTES (Không cần token)
@@ -26,6 +27,10 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 // Menu và danh mục (cho tất cả)
 Route::get('/menu-categories', [MenuCategoryApiController::class, 'index']);
 Route::get('/menus', [MenuApiController::class, 'index']);
+
+// Ngày yêu cầu đặt cọc 
+Route::get('/deposit-required-dates', [DepositRequiredDateController::class, 'index']);
+Route::post('/deposit-required-dates/check', [DepositRequiredDateController::class, 'check']);
 
 // Không còn sử dụng - VNPay callback được xử lý bởi vnpayReturn
 // Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);

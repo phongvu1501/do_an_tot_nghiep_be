@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\Controller;
+use App\Models\DepositRequiredDate;
 use App\Models\Order;
 use App\Models\Reservation;
 use App\Models\Voucher;
@@ -69,14 +70,19 @@ class DatBanAnController extends Controller
                         'total' => $item->price * $item->quantity,
                     ];
                 }),
-                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                'subtotal' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
                 }),
+                'vat' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 0.1,
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1,
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
                 'cancellation_reason' => $reservation->cancellation_reason,
-                'deposit' => $reservation->deposit,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ];
@@ -144,9 +150,15 @@ class DatBanAnController extends Controller
                         'total' => $item->price * $item->quantity,
                     ];
                 }),
-                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                'subtotal' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
                 }),
+                'vat' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 0.1,
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1,
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
@@ -177,8 +189,8 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        // Chỉ cho phép hủy nếu trạng thái là deposit_pending hoặc deposit_paid hoặc pending
-        if (!in_array($reservation->status, ['deposit_pending', 'deposit_paid', 'pending'])) {
+        // Chỉ cho phép hủy nếu trạng thái là pending, confirmed, deposit_pending hoặc deposit_paid
+        if (!in_array($reservation->status, ['pending', 'confirmed', 'deposit_pending', 'deposit_paid'])) {
             return response()->json([
                 'error' => 'Không thể hủy',
                 'message' => 'Không thể hủy đơn đặt bàn đã hoàn tất hoặc đã bị hủy trước đó.'
@@ -309,13 +321,50 @@ class DatBanAnController extends Controller
 
             // Tổng tiền món ăn
             $totalPrice = 0;
+            // Tính tổng total_price = tổng tiền món ăn (chưa có VAT)
+            $subtotal = 0;
             if ($request->has('menus')) {
                 foreach ($request->menus as $menuItem) {
                     $menu = \App\Models\Menu::find($menuItem['menu_id']);
                     if ($menu) {
-                        $totalPrice += $menu->price * $menuItem['quantity'];
+                        $subtotal += $menu->price * $menuItem['quantity'];
                     }
                 }
+            }
+            
+            // Tính VAT 10% và tổng tiền cuối cùng
+            $vat = $subtotal * 0.1;
+            $totalPrice = $subtotal + $vat;
+
+            // Kiểm tra ngày có yêu cầu đặt cọc hay không (ngày lễ)
+            // Nếu có nhiều bản ghi cùng ngày, lấy bản ghi mới nhất (created_at mới nhất)
+            $holidayDate = DepositRequiredDate::where('is_active', true)
+                ->whereDate('date', $request->reservation_date)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            $isHoliday = $holidayDate !== null;
+
+            $totalDeposit = 0;
+            $tableDeposit = 0;
+            $menuDeposit = 0;
+            $initialStatus = 'pending';
+            $paymentUrl = null;
+
+            if ($isHoliday) {
+                $depositPerTable = $holidayDate->deposit_per_table ?? self::DEPOSIT_PER_TABLE;
+                $tableDeposit = $tablesNeeded * $depositPerTable;
+                $menuDeposit = $totalPrice; // Cọc toàn bộ tiền món ăn
+                $totalDeposit = $tableDeposit + $menuDeposit;
+            } else {
+                if ($totalPrice > 0) {
+                    $menuDeposit = $totalPrice; // Cọc toàn bộ tiền món ăn
+                    $totalDeposit = $menuDeposit;
+                }
+            }
+
+            if ($totalDeposit > 0) {
+                $initialStatus = 'deposit_pending';
             }
 
             //  XỬ lÝ voucher_code → voucher_id
@@ -334,6 +383,8 @@ class DatBanAnController extends Controller
                 'depsection' => $request->depsection,
                 'voucher_id' => $voucherId, // LƯU ID
                 'status' => 'deposit_pending',
+                'voucher_id' => $request->voucher_id,
+                'status' => $initialStatus,
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
                 'reservation_code' => 'RES-' . strtoupper(Str::random(10)),
@@ -366,12 +417,49 @@ class DatBanAnController extends Controller
             $paymentUrl = $vnpayController->createPayment($orderData, $request);
 
             $reservation->update(['payment_url' => $paymentUrl]);
+            if ($totalDeposit > 0) {
+                $depositDetails = [];
+                
+                if ($tableDeposit > 0) {
+                    $depositDetails[] = 'Cọc bàn: ' . number_format($tableDeposit, 0, ',', '.') . ' VND';
+                }
+                
+                if ($menuDeposit > 0) {
+                    $depositDetails[] = 'Cọc món ăn: ' . number_format($menuDeposit, 0, ',', '.') . ' VND';
+                }
+                
+                $depositInfo = !empty($depositDetails) 
+                    ? implode(' | ', $depositDetails) 
+                    : 'Đặt cọc đơn hàng';
+                
+                $depositInfo .= ' - Mã đơn: ' . $reservation->reservation_code;
+                
+                $orderData = [
+                    'code' => $reservation->reservation_code,
+                    'total' => $totalDeposit,
+                    'bankCode' => self::BANK_CODE,
+                    'type' => 'billpayment',
+                    'info' => $depositInfo,
+                ];
+
+                $vnpayController = new VnPayController();
+                $paymentUrl = $vnpayController->createPayment($orderData, $request);
+
+                $reservation->update(['payment_url' => $paymentUrl]);
+            }
 
             DB::commit();
 
+            $message = $totalDeposit > 0
+                ? 'Đặt bàn thành công! Vui lòng thanh toán tiền cọc trong 15 phút.' 
+                : 'Đặt bàn thành công! Đơn đặt bàn của bạn đang chờ xác nhận.';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Đặt bàn thành công! Vui lòng thanh toán trong 15 phút.',
+                'message' => $message,
+                'requires_deposit' => $totalDeposit > 0,
+                'is_holiday' => $isHoliday,
+                'deposit_amount' => $totalDeposit,
                 'payment_url' => $paymentUrl,
                 'shift_info' => $this->getShiftInfo($request->shift),
                 'tables_assigned' => $selectedTables->map(function ($table) {
@@ -384,7 +472,7 @@ class DatBanAnController extends Controller
                 'tables_count' => $tablesNeeded,
                 'total_capacity' => $totalCapacity,
                 'num_people' => $numPeople,
-                'reservation' => $reservation->load(['menus', 'tables']),
+                'reservation' => $reservation->load(['reservationItems.menu', 'tables']),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -480,6 +568,15 @@ class DatBanAnController extends Controller
                         'total' => $item->price * $item->quantity,
                     ];
                 }),
+                'subtotal' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }),
+                'vat' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 0.1,
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1,
             ];
         });
 
@@ -510,6 +607,7 @@ class DatBanAnController extends Controller
     {
         $statuses = [
             'pending' => 'Chờ xác nhận',
+            'confirmed' => 'Đã xác nhận',
             'deposit_pending' => 'Chờ đặt cọc',
             'deposit_paid' => 'Đã đặt cọc',
             'serving' => 'Đang phục vụ',
