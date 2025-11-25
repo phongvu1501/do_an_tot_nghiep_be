@@ -306,12 +306,12 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($reservation->reservationItems as $menu)
+                                    @foreach($reservation->reservationItems as $item)
                                         <tr>
-                                            <td>{{ $menu->name }}</td>
-                                            <td class="text-center">{{ $menu->quantity }}</td>
-                                            <td class="text-right">{{ number_format($menu->price, 0, ',', '.') }}đ</td>
-                                            <td class="text-right">{{ number_format($menu->price * $menu->quantity, 0, ',', '.') }}đ</td>
+                                            <td>{{ $item->menu->name ?? 'N/A' }}</td>
+                                            <td class="text-center">{{ $item->quantity }}</td>
+                                            <td class="text-right">{{ number_format($item->price, 0, ',', '.') }}đ</td>
+                                            <td class="text-right">{{ number_format($item->price * $item->quantity, 0, ',', '.') }}đ</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

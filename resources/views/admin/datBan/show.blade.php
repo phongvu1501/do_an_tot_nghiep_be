@@ -34,13 +34,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($reservation->menus as $index => $menu)
+                    @foreach($reservation->reservationItems as $index => $item)
                     <tr class="text-center">
                         <td>{{ $index + 1 }}</td>
-                        <td class="text-start">{{ $menu->name }}</td>
-                        <td>{{ $menu->pivot->quantity }}</td>
-                        <td>{{ number_format($menu->price, 0, ',', '.') }} VND</td>
-                        <td>{{ number_format($menu->price * $menu->pivot->quantity, 0, ',', '.') }} VND</td>
+                        <td class="text-start">{{ $item->menu->name ?? 'N/A' }}</td>
+                        <td>{{ $item->quantity }}</td>
+                        <td>{{ number_format($item->price, 0, ',', '.') }} VND</td>
+                        <td>{{ number_format($item->price * $item->quantity, 0, ',', '.') }} VND</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -55,7 +55,7 @@
                 <div class="card-body">
                     <h5 class="fw-bold text-primary mb-3">Thông tin hóa đơn</h5>
                     @php
-                        $subtotal = $reservation->menus->sum(fn($m) => $m->price * $m->pivot->quantity);
+                        $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
                         $tax = $subtotal * 0.1;
                         $total = $subtotal + $tax;
                     @endphp

@@ -121,7 +121,7 @@ class DatBanController extends Controller
      */
     public function show(string $id)
     {
-        $reservation = Reservation::with(['menus', 'tables'])->findOrFail($id);
+        $reservation = Reservation::with(['reservationItems.menu', 'tables'])->findOrFail($id);
         return view('admin.datBan.show', compact('reservation'));
     }
 
