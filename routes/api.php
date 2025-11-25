@@ -109,6 +109,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // // Tích điểm nội bộ 
     Route::post('/points/add', [PointController::class, 'addPoints']);
-    Route::get('/points', [PointController::class, 'getPoints']);
     Route::get('/points/history', [PointController::class, 'history']);
 });
