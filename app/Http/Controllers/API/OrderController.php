@@ -74,7 +74,7 @@ class OrderController extends Controller
 
         // Chuẩn bị dữ liệu cho việc tạo bản ghi order mới, và gộp món ăn trong reservation_items
         $itemsToAttach = [];       
-        $totalOrderAmount = 0;
+        $subtotalOrderAmount = 0;
 
         // Lấy tất cả các bản ghi ReservationItem hiện tại
         $currentReservationItems = $reservation->reservationItems;
@@ -93,7 +93,7 @@ class OrderController extends Controller
 
             $itemPrice = $menu->price;
             $itemTotal = $itemPrice * $quantity;
-            $totalOrderAmount += $itemTotal; // Tổng tiền của order mới
+            $subtotalOrderAmount += $itemTotal; // Tổng tiền của order mới (chưa có VAT)
 
             $itemsToAttach[$menuId] = [
                 'quantity' => $quantity,
@@ -120,13 +120,19 @@ class OrderController extends Controller
             }
         } 
 
-        // Cập nhật lại tổng tiền của reservation  
+        // Cập nhật lại tổng tiền của reservation (có VAT)
         $reservation->load('reservationItems');
 
-        $reservation->total_amount = $reservation->reservationItems->sum(function ($item) {
+        $subtotalReservation = $reservation->reservationItems->sum(function ($item) {
             return $item->price * $item->quantity;
         });
+        $vatReservation = $subtotalReservation * 0.1;
+        $reservation->total_amount = $subtotalReservation + $vatReservation;
         $reservation->save();
+
+        // Tính VAT cho order mới
+        $vatOrderAmount = $subtotalOrderAmount * 0.1;
+        $totalOrderAmount = $subtotalOrderAmount + $vatOrderAmount;
 
         // Tạo bản ghi order mới
         $order = Order::create([
@@ -144,8 +150,16 @@ class OrderController extends Controller
             'success' => true,
             'message' => 'Đã thêm món vào đơn hàng thành công! Tổng tiền đơn đặt bàn đã được cập nhật',
             'order' => $order->load('menus'),
-            'new_items_total' => $totalOrderAmount,
-            'reservation_new_total' => $reservation->total_amount,
+            'new_items' => [
+                'subtotal' => $subtotalOrderAmount,
+                'vat' => $vatOrderAmount,
+                'total' => $totalOrderAmount,
+            ],
+            'reservation_total' => [
+                'subtotal' => $subtotalReservation,
+                'vat' => $vatReservation,
+                'total' => $reservation->total_amount,
+            ],
         ], 201);
         
     } catch (\Exception $e) {
@@ -239,13 +253,15 @@ class OrderController extends Controller
                 }
             }
 
-            // Cập nhật lại tổng tiền reservation
+            // Cập nhật lại tổng tiền reservation (có VAT)
             // Cần tải lại item sau khi xóa/cập nhật
             $reservation->load('reservationItems');
 
-            $newTotalAmount = $reservation->reservationItems->sum(function ($item) {
+            $newSubtotal = $reservation->reservationItems->sum(function ($item) {
                 return $item->price * $item->quantity;
             });
+            $newVat = $newSubtotal * 0.1;
+            $newTotalAmount = $newSubtotal + $newVat;
 
             $reservation->total_amount = $newTotalAmount;
             $reservation->save();
@@ -256,7 +272,11 @@ class OrderController extends Controller
                 'success' => true,
                 'message' => 'Đã xóa món ăn khỏi đơn đặt bàn thành công.',
                 'reservation_id' => $reservation->id,
-                'new_total_amount' => $newTotalAmount,
+                'new_total' => [
+                    'subtotal' => $newSubtotal,
+                    'vat' => $newVat,
+                    'total' => $newTotalAmount,
+                ],
                 // sử dụng map, đỡ phải tạo mảng con chứa mỗi menu_id với quantity
                 'remaining_items' => $reservation->reservationItems->map(fn($i) => ['menu_id' => $i->menu_id, 'quantity' => $i->quantity]),
             ], 200);

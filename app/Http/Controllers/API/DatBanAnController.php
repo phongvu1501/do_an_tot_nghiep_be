@@ -69,14 +69,19 @@ class DatBanAnController extends Controller
                         'total' => $item->price * $item->quantity,
                     ];
                 }),
-                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                'subtotal' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
                 }),
+                'vat' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 0.1,
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1,
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
                 'cancellation_reason' => $reservation->cancellation_reason,
-                'deposit' => $reservation->deposit,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
             ];
@@ -144,9 +149,15 @@ class DatBanAnController extends Controller
                         'total' => $item->price * $item->quantity,
                     ];
                 }),
-                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                'subtotal' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
                 }),
+                'vat' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 0.1,
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1,
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
@@ -304,16 +315,20 @@ class DatBanAnController extends Controller
             $availableTables = $selectedTables;
             $tablesNeeded = $availableTables->count();
 
-            // Tính tổng total_price = tổng tiền món ăn
-            $totalPrice = 0;
+            // Tính tổng total_price = tổng tiền món ăn (chưa có VAT)
+            $subtotal = 0;
             if ($request->has('menus')) {
                 foreach ($request->menus as $menuItem) {
                     $menu = \App\Models\Menu::find($menuItem['menu_id']);
                     if ($menu) {
-                        $totalPrice += $menu->price * $menuItem['quantity'];
+                        $subtotal += $menu->price * $menuItem['quantity'];
                     }
                 }
             }
+            
+            // Tính VAT 10% và tổng tiền cuối cùng
+            $vat = $subtotal * 0.1;
+            $totalPrice = $subtotal + $vat;
 
             // Kiểm tra ngày có yêu cầu đặt cọc hay không (ngày lễ)
             // Nếu có nhiều bản ghi cùng ngày, lấy bản ghi mới nhất (created_at mới nhất)
@@ -523,6 +538,15 @@ class DatBanAnController extends Controller
                         'total' => $item->price * $item->quantity,
                     ];
                 }),
+                'subtotal' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }),
+                'vat' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 0.1,
+                'total_price' => $reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1,
             ];
         });
 

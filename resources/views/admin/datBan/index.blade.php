@@ -491,14 +491,28 @@
                                 </tbody>
                                 <tfoot class="bg-light">
                                     @php
-                                        $totalMenuPrice = $reservation->reservationItems->sum(function($item) {
+                                        $subtotal = $reservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
+                                        $vat = $subtotal * 0.1;
+                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền đã có VAT
                                         $depositPaid = $reservation->deposit ?? 0;
                                         $remainingAmount = $totalMenuPrice - $depositPaid;
                                     @endphp
                                     <tr>
-                                        <th colspan="3" class="text-right">Tổng tiền món ăn:</th>
+                                        <th colspan="3" class="text-right">Tạm tính:</th>
+                                        <th class="text-right">
+                                            {{ number_format($subtotal, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th class="text-right">
+                                            {{ number_format($vat, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tổng tiền:</th>
                                         <th class="text-right">
                                             {{ number_format($totalMenuPrice, 0, ',', '.') }}đ
                                         </th>
