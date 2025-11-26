@@ -316,12 +316,29 @@
                                     @endforeach
                                 </tbody>
                                 <tfoot class="bg-light">
+                                    @php
+                                        $subtotal = $reservation->reservationItems->sum(function($m) {
+                                            return $m->price * $m->quantity;
+                                        });
+                                        $vat = $subtotal * 0.1;
+                                        $total = $subtotal + $vat;
+                                    @endphp
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tạm tính:</th>
+                                        <th class="text-right">
+                                            {{ number_format($subtotal, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th class="text-right">
+                                            {{ number_format($vat, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
                                     <tr>
                                         <th colspan="3" class="text-right">Tổng:</th>
                                         <th class="text-right text-danger">
-                                            {{ number_format($reservation->reservationItems->sum(function($m) {
-                                                return $m->price * $m->quantity;
-                                            }), 0, ',', '.') }}đ
+                                            {{ number_format($total, 0, ',', '.') }}đ
                                         </th>
                                     </tr>
                                 </tfoot>
