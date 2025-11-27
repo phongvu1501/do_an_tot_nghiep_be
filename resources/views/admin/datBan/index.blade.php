@@ -55,9 +55,8 @@
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
                                                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận</option>
-                                                <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Đã xác nhận</option>
                                                 <option value="deposit_pending" {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt cọc</option>
-                                                <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đã đặt cọc</option>
+                                                <option value="deposit_paid" {{ request('status') == 'deposit_paid' ? 'selected' : '' }}>Đặt thành công</option>
                                                 <option value="serving" {{ request('status') == 'serving' ? 'selected' : '' }}>Đang phục vụ</option>
                                                 <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Hoàn tất</option>
                                                 <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
@@ -77,6 +76,7 @@
                                     <tr>
                                         <th>STT</th>
                                         <th>Khách hàng</th>
+                                        <th>Số điện thoại</th>
                                         <th>Ngày đặt</th>
                                         <th>Ca</th>
                                         <th>Bàn</th>
@@ -89,8 +89,23 @@
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
                                             <td>
-                                                <strong>{{ $reservation->user->name }}</strong><br>
-                                                <small class="text-muted">{{ $reservation->user->phone }}</small>
+                                                <strong>{{ $reservation->user->name }}</strong>
+                                            </td>
+                                            <td>
+                                                {{ $reservation->user->phone ?? 'N/A' }}
+                                                <br>
+                                                @if($reservation->phone_confirmed)
+                                                    <span class="badge badge-success badge-sm">
+                                                        <i class="fas fa-check-circle"></i> Đã xác nhận
+                                                    </span>
+                                                @else
+                                                    <form action="{{ route('admin.datBan.confirmPhone', $reservation->id) }}" method="POST" style="display:inline; margin-top: 5px;">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-success" title="Xác nhận đã gọi điện">
+                                                            <i class="fas fa-phone"></i> Xác nhận
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</td>
                                             <td>
@@ -125,14 +140,11 @@
                                                     @case('pending')
                                                         <span class="badge badge-secondary">Chờ xác nhận</span>
                                                         @break
-                                                    @case('confirmed')
-                                                        <span class="badge badge-info">Đã xác nhận</span>
-                                                        @break
                                                     @case('deposit_pending')
                                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                                         @break
                                                     @case('deposit_paid')
-                                                        <span class="badge badge-success">Đã đặt cọc</span>
+                                                        <span class="badge badge-success">Đặt thành công</span>
                                                         @break
                                                     @case('serving')
                                                         <span class="badge badge-primary">Đang phục vụ</span>
@@ -149,16 +161,7 @@
                                                 <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#detailModal{{ $reservation->id }}">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                @if($reservation->status == 'pending')
-                                                    <form action="{{ route('admin.datBan.confirm', $reservation->id) }}" method="POST" style="display:inline;">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-success btn-sm" title="Xác nhận đơn đặt bàn">
-                                                            <i class="fas fa-check-circle"></i> Xác nhận
-                                                        </button>
-                                                    </form>
-                                                @endif
-
-                                                @if($reservation->status == 'confirmed')
+                                                @if($reservation->status == 'deposit_paid')
                                                     <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                                                         @csrf
                                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
@@ -246,14 +249,11 @@
                                         @case('pending')
                                             <span class="badge badge-secondary">Chờ xác nhận</span>
                                             @break
-                                        @case('confirmed')
-                                            <span class="badge badge-info">Đã xác nhận</span>
-                                            @break
                                         @case('deposit_pending')
                                             <span class="badge badge-warning">Chờ đặt cọc</span>
                                             @break
                                         @case('deposit_paid')
-                                            <span class="badge badge-success">Đã đặt cọc</span>
+                                            <span class="badge badge-success">Đặt thành công</span>
                                             @break
                                         @case('serving')
                                             <span class="badge badge-primary">Đang phục vụ</span>

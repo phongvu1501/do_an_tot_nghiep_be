@@ -87,7 +87,7 @@ class DatBanController extends Controller
             $isBusy = $ban->reservations()
                 ->where('reservation_date', $request->reservation_date)
                 ->where('shift', $request->shift)
-                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
+                ->whereIn('status', ['deposit_paid', 'serving'])
                 ->exists();
 
             if ($isBusy) {
@@ -143,20 +143,6 @@ class DatBanController extends Controller
     }
 
  
-    public function confirm(Request $request, $id)
-    {
-        $reservation = Reservation::findOrFail($id);
-
-        if ($reservation->status !== 'pending') {
-            return back()->with('error', 'Chỉ có thể xác nhận đơn đặt bàn đang ở trạng thái "Chờ xác nhận".');
-        }
-
-        $reservation->status = 'confirmed';
-        $reservation->save();
-
-        return redirect()->route('admin.datBan.index')
-            ->with('success', "Đã xác nhận đơn đặt bàn #{$reservation->id} thành công!");
-    }
 
     /**
      * Cập nhật trạng thái đơn đặt bàn
@@ -165,15 +151,16 @@ class DatBanController extends Controller
     {
         $request->validate([
             'reservation_id'       => 'required|exists:reservations,id',
-            'status'               => 'required|in:pending,confirmed,deposit_pending,deposit_paid,serving,completed,cancelled',
+            'status'               => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
             'cancellation_reason'  => 'required_if:status,cancelled',
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
 
         if ($request->status === 'serving') {
-            if ($reservation->status !== 'confirmed') {
-                return back()->with('error', 'Đơn đặt bàn phải được xác nhận trước khi bắt đầu phục vụ.');
+            // Cho phép chuyển sang serving từ deposit_paid trở lên (đặt thành công)
+            if (!in_array($reservation->status, ['deposit_paid', 'serving'])) {
+                return back()->with('error', 'Đơn đặt bàn phải ở trạng thái "Đặt thành công" trước khi bắt đầu phục vụ.');
             }
 
             $conflictingTables = [];
@@ -268,7 +255,7 @@ class DatBanController extends Controller
                     } else {
                         $query->where('reservations.reservation_date', $reservation->reservation_date)
                               ->where('reservations.shift', $reservation->shift)
-                              ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving']);
+                              ->whereIn('reservations.status', ['deposit_paid', 'serving']);
                     }
                 })
                 ->first();
@@ -322,12 +309,27 @@ class DatBanController extends Controller
         $busyTableIds = BanAn::whereHas('reservations', function ($q) use ($date, $shift) {
             $q->where('reservation_date', $date)
               ->where('shift', $shift)
-              ->whereIn('status', ['confirmed', 'deposit_paid', 'serving']);
+              ->whereIn('status', ['deposit_paid', 'serving']);
         })->pluck('id');
 
         return response()->json([
             'tables' => $allTables,
             'busyTableIds' => $busyTableIds,
         ]);
+    }
+
+    /**
+     * Xác nhận đã gọi điện cho khách hàng
+     */
+    public function confirmPhone($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        
+        $reservation->update([
+            'phone_confirmed' => true,
+        ]);
+
+        return redirect()->route('admin.datBan.index')
+                         ->with('success', 'Đã xác nhận gọi điện cho khách hàng!');
     }
 }

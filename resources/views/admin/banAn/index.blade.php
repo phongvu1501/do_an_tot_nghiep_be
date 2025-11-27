@@ -61,6 +61,7 @@
                                         <th>Loại bàn</th>
                                         <th>Sức chứa</th>
                                         <th>Tình trạng</th>
+                                        <th>Số điện thoại</th>
                                         <th>Thao tác</th>
                                     </tr>
                                 </thead>
@@ -107,7 +108,7 @@
                                                             </span>
                                                         @elseif($activeReservation->status == 'deposit_paid')
                                                             <span class="badge badge-info badge-lg">
-                                                                <i class="fas fa-check-circle"></i> Đã đặt cọc
+                                                                <i class="fas fa-check-circle"></i> Đặt thành công
                                                             </span>
                                                         @elseif($activeReservation->status == 'serving')
                                                             <span class="badge badge-primary badge-lg">
@@ -126,6 +127,14 @@
                                                         </span>
                                                     @endif
                                                 </td>
+
+                                            <td>
+                                                @if($activeReservation && $activeReservation->user)
+                                                    {{ $activeReservation->user->phone ?? 'Chưa có' }}
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </td>
 
                                             <td>
                                                 @if($activeReservation)
@@ -248,7 +257,7 @@
                                     @elseif($activeReservation->status == 'deposit_pending')
                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                     @elseif($activeReservation->status == 'deposit_paid')
-                                        <span class="badge badge-info">Đã đặt cọc</span>
+                                        <span class="badge badge-info">Đặt thành công</span>
                                     @elseif($activeReservation->status == 'serving')
                                         <span class="badge badge-primary">Đang phục vụ</span>
                                     @endif

@@ -189,8 +189,7 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        // Chỉ cho phép hủy nếu trạng thái là pending, confirmed, deposit_pending hoặc deposit_paid
-        if (!in_array($reservation->status, ['pending', 'confirmed', 'deposit_pending', 'deposit_paid'])) {
+        if (!in_array($reservation->status, ['pending', 'deposit_pending', 'deposit_paid'])) {
             return response()->json([
                 'error' => 'Không thể hủy',
                 'message' => 'Không thể hủy đơn đặt bàn đã hoàn tất hoặc đã bị hủy trước đó.'
@@ -393,8 +392,12 @@ class DatBanAnController extends Controller
             
             $totalDeposit = $tableDeposit + $menuDeposit;
 
+            // Nếu cần cọc → chờ đặt cọc, nếu không cần cọc → đặt thành công (deposit_paid)
             if ($totalDeposit > 0) {
                 $initialStatus = 'deposit_pending';
+            } else {
+                // Không cần cọc → đặt thành công luôn, admin có thể chuyển sang serving
+                $initialStatus = 'deposit_paid';
             }
 
             $reservation = Reservation::create([
@@ -613,9 +616,8 @@ class DatBanAnController extends Controller
     {
         $statuses = [
             'pending' => 'Chờ xác nhận',
-            'confirmed' => 'Đã xác nhận',
             'deposit_pending' => 'Chờ đặt cọc',
-            'deposit_paid' => 'Đã đặt cọc',
+            'deposit_paid' => 'Đặt thành công',
             'serving' => 'Đang phục vụ',
             'completed' => 'Hoàn tất',
             'cancelled' => 'Đã hủy',

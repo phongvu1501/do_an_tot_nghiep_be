@@ -22,16 +22,27 @@
                                     @enderror
                                 </div>
 
-                                <!-- <div class="form-group">
+                                <div class="form-group">
+                                    <label for="type">Loại bàn</label>
+                                    <select class="form-control @error('type') is-invalid @enderror" id="type" name="type">
+                                        <option value="">-- Chọn loại bàn --</option>
+                                        <option value="normal" {{ old('type') == 'normal' ? 'selected' : '' }}>Bàn thường</option>
+                                        <option value="vip" {{ old('type') == 'vip' ? 'selected' : '' }}>Phòng VIP</option>
+                                    </select>
+                                    @error('type')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="form-group">
                                     <label for="limit_number">Số lượng người tối đa</label>
                                     <input type="number" class="form-control @error('limit_number') is-invalid @enderror"
                                         id="limit_number" name="limit_number" placeholder="Nhập số lượng người"
-                                        value="{{ old('limit_number', 8) }}">
+                                        value="{{ old('limit_number') }}" readonly>
                                     @error('limit_number')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
-                                    <small class="form-text text-muted">Mặc định: 8 người</small>
-                                </div> -->
+                                </div>
 
                                 <div class="form-group">
                                     <button type="submit" class="btn btn-primary">Thêm bàn</button>
@@ -44,4 +55,26 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeSelect = document.getElementById('type');
+            const limitNumberInput = document.getElementById('limit_number');
+
+            typeSelect.addEventListener('change', function() {
+                if (this.value === 'vip') {
+                    limitNumberInput.value = 30;
+                } else if (this.value === 'normal') {
+                    limitNumberInput.value = 8;
+                } else {
+                    limitNumberInput.value = '';
+                }
+            });
+
+            // Set initial value if type is already selected
+            if (typeSelect.value) {
+                typeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    </script>
 @endsection
