@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DepositRequiredDate;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -50,9 +51,15 @@ class DepositRequiredDateController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
+        // Lấy giá trị từ database (settings table), nếu không có thì lấy mặc định
+        $depositNormalTables = Setting::getValue('deposit_normal_tables', 500000);
+        $depositVipRooms = Setting::getValue('deposit_vip_rooms', 1000000);
+
         return view('admin.depositRequiredDate.index', [
             'title' => 'Quản lý ngày yêu cầu đặt cọc',
             'dates' => $paginator,
+            'deposit_normal_tables' => $depositNormalTables,
+            'deposit_vip_rooms' => $depositVipRooms,
         ]);
     }
 
@@ -75,23 +82,33 @@ class DepositRequiredDateController extends Controller
             'date' => 'required|date|after_or_equal:today|unique:deposit_required_dates,date',
             'description' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
-            'deposit_per_table' => 'required|numeric|min:0',
+            'deposit_per_table' => 'nullable|numeric|min:0',
+            'deposit_normal_tables' => 'nullable|numeric|min:1',
+            'deposit_vip_rooms' => 'nullable|numeric|min:1',
         ], [
             'date.required' => 'Vui lòng chọn ngày!',
             'date.date' => 'Ngày không hợp lệ!',
             'date.after_or_equal' => 'Ngày phải từ hôm nay trở đi!',
             'date.unique' => 'Ngày này đã được thêm vào danh sách!',
             'description.max' => 'Mô tả không được quá 500 ký tự!',
-            'deposit_per_table.required' => 'Vui lòng nhập số tiền cọc!',
             'deposit_per_table.numeric' => 'Số tiền cọc phải là số!',
             'deposit_per_table.min' => 'Số tiền cọc phải lớn hơn hoặc bằng 0!',
+            'deposit_normal_tables.numeric' => 'Tiền cọc bàn thường phải là số!',
+            'deposit_normal_tables.min' => 'Tiền cọc bàn thường phải lớn hơn 0!',
+            'deposit_vip_rooms.numeric' => 'Tiền cọc phòng VIP phải là số!',
+            'deposit_vip_rooms.min' => 'Tiền cọc phòng VIP phải lớn hơn 0!',
         ]);
+
+        $depositNormalTables = $validated['deposit_normal_tables'] ?? session('deposit_normal_tables', 500000);
+        $depositVipRooms = $validated['deposit_vip_rooms'] ?? session('deposit_vip_rooms', 1000000);
 
         DepositRequiredDate::create([
             'date' => $validated['date'],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
-            'deposit_per_table' => $validated['deposit_per_table'],
+            'deposit_per_table' => $validated['deposit_per_table'] ?? 300000,
+            'deposit_normal_tables' => $depositNormalTables,
+            'deposit_vip_rooms' => $depositVipRooms,
         ]);
 
         return redirect()->route('admin.depositRequiredDate.index')
@@ -337,5 +354,27 @@ class DepositRequiredDateController extends Controller
         }
 
         return $groups;
+    }
+
+    public function updateDepositSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'deposit_normal_tables' => 'required|numeric|min:1',
+            'deposit_vip_rooms' => 'required|numeric|min:1',
+        ], [
+            'deposit_normal_tables.required' => 'Vui lòng nhập tiền cọc cho bàn thường!',
+            'deposit_normal_tables.numeric' => 'Tiền cọc bàn thường phải là số!',
+            'deposit_normal_tables.min' => 'Tiền cọc bàn thường phải lớn hơn 0!',
+            'deposit_vip_rooms.required' => 'Vui lòng nhập tiền cọc cho phòng VIP!',
+            'deposit_vip_rooms.numeric' => 'Tiền cọc phòng VIP phải là số!',
+            'deposit_vip_rooms.min' => 'Tiền cọc phòng VIP phải lớn hơn 0!',
+        ]);
+
+        // Lưu vào database (settings table) để không bị mất khi xóa session hoặc clone code mới
+        Setting::setValue('deposit_normal_tables', $validated['deposit_normal_tables']);
+        Setting::setValue('deposit_vip_rooms', $validated['deposit_vip_rooms']);
+
+        return redirect()->route('admin.depositRequiredDate.index')
+            ->with('success', 'Đã cập nhật cấu hình tiền cọc thành công!');
     }
 }

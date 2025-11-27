@@ -11,6 +11,8 @@ class DepositRequiredDate extends Model
         'description',
         'is_active',
         'deposit_per_table',
+        'deposit_normal_tables',
+        'deposit_vip_rooms',
     ];
 
     protected $casts = [

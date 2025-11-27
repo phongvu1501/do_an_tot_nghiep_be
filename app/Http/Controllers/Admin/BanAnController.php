@@ -51,18 +51,22 @@ class BanAnController extends Controller
     {
         $validateData = $request->validate([
             'name' => 'required|string|max:255|unique:tables,name',
+            'type' => 'required|in:normal,vip',
             'limit_number' => 'nullable|integer|min:1',
         ], [
             'name.required' => 'Tên bàn không được bỏ trống!',
             'name.unique' => 'Tên bàn này đã tồn tại!',
+            'type.required' => 'Vui lòng chọn loại bàn!',
+            'type.in' => 'Loại bàn không hợp lệ!',
             'limit_number.integer' => 'Số lượng người phải là số nguyên!',
             'limit_number.min' => 'Số lượng người phải lớn hơn 0!',
         ]);
 
-        // Nếu không có limit_number, sử dụng giá trị mặc định 8
+        
         $data = [
             'name' => $validateData['name'],
-            'limit_number' => $validateData['limit_number'] ?? 8,
+            'type' => $validateData['type'],
+            'limit_number' => $validateData['type'] == 'vip' ? 30 : 8,
         ];
 
         BanAn::create($data);
@@ -83,19 +87,19 @@ class BanAnController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:tables,name,' . $banAn->id,
-            'limit_number' => 'required|integer|min:1',
+            'type' => 'required|in:normal,vip',
         ], [
             'name.required' => 'Tên bàn không được bỏ trống!',
             'name.unique' => 'Tên bàn này đã tồn tại!',
-            'limit_number.required' => 'Số lượng người không được bỏ trống!',
-            'limit_number.integer' => 'Số lượng người phải là số nguyên!',
-            'limit_number.min' => 'Số lượng người phải lớn hơn 0!',
+            'type.required' => 'Vui lòng chọn loại bàn!',
+            'type.in' => 'Loại bàn không hợp lệ!',
         ]);
 
         try {
             $banAn->update([
                 'name' => $request->name,
-                'limit_number' => $request->limit_number,
+                'type' => $request->type,
+                'limit_number' => $request->type == 'vip' ? 30 : 8,
             ]);
 
             return redirect()->route('admin.banAn.index')

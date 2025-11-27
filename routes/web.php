@@ -60,6 +60,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('deposit-required-dates/range/update', [DepositRequiredDateController::class, 'updateRange'])->name('admin.depositRequiredDate.updateRange');
     Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
     Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
+    Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
 
     // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');

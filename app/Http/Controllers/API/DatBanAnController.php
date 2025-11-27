@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DepositRequiredDate;
 use App\Models\Order;
 use App\Models\Reservation;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -222,6 +223,7 @@ class DatBanAnController extends Controller
             'num_people' => 'required|integer|min:1',
             'depsection' => 'nullable|string|max:255',
             'voucher_id' => 'nullable|exists:vouchers,id',
+            'prefer_vip' => 'nullable|boolean',
             'menus' => 'nullable|array',
             'menus.*.menu_id' => 'required_with:menus|exists:menus,id',
             'menus.*.quantity' => 'required_with:menus|integer|min:1',
@@ -270,35 +272,59 @@ class DatBanAnController extends Controller
                 ], 400);
             }
 
-            // Lấy danh sách tất cả bàn trống trong ca này
-            $allAvailableTables = \App\Models\BanAn::whereDoesntHave('reservations', function ($query) use ($request) {
-                    $query->where('reservation_date', $request->reservation_date)
-                        ->where('shift', $request->shift)
-                        ->where('status', '!=', 'cancelled');
-                })
-                ->orderBy('limit_number', 'asc') // Sắp xếp theo sức chứa tăng dần
-                ->get();
-
-            if ($allAvailableTables->isEmpty()) {
-                return response()->json([
-                    'error' => 'Hết bàn trống',
-                    'message' => 'Không còn đủ bàn trống, vui lòng chọn ca khác hoặc liên hệ với quán',
-                    'shift_info' => $this->getShiftInfo($request->shift),
-                ], 400);
-            }
-
-            // Sắp xếp bàn tự động dựa vào số người
             $numPeople = $request->num_people;
+            $preferVip = $request->boolean('prefer_vip', false);
             $selectedTables = collect();
             $totalCapacity = 0;
 
-            // Chiến lược: Chọn bàn sao cho tổng sức chứa vừa đủ hoặc hơn một chút số người
-            foreach ($allAvailableTables as $table) {
-                if ($totalCapacity >= $numPeople) {
-                    break; // Đã đủ chỗ
+            // Nếu chọn phòng VIP, tự động chia phòng VIP (không quan tâm số người)
+            if ($preferVip) {
+                $availableVipRooms = \App\Models\BanAn::where('type', 'vip')
+                    ->whereDoesntHave('reservations', function ($query) use ($request) {
+                        $query->where('reservation_date', $request->reservation_date)
+                            ->where('shift', $request->shift)
+                            ->where('status', '!=', 'cancelled');
+                    })
+                    ->get();
+
+                if ($availableVipRooms->isNotEmpty()) {
+                    $selectedTables->push($availableVipRooms->first());
+                    $totalCapacity = $availableVipRooms->first()->limit_number; // Thường là 30
+                } else {
+                    return response()->json([
+                        'error' => 'Hết phòng VIP',
+                        'message' => 'Không còn phòng VIP trống trong ca này. Vui lòng liên hệ nhân viên để được hỗ trợ.',
+                        'shift_info' => $this->getShiftInfo($request->shift),
+                    ], 400);
                 }
-                $selectedTables->push($table);
-                $totalCapacity += $table->limit_number;
+            } else {
+                // Nếu không chọn VIP, chia bàn thường
+                // Lấy danh sách tất cả bàn thường trống trong ca này
+                $allAvailableTables = \App\Models\BanAn::where('type', 'normal')
+                    ->whereDoesntHave('reservations', function ($query) use ($request) {
+                        $query->where('reservation_date', $request->reservation_date)
+                            ->where('shift', $request->shift)
+                            ->where('status', '!=', 'cancelled');
+                    })
+                    ->orderBy('limit_number', 'asc') // Sắp xếp theo sức chứa tăng dần
+                    ->get();
+
+                if ($allAvailableTables->isEmpty()) {
+                    return response()->json([
+                        'error' => 'Hết bàn trống',
+                        'message' => 'Không còn đủ bàn trống, vui lòng chọn ca khác hoặc liên hệ với quán',
+                        'shift_info' => $this->getShiftInfo($request->shift),
+                    ], 400);
+                }
+
+                // Chiến lược: Chọn bàn sao cho tổng sức chứa vừa đủ hoặc hơn một chút số người
+                foreach ($allAvailableTables as $table) {
+                    if ($totalCapacity >= $numPeople) {
+                        break; // Đã đủ chỗ
+                    }
+                    $selectedTables->push($table);
+                    $totalCapacity += $table->limit_number;
+                }
             }
 
             // Kiểm tra xem có đủ chỗ không
@@ -314,6 +340,10 @@ class DatBanAnController extends Controller
 
             $availableTables = $selectedTables;
             $tablesNeeded = $availableTables->count();
+            
+            // Kiểm tra loại bàn được chọn (có phòng VIP hay không)
+            $hasVipRoom = $availableTables->where('type', 'vip')->isNotEmpty();
+            $hasNormalTables = $availableTables->where('type', 'normal')->isNotEmpty();
 
             // Tính tổng total_price = tổng tiền món ăn (chưa có VAT)
             $subtotal = 0;
@@ -345,17 +375,23 @@ class DatBanAnController extends Controller
             $initialStatus = 'pending';
             $paymentUrl = null;
 
-            if ($isHoliday) {
-                $depositPerTable = $holidayDate->deposit_per_table ?? self::DEPOSIT_PER_TABLE;
-                $tableDeposit = $tablesNeeded * $depositPerTable;
-                $menuDeposit = $totalPrice; // Cọc toàn bộ tiền món ăn
-                $totalDeposit = $tableDeposit + $menuDeposit;
-            } else {
-                if ($totalPrice > 0) {
-                    $menuDeposit = $totalPrice; // Cọc toàn bộ tiền món ăn
-                    $totalDeposit = $menuDeposit;
-                }
+            // Phòng VIP: Luôn cọc theo cấu hình (1,000,000 VND), không phân biệt ngày thường hay ngày lễ
+            if ($hasVipRoom) {
+                // Luôn lấy từ database (settings table), không kiểm tra ngày lễ
+                $tableDeposit = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000)); // Đảm bảo >= 1
+            } elseif ($isHoliday && $hasNormalTables) {
+                // Bàn thường: Chỉ tính cọc nếu là ngày lễ, đảm bảo > 0
+                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
+                $tableDeposit = max(1, (int)$normalDeposit); // Đảm bảo >= 1
             }
+            // Ngày thường + bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
+            
+            // Cọc món ăn (luôn cọc toàn bộ tiền món ăn nếu có)
+            if ($totalPrice > 0) {
+                $menuDeposit = $totalPrice;
+            }
+            
+            $totalDeposit = $tableDeposit + $menuDeposit;
 
             if ($totalDeposit > 0) {
                 $initialStatus = 'deposit_pending';

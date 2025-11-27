@@ -58,6 +58,8 @@
                                     <tr>
                                         <th>STT</th>
                                         <th>Tên bàn</th>
+                                        <th>Loại bàn</th>
+                                        <th>Sức chứa</th>
                                         <th>Tình trạng</th>
                                         <th>Thao tác</th>
                                     </tr>
@@ -67,6 +69,20 @@
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
                                             <td><strong>{{ $table->name }}</strong></td>
+                                            <td>
+                                                @if(($table->type ?? 'normal') == 'vip')
+                                                    <span class="badge badge-warning badge-lg">
+                                                        <i class="fas fa-crown"></i> Phòng VIP
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-secondary badge-lg">
+                                                        <i class="fas fa-utensils"></i> Bàn thường
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <strong>{{ $table->limit_number ?? 8 }}</strong> người
+                                            </td>
 
                                             <!-- Tình trạng bàn theo ca -->
                                             <td>
