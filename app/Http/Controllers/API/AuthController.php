@@ -62,16 +62,20 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'phone' => 'required|string|regex:/^[0-9]{9,11}$/',
             'password' => 'required|string',
+        ], [
+            'phone.required' => 'Trường số điện thoại là bắt buộc.',
+            'phone.regex' => 'Số điện thoại không hợp lệ (chỉ chứa 9-11 chữ số).',
+            'password.required' => 'Trường mật khẩu là bắt buộc.',
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $user = User::where('phone', $credentials['phone'])->first();
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email hoặc mật khẩu không đúng.'
+                'message' => 'Số điện thoại hoặc mật khẩu không đúng.'
             ], 401);
         }
 

@@ -33,6 +33,24 @@
                                     <h5 class="mb-3"><i class="fas fa-user"></i> Thông tin khách hàng</h5>
                                     
                                     <div class="form-group">
+                                        <label for="customer_phone">Số điện thoại <span class="text-danger">*</span></label>
+                                        <input type="tel" 
+                                               class="form-control @error('customer_phone') is-invalid @enderror" 
+                                               id="customer_phone" 
+                                               name="customer_phone" 
+                                               value="{{ old('customer_phone') }}"
+                                               placeholder="Nhập số điện thoại"
+                                               required>
+                                        <small class="form-text text-muted" id="phoneHelp">Nhập số điện thoại để tìm thông tin khách hàng</small>
+                                        <div id="phoneLoading" class="spinner-border spinner-border-sm d-none" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                        @error('customer_phone')
+                                            <span class="invalid-feedback">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-group">
                                         <label for="customer_name">Tên khách hàng <span class="text-danger">*</span></label>
                                         <input type="text" 
                                                class="form-control @error('customer_name') is-invalid @enderror" 
@@ -46,18 +64,20 @@
                                         @enderror
                                     </div>
 
-                                    <div class="form-group">
-                                        <label for="customer_phone">Số điện thoại <span class="text-danger">*</span></label>
-                                        <input type="tel" 
-                                               class="form-control @error('customer_phone') is-invalid @enderror" 
-                                               id="customer_phone" 
-                                               name="customer_phone" 
-                                               value="{{ old('customer_phone') }}"
-                                               placeholder="Nhập số điện thoại"
-                                               required>
-                                        @error('customer_phone')
-                                            <span class="invalid-feedback">{{ $message }}</span>
-                                        @enderror
+                                    <div class="form-group" id="userEmailGroup" style="display: none;">
+                                        <label for="customer_email">Email</label>
+                                        <input type="email" 
+                                               class="form-control" 
+                                               id="customer_email" 
+                                               name="customer_email" 
+                                               readonly>
+                                        <small class="form-text text-muted">Email từ tài khoản</small>
+                                    </div>
+
+                                    <input type="hidden" id="user_id" name="user_id" value="{{ old('user_id') }}">
+                                    <div id="existingReservationAlert" class="alert alert-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Cảnh báo:</strong> <span id="existingReservationMessage"></span>
                                     </div>
 
                                     <div class="form-group">
@@ -100,7 +120,7 @@
                                                name="reservation_date" 
                                                value="{{ old('reservation_date', date('Y-m-d')) }}"
                                                min="{{ date('Y-m-d') }}"
-                                               onchange="updateAvailableTables()"
+                                               onchange="updateAvailableTables(); checkExistingReservation();"
                                                required>
                                         @error('reservation_date')
                                             <span class="invalid-feedback">{{ $message }}</span>
@@ -112,7 +132,7 @@
                                         <select class="form-control @error('shift') is-invalid @enderror" 
                                                 id="shift" 
                                                 name="shift"
-                                                onchange="updateAvailableTables()"
+                                                onchange="updateAvailableTables(); checkExistingReservation();"
                                                 required>
                                             <option value="">-- Chọn ca --</option>
                                             <option value="morning" {{ old('shift') == 'morning' ? 'selected' : '' }}>Sáng (6-10h)</option>
@@ -176,8 +196,120 @@
 
 @push('scripts')
 <script>
+let currentUserId = null;
+let hasExistingReservation = false;
+
+// Tìm user theo số điện thoại
+document.getElementById('customer_phone').addEventListener('blur', function() {
+    const phone = this.value.trim();
+    const phoneHelp = document.getElementById('phoneHelp');
+    const phoneLoading = document.getElementById('phoneLoading');
+    const customerName = document.getElementById('customer_name');
+    const customerEmail = document.getElementById('customer_email');
+    const userEmailGroup = document.getElementById('userEmailGroup');
+    const userIdInput = document.getElementById('user_id');
+    const existingReservationAlert = document.getElementById('existingReservationAlert');
+    
+    if (!phone || phone.length < 9) {
+        return;
+    }
+    
+    phoneLoading.classList.remove('d-none');
+    phoneHelp.textContent = 'Đang tìm kiếm...';
+    
+    fetch(`/admin/dat-ban/check-user-by-phone?phone=${encodeURIComponent(phone)}`)
+        .then(response => response.json())
+        .then(data => {
+            phoneLoading.classList.add('d-none');
+            
+            if (data.success && data.user) {
+                // Tìm thấy user
+                currentUserId = data.user.id;
+                userIdInput.value = data.user.id;
+                customerName.value = data.user.name;
+                customerName.readOnly = true;
+                customerName.classList.add('bg-light');
+                customerEmail.value = data.user.email || '';
+                userEmailGroup.style.display = data.user.email ? 'block' : 'none';
+                phoneHelp.textContent = ''; // Xóa text "Đang tìm kiếm..."
+                
+                // Kiểm tra đặt bàn trùng nếu đã chọn ngày và ca
+                checkExistingReservation();
+            } else {
+                // Không tìm thấy user
+                currentUserId = null;
+                userIdInput.value = '';
+                customerName.value = '';
+                customerName.readOnly = false;
+                customerName.classList.remove('bg-light');
+                customerEmail.value = '';
+                userEmailGroup.style.display = 'none';
+                phoneHelp.innerHTML = '<span class="text-info">Khách hàng chưa có tài khoản!</span>';
+                existingReservationAlert.style.display = 'none';
+                hasExistingReservation = false;
+            }
+        })
+        .catch(error => {
+            phoneLoading.classList.add('d-none');
+            phoneHelp.textContent = 'Lỗi khi tìm kiếm. Vui lòng thử lại.';
+            console.error('Error:', error);
+        });
+});
+
+// Kiểm tra đặt bàn trùng
+function checkExistingReservation() {
+    const userId = document.getElementById('user_id').value;
+    const date = document.getElementById('reservation_date').value;
+    const shift = document.getElementById('shift').value;
+    const existingReservationAlert = document.getElementById('existingReservationAlert');
+    const existingReservationMessage = document.getElementById('existingReservationMessage');
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    if (!userId || !date || !shift) {
+        existingReservationAlert.style.display = 'none';
+        hasExistingReservation = false;
+        submitButton.disabled = false;
+        return;
+    }
+    
+    fetch(`/admin/dat-ban/check-existing-reservation?user_id=${userId}&reservation_date=${date}&shift=${shift}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_reservation) {
+                // Đã có đặt bàn
+                hasExistingReservation = true;
+                existingReservationMessage.textContent = data.message;
+                if (data.reservation) {
+                    existingReservationMessage.innerHTML = `${data.message}<br><small>Mã đơn: #${data.reservation.id} - Trạng thái: ${data.reservation.status_text}</small>`;
+                }
+                existingReservationAlert.style.display = 'block';
+                submitButton.disabled = true;
+                submitButton.classList.add('disabled');
+            } else {
+                // Chưa có đặt bàn
+                hasExistingReservation = false;
+                existingReservationAlert.style.display = 'none';
+                submitButton.disabled = false;
+                submitButton.classList.remove('disabled');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            hasExistingReservation = false;
+            existingReservationAlert.style.display = 'none';
+            submitButton.disabled = false;
+            submitButton.classList.remove('disabled');
+        });
+}
+
 // Validate form trước khi submit
 document.getElementById('createReservationForm').addEventListener('submit', function(e) {
+    if (hasExistingReservation) {
+        e.preventDefault();
+        alert('Không thể tạo đơn đặt bàn vì khách hàng đã có đặt bàn trong thời gian này!');
+        return false;
+    }
+    
     var checkedCount = document.querySelectorAll('.table-checkbox:checked').length;
     var errorMessage = document.getElementById('errorMessage');
     

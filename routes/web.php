@@ -50,6 +50,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 
     Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
+    Route::get('dat-ban/check-user-by-phone', [DatBanController::class, 'checkUserByPhone'])->name('admin.datBan.checkUserByPhone');
+    Route::get('dat-ban/check-existing-reservation', [DatBanController::class, 'checkExistingReservation'])->name('admin.datBan.checkExistingReservation');
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');

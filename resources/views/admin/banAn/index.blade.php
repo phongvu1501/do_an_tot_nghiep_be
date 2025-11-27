@@ -61,7 +61,6 @@
                                         <th>Loại bàn</th>
                                         <th>Sức chứa</th>
                                         <th>Tình trạng</th>
-                                        <th>Số điện thoại</th>
                                         <th>Thao tác</th>
                                     </tr>
                                 </thead>
@@ -128,13 +127,7 @@
                                                     @endif
                                                 </td>
 
-                                            <td>
-                                                @if($activeReservation && $activeReservation->user)
-                                                    {{ $activeReservation->user->phone ?? 'Chưa có' }}
-                                                @else
-                                                    <span class="text-muted">-</span>
-                                                @endif
-                                            </td>
+                                           
 
                                             <td>
                                                 @if($activeReservation)
