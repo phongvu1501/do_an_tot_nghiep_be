@@ -11,14 +11,27 @@ use Illuminate\Support\Facades\Storage;
 class MenuController extends Controller
 {
     // 1. Hiển thị danh sách món ăn
-    public function index()
+    public function index(Request $request)
     {
-        $menus = Menu::with('category')->get();
+        $query = Menu::with('category');
+
+        // Lọc theo danh mục nếu có
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        $menus = $query->get();
 
         // Đếm số món đã bị xóa mềm
         $trashedCount = Menu::onlyTrashed()->count();
 
-        return view('admin.menus.index', compact('menus', 'trashedCount'));
+        // Lấy danh sách danh mục để hiển thị trong dropdown filter
+        $categories = MenuCategory::all();
+
+        // Danh mục đang được chọn
+        $selectedCategoryId = $request->category_id;
+
+        return view('admin.menus.index', compact('menus', 'trashedCount', 'categories', 'selectedCategoryId'));
     }
 
     // 2. Form thêm mới

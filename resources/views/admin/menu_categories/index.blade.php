@@ -34,9 +34,20 @@
                                     @forelse ($categories as $category)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td>{{ $category->name }}</td>
+                                            <td>
+                                                <a href="{{ route('admin.menus.index', ['category_id' => $category->id]) }}" 
+                                                   class="text-primary font-weight-bold" 
+                                                   style="text-decoration: none;">
+                                                    {{ $category->name }}
+                                                </a>
+                                            </td>
                                             <td>{{ $category->description ?? '—' }}</td>
                                             <td>
+                                                <a href="{{ route('admin.menus.index', ['category_id' => $category->id]) }}" 
+                                                   class="btn btn-sm btn-info me-1" 
+                                                   title="Xem món ăn">
+                                                    <i class="fas fa-list"></i> Xem món
+                                                </a>
                                                 <a href="{{ route('admin.menu_categories.edit', $category->id) }}"
                                                     class="btn btn-sm btn-warning">Sửa</a>
                                                 <form action="{{ route('admin.menu_categories.destroy', $category->id) }}"

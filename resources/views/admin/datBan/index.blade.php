@@ -90,7 +90,7 @@
                                             <td>{{ $tables->firstItem() + $index }}</td>
                                             <td>
                                                 <strong>{{ $reservation->user->name }}</strong><br>
-                                                <small class="text-muted">{{ $reservation->user->email }}</small>
+                                                <small class="text-muted">{{ $reservation->user->phone }}</small>
                                             </td>
                                             <td>{{ \Carbon\Carbon::parse($reservation->reservation_date)->format('d/m/Y') }}</td>
                                             <td>
