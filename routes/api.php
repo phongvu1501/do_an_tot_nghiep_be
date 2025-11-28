@@ -105,12 +105,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // // Áp dụng voucher 
     Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
-    // Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
+    Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
     Route::get('/user/vouchers', [VoucherController::class, 'getUserVouchers']);
 
     //Tích điểm khi thanh toán thành công
     Route::post('/points/add', [PointController::class, 'addPoints']);
     Route::get('/points/history', [PointController::class, 'history']);
+    Route::get('/points/userPoints', [PointController::class, 'userPoints']);
 
     // Voucher tiers (bảng quy đổi)
     // Route::get('/vouchers/tiers', [VoucherController::class, 'tiers']);

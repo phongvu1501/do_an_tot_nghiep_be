@@ -46,6 +46,7 @@ class PointVoucherController extends Controller
 
             // 2. Sinh voucher mới từ Tier
             $voucher = Voucher::create([
+                'tier_id' => $tier->id, // thêm dòng này
                 'code' => strtoupper('VC-' . uniqid()),
                 'discount_type' => 'percent',
                 'discount_value' => $tier->discount_percent,

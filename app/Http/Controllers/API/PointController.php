@@ -162,4 +162,27 @@ class PointController extends Controller
             'data' => $logs,
         ]);
     }
+    /**
+     * API: Điểm hiện có của người dùng
+     */
+    public function userPoints(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Bạn chưa đăng nhập',
+            ], 401);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Điểm hiện có của bạn',
+            'data' => [
+                'points' => $user->points ?? 0,
+                'points_balance' => $user->points_balance ?? 0,
+            ],
+        ]);
+    }
 }
