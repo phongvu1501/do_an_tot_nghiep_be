@@ -93,7 +93,6 @@ class RedemptionApiController extends Controller
             $voucherCode = 'POINT-' . strtoupper(Str::random(8));
 
             // a) Ghi lại lịch sử sử dụng điểm (USE) và trừ điểm
-            // Hàm usePoints() từ Trait HasLoyaltyPoints
             $user->usePoints($pointsToUse, "Redeemed voucher {$voucherCode} ({$tier->discount_percent}%) from Tier ID: {$tier->id}");
 
             // b) Tạo Voucher mới cho người dùng

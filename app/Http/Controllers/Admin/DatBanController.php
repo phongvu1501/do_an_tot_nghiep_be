@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BanAn;
 use App\Models\Reservation;
+use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,8 +35,8 @@ class DatBanController extends Controller
         }
 
         $reservations = $query->orderByDesc('id')
-                              ->paginate(10)
-                              ->appends($request->except('page'));
+            ->paginate(10)
+            ->appends($request->except('page'));
 
         return view('admin.datBan.index', [
             'title' => 'Trang quản lý đặt bàn',
@@ -113,7 +114,7 @@ class DatBanController extends Controller
         $reservation->tables()->attach($request->table_ids);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}");
+            ->with('success', "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}");
     }
 
     /**
@@ -139,10 +140,10 @@ class DatBanController extends Controller
         $reservation->tables()->sync([$request->table_id]);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', 'Cập nhật bàn thành công!');
+            ->with('success', 'Cập nhật bàn thành công!');
     }
 
- 
+
     public function confirm(Request $request, $id)
     {
         $reservation = Reservation::findOrFail($id);
@@ -198,7 +199,7 @@ class DatBanController extends Controller
                 $tableNames = collect($conflictingTables)->pluck('table.name')->implode(', ');
                 $conflictingReservationIds = collect($conflictingTables)->pluck('conflicting_reservation.id')->unique()->implode(', ');
                 $conflictingTableIds = collect($conflictingTables)->pluck('table.id')->toArray();
-                
+
                 $conflictingInfo = collect($conflictingTables)->map(function ($item) {
                     return [
                         'table_id' => $item['table']->id,
@@ -206,7 +207,7 @@ class DatBanController extends Controller
                         'conflicting_reservation_id' => $item['conflicting_reservation']->id,
                     ];
                 })->toArray();
-                
+
                 return redirect()->route('admin.datBan.index')
                     ->with('error', "Không thể bắt đầu phục vụ! Các bàn sau đang được sử dụng bởi đơn khác (đang phục vụ): {$tableNames}. Vui lòng chỉnh sửa bàn trước.")
                     ->with('open_edit_modal', $reservation->id)
@@ -231,7 +232,7 @@ class DatBanController extends Controller
         }
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
+            ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
     }
 
     /**
@@ -262,13 +263,13 @@ class DatBanController extends Controller
                 ->join('reservations', 'reservation_tables.reservation_id', '=', 'reservations.id')
                 ->where('reservation_tables.table_id', $tableId)
                 ->where('reservations.id', '!=', $reservation->id)
-                ->where(function($query) use ($reservation) {
+                ->where(function ($query) use ($reservation) {
                     if ($reservation->status === 'serving') {
                         $query->where('reservations.status', 'serving');
                     } else {
                         $query->where('reservations.reservation_date', $reservation->reservation_date)
-                              ->where('reservations.shift', $reservation->shift)
-                              ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving']);
+                            ->where('reservations.shift', $reservation->shift)
+                            ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving']);
                     }
                 })
                 ->first();
@@ -291,7 +292,7 @@ class DatBanController extends Controller
                     'conflicting_reservation_id' => $item['conflicting_reservation']->id,
                 ];
             })->toArray();
-            
+
             return redirect()->route('admin.datBan.index')
                 ->with('error', "Không thể cập nhật bàn! Các bàn sau đang được sử dụng bởi đơn khác (đang phục vụ): {$tableNames}.")
                 ->with('open_edit_modal', $reservation->id)
@@ -306,7 +307,7 @@ class DatBanController extends Controller
         $reservation->tables()->sync($request->table_ids);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Đã cập nhật bàn cho đơn #{$reservation->id} thành công! (Tổng số bàn: " . count($request->table_ids) . ")");
+            ->with('success', "Đã cập nhật bàn cho đơn #{$reservation->id} thành công! (Tổng số bàn: " . count($request->table_ids) . ")");
     }
 
     /**
@@ -321,8 +322,8 @@ class DatBanController extends Controller
 
         $busyTableIds = BanAn::whereHas('reservations', function ($q) use ($date, $shift) {
             $q->where('reservation_date', $date)
-              ->where('shift', $shift)
-              ->whereIn('status', ['confirmed', 'deposit_paid', 'serving']);
+                ->where('shift', $shift)
+                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving']);
         })->pluck('id');
 
         return response()->json([
@@ -330,4 +331,41 @@ class DatBanController extends Controller
             'busyTableIds' => $busyTableIds,
         ]);
     }
+    // Xử lý voucher
+    // public function calculateVoucherDiscount($reservation)
+    // {
+    //     if (!$reservation->voucher_id) {
+    //         return 0;
+    //     }
+
+    //     $voucher = Voucher::find($reservation->voucher_id);
+    //     if (!$voucher || $voucher->status !== 'active') {
+    //         return 0;
+    //     }
+
+    //     // Tính tổng
+    //     $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
+    //     $vat = $subtotal * 0.1;
+    //     $total = $subtotal + $vat;
+
+    //     // Điều kiện min/max
+    //     if ($voucher->min_order_value && $total < $voucher->min_order_value) {
+    //         return 0;
+    //     }
+
+    //     if ($voucher->order_value_allowed && $total > $voucher->order_value_allowed) {
+    //         return 0;
+    //     }
+
+    //     // Tính giảm
+    //     $discount = $voucher->discount_type == 'percent'
+    //         ? ($total * $voucher->discount_value) / 100
+    //         : $voucher->discount_value;
+
+    //     if ($voucher->max_discount_value) {
+    //         $discount = min($discount, $voucher->max_discount_value);
+    //     }
+
+    //     return $discount;
+    // }
 }

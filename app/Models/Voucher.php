@@ -22,4 +22,14 @@ class Voucher extends Model
         'end_date',
         'order_value_allowed'
     ];
+
+    public function tier()
+    {
+        return $this->belongsTo(PointVoucherTier::class, 'tier_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
