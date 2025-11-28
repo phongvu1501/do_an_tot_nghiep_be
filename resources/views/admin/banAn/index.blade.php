@@ -58,6 +58,8 @@
                                     <tr>
                                         <th>STT</th>
                                         <th>Tên bàn</th>
+                                        <th>Loại bàn</th>
+                                        <th>Sức chứa</th>
                                         <th>Tình trạng</th>
                                         <th>Thao tác</th>
                                     </tr>
@@ -67,6 +69,20 @@
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
                                             <td><strong>{{ $table->name }}</strong></td>
+                                            <td>
+                                                @if(($table->type ?? 'normal') == 'vip')
+                                                    <span class="badge badge-warning badge-lg">
+                                                        <i class="fas fa-crown"></i> Phòng VIP
+                                                    </span>
+                                                @else
+                                                    <span class="badge badge-secondary badge-lg">
+                                                        <i class="fas fa-utensils"></i> Bàn thường
+                                                    </span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <strong>{{ $table->limit_number ?? 8 }}</strong> người
+                                            </td>
 
                                             <!-- Tình trạng bàn theo ca -->
                                             <td>
@@ -91,7 +107,7 @@
                                                             </span>
                                                         @elseif($activeReservation->status == 'deposit_paid')
                                                             <span class="badge badge-info badge-lg">
-                                                                <i class="fas fa-check-circle"></i> Đã đặt cọc
+                                                                <i class="fas fa-check-circle"></i> Đặt thành công
                                                             </span>
                                                         @elseif($activeReservation->status == 'serving')
                                                             <span class="badge badge-primary badge-lg">
@@ -110,6 +126,8 @@
                                                         </span>
                                                     @endif
                                                 </td>
+
+                                           
 
                                             <td>
                                                 @if($activeReservation)
@@ -232,7 +250,7 @@
                                     @elseif($activeReservation->status == 'deposit_pending')
                                         <span class="badge badge-warning">Chờ đặt cọc</span>
                                     @elseif($activeReservation->status == 'deposit_paid')
-                                        <span class="badge badge-info">Đã đặt cọc</span>
+                                        <span class="badge badge-info">Đặt thành công</span>
                                     @elseif($activeReservation->status == 'serving')
                                         <span class="badge badge-primary">Đang phục vụ</span>
                                     @endif

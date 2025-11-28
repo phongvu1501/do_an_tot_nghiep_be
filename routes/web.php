@@ -51,10 +51,12 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 
     Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
+    Route::get('dat-ban/check-user-by-phone', [DatBanController::class, 'checkUserByPhone'])->name('admin.datBan.checkUserByPhone');
+    Route::get('dat-ban/check-existing-reservation', [DatBanController::class, 'checkExistingReservation'])->name('admin.datBan.checkExistingReservation');
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
-    Route::post('dat-ban/{id}/confirm', [DatBanController::class, 'confirm'])->name('admin.datBan.confirm');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
+    Route::post('dat-ban/{id}/confirm-phone', [DatBanController::class, 'confirmPhone'])->name('admin.datBan.confirmPhone');
 
     Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
@@ -63,6 +65,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('deposit-required-dates/range/update', [DepositRequiredDateController::class, 'updateRange'])->name('admin.depositRequiredDate.updateRange');
     Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
     Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
+    Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
 
     Route::resource('/tiers', TierController::class)->names('admin.tiers');
      Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');

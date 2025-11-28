@@ -24,10 +24,12 @@ class Reservation extends Model
         'total_amount',
         'payment_url',
         'cancellation_reason',
+        'phone_confirmed',
     ];
 
     protected $casts = [
         'reservation_date' => 'date',
+        'phone_confirmed' => 'boolean',
     ];
 
     // Quan hệ với User

@@ -37,6 +37,34 @@
                                     </button>
                                 </div>
                             @endif
+
+                            <div class="card mb-3 bg-light">
+                                <div class="card-body">
+                                    <h6 class="font-weight-bold mb-3">Cấu hình tiền cọc</h6>
+                                    <form action="{{ route('admin.depositRequiredDate.updateDepositSettings') }}" method="POST" class="row align-items-end">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="col-md-4">
+                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND)</label>
+                                            <input type="number" name="deposit_normal_tables" class="form-control" 
+                                                   value="{{ old('deposit_normal_tables', $deposit_normal_tables ?? 500000) }}" 
+                                                   min="1" step="1" placeholder="Nhập số tiền cọc" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) </label>
+                                            <input type="number" name="deposit_vip_rooms" class="form-control" 
+                                                   value="{{ old('deposit_vip_rooms', $deposit_vip_rooms ?? 1000000) }}" 
+                                                   min="1" step="1" placeholder="Nhập số tiền cọc" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="submit" class="btn btn-success w-100">
+                                                <i class="fas fa-save"></i> Lưu cấu hình
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
                                     <form action="{{ route('admin.depositRequiredDate.index') }}" method="GET" class="row" id="filterForm">

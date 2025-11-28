@@ -112,10 +112,8 @@ class VnPayController extends Controller
             if ($request->vnp_ResponseCode == '00') {
                 // Kiểm tra xem đây có phải thanh toán cọc không
                 if ($reservation->status === 'deposit_pending') {
-                    // Thanh toán thành công cọc -> chuyển sang 'pending' (Chờ xác nhận)
-                    // Dù có cọc hay không cọc, đều phải qua bước admin xác nhận trước khi chuyển sang 'confirmed'
                     $reservation->update([
-                        'status' => 'pending',
+                        'status' => 'deposit_paid',
                     ]);
                 } else {
                     // Thanh toán thành công số tiền còn lại -> hoàn tất
