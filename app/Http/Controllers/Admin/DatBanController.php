@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BanAn;
+use App\Models\PointLog;
 use App\Models\Reservation;
 use App\Models\Voucher;
 use Carbon\Carbon;
@@ -188,7 +189,7 @@ class DatBanController extends Controller
 
         $reservation = Reservation::findOrFail($request->reservation_id);
 
-        $oldStatus = $reservation->status;
+        $oldStatus = $reservation->getOriginal('status');
 
         if ($request->status === 'serving') {
             // Cho phép chuyển sang serving từ deposit_paid trở lên (đặt thành công)
@@ -256,6 +257,14 @@ class DatBanController extends Controller
                 // Cập nhật điểm
                 $user->points = ($user->points ?? 0) + $points;
                 $user->save();
+
+                // Ghi log điểm
+                PointLog::create([
+                    'user_id' => $user->id,
+                    'reservation_id' => $reservation->id,
+                    'points' => $points,
+                    'action' => 'Hoàn tất đơn hàng #' . ($reservation->reservation_code ?? $reservation->id),
+                ]);
             }
         }
 
