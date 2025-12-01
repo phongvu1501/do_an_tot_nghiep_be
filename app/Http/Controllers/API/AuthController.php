@@ -5,9 +5,11 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -41,21 +43,127 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::create([
+        // Tạo mã OTP
+        $otp = rand(100000, 999999);
+        // Tạo tài khoản
+         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => 'user', // mặc định user
+            'otp_code' => $otp,
+            'otp_expires_at' => Carbon::now()->addMinutes(10),
+            'is_verified' => false,
         ]);
 
+
+        // Gửi email chứa mã OTP
+        try {
+            Mail::raw("Xin chào {$user->name}, mã OTP xác thực của bạn là: {$otp} (hết hạn sau 10 phút)", function ($m) use ($user) {
+                $m->to($user->email)->subject('Xác thực tài khoản - Mã OTP');
+            });
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Đăng ký thành công, nhưng không thể gửi email OTP.',
+                'user' => $user,
+            ], 201);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => 'Đăng ký thành công! Hãy đăng nhập.',
-            'user' => $user
+            'status' => true,
+            'message' => 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.',
+            'user' => $user,
         ], 201);
     }
 
+    //  API xác nhận OTP
+    public function verifyOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'otp' => 'required|digits:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng.'], 404);
+        }
+
+        if ($user->is_verified) {
+            return response()->json(['status' => true, 'message' => 'Tài khoản đã được xác minh.'], 200);
+        }
+
+        if ($user->otp_code !== $request->otp) {
+            return response()->json(['status' => false, 'message' => 'Mã OTP không chính xác.'], 400);
+        }
+
+        if (Carbon::now()->greaterThan($user->otp_expires_at)) {
+            return response()->json(['status' => false, 'message' => 'Mã OTP đã hết hạn.'], 400);
+        }
+
+        // Xác thực thành công
+        $user->update([
+            'is_verified' => true,
+            'otp_code' => null,
+            'otp_expires_at' => null,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Xác thực tài khoản thành công!',
+            'user' => $user,
+        ], 200);
+    }
+
+    // API gửi lại OTP (tùy chọn)
+    public function resendOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng.'], 404);
+        }
+
+        if ($user->is_verified) {
+            return response()->json(['status' => true, 'message' => 'Tài khoản đã được xác minh.'], 200);
+        }
+
+        // Tạo mã OTP mới
+        $otp = rand(100000, 999999);
+        $user->update([
+            'otp_code' => $otp,
+            'otp_expires_at' => Carbon::now()->addMinutes(10),
+        ]);
+
+        try {
+            Mail::raw("Mã OTP mới của bạn là: {$otp} (hết hạn sau 10 phút)", function ($m) use ($user) {
+                $m->to($user->email)->subject('Gửi lại mã OTP');
+            });
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => 'Không thể gửi lại email OTP.'], 500);
+        }
+
+        return response()->json(['status' => true, 'message' => 'Đã gửi lại mã OTP. Vui lòng kiểm tra email.'], 200);
+    }
+
+    
     /**
      * Đăng nhập
      */

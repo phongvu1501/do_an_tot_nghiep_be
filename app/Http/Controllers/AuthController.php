@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OTPMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
 
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -41,23 +44,75 @@ class AuthController extends Controller
             ]
         );
 
+        $otp = rand(100000, 999999); // tạo OTP 6 số
+        $expiresAt = Carbon::now()->addMinutes(5); // hết hạn sau 5 phút
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => 'user', // mặc định là user
+            'role' => 'user',
+            'otp' => $otp,
+            'otp_expires_at' => $expiresAt,
         ]);
 
-        return redirect()->route('login')->with('success', 'Đăng ký thành công! Hãy đăng nhập.');
-    }
+        // Gửi email OTP sử dụng view Blade
+        Mail::send('emails.otp', ['user' => $user, 'otp' => $otp], function ($message) use ($user) {
+            $message->to($user->email)
+                    ->subject('Mã OTP xác thực tài khoản');
+        });
 
+
+        return redirect()->route('verify.otp.form', ['email' => $user->email])
+            ->with('success', 'Đăng ký thành công! Vui lòng nhập mã OTP đã được gửi tới email.');
+    }
 
     // Hiển thị form đăng nhập
     public function showLoginForm()
     {
         return view('auth.login');
     }
+
+    // Hiển thị form nhập OTP
+    public function showOTPForm(Request $request)
+    {
+        $email = $request->email;
+        return view('auth.verify-otp', compact('email'));
+    }
+
+    // Xử lý xác thực OTP
+    public function verifyOTP(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'otp' => 'required|digits:6',
+        ], [
+            'otp.digits' => 'Mã OTP phải gồm 6 chữ số.',
+            'email.exists' => 'Email không tồn tại.',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        // Kiểm tra OTP
+        if ($user->otp !== $request->otp) {
+            return back()->withErrors(['otp' => 'Mã OTP không đúng.']);
+        }
+
+        // Kiểm tra hết hạn
+        if (Carbon::now()->gt($user->otp_expires_at)) {
+            return back()->withErrors(['otp' => 'Mã OTP đã hết hạn. Vui lòng đăng ký lại.']);
+        }
+
+        // Xác nhận người dùng
+        $user->is_verified = true;
+        $user->otp = null;
+        $user->otp_expires_at = null;
+        $user->save();
+
+        return redirect()->route('login')->with('success', 'Xác thực thành công! Bạn có thể đăng nhập.');
+    }
+
 
     // Xử lý đăng nhập
     // public function login(Request $request)
