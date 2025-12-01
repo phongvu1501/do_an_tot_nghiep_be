@@ -160,14 +160,28 @@
                                                 'serving' => 'badge badge-secondary',
                                                 'completed' => 'badge badge-success',
                                                 'waiting_for_payment' => 'badge badge-warning',
+                                                'suspended' => 'badge badge-dark',
+                                            ];
+
+                                            $statusLabels = [
+                                                'cancelled' => 'Đã hủy',
+                                                'pending' => 'Chờ xác nhận',
+                                                'deposit_pending' => 'Chờ đặt cọc',
+                                                'deposit_paid' => 'Đã đặt cọc',
+                                                'confirmed' => 'Đã xác nhận',
+                                                'serving' => 'Đang phục vụ',
+                                                'completed' => 'Hoàn tất',
+                                                'waiting_for_payment' => 'Chờ thanh toán',
+                                                'suspended' => 'Tạm dừng',
                                             ];
                                         @endphp
 
                                         <td>
                                             <span class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
-                                                {{ $item->status }}
+                                                {{ $statusLabels[$item->status] ?? $item->status }}
                                             </span>
                                         </td>
+
 
                                     </tr>
                                 @endforeach
@@ -225,11 +239,15 @@
                                             $statusColors = [
                                                 'cancelled' => 'badge badge-danger',
                                             ];
+
+                                            $statusLabels = [
+                                                'cancelled' => 'Đã hủy',
+                                            ];
                                         @endphp
 
                                         <td>
                                             <span class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
-                                                {{ $item->status }}
+                                                {{ $statusLabels[$item->status] ?? $item->status }}
                                             </span>
                                         </td>
 
