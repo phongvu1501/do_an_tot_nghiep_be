@@ -290,6 +290,7 @@
                                         @endif
                                         <br>
                                         <strong>Số người:</strong> {{ $reservation->num_people }} người<br>
+                                        <strong>Voucher:</strong> {{ $reservation->voucher->code ?? 'Không có voucher' }}<br>
                                         <strong>Ghi chú :</strong> {{ $reservation->depsection }}<br>
                                         <strong>Trạng thái:</strong>
                                         @switch($reservation->status)

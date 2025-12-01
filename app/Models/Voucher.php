@@ -13,6 +13,7 @@ class Voucher extends Model
 
     protected $fillable = [
         'tier_id',
+        'user_id',
         'code',
         'discount_type',
         'discount_value',

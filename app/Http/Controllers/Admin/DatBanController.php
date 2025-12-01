@@ -18,7 +18,7 @@ class DatBanController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Reservation::with(['reservationItems.menu', 'tables', 'user']);
+        $query = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher']);
 
         // Lọc theo ngày
         if ($request->filled('date')) {
@@ -138,7 +138,7 @@ class DatBanController extends Controller
      */
     public function show(string $id)
     {
-        $reservation = Reservation::with(['reservationItems.menu', 'tables'])->findOrFail($id);
+        $reservation = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher'])->findOrFail($id);
         return view('admin.datBan.show', compact('reservation'));
     }
 
@@ -262,7 +262,7 @@ class DatBanController extends Controller
                 PointLog::create([
                     'user_id' => $user->id,
                     'reservation_id' => $reservation->id,
-                    'points' => $points,
+                    'points' => $points,    
                     'action' => 'Hoàn tất đơn hàng #' . ($reservation->reservation_code ?? $reservation->id),
                 ]);
             }
@@ -380,45 +380,7 @@ class DatBanController extends Controller
             'busyTableIds' => $busyTableIds,
         ]);
     }
-    // Xử lý voucher
-    // public function calculateVoucherDiscount($reservation)
-    // {
-    //     if (!$reservation->voucher_id) {
-    //         return 0;
-    //     }
-
-    //     $voucher = Voucher::find($reservation->voucher_id);
-    //     if (!$voucher || $voucher->status !== 'active') {
-    //         return 0;
-    //     }
-
-    //     // Tính tổng
-    //     $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-    //     $vat = $subtotal * 0.1;
-    //     $total = $subtotal + $vat;
-
-    //     // Điều kiện min/max
-    //     if ($voucher->min_order_value && $total < $voucher->min_order_value) {
-    //         return 0;
-    //     }
-
-    //     if ($voucher->order_value_allowed && $total > $voucher->order_value_allowed) {
-    //         return 0;
-    //     }
-
-    //     // Tính giảm
-    //     $discount = $voucher->discount_type == 'percent'
-    //         ? ($total * $voucher->discount_value) / 100
-    //         : $voucher->discount_value;
-
-    //     if ($voucher->max_discount_value) {
-    //         $discount = min($discount, $voucher->max_discount_value);
-    //     }
-
-    //     return $discount;
-    // }
-
-
+    
     /**
      * Xác nhận đã gọi điện cho khách hàng
      */

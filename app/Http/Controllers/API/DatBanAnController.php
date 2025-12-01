@@ -264,7 +264,7 @@ class DatBanAnController extends Controller
             'shift' => 'required|in:morning,afternoon,evening,night',
             'num_people' => 'required|integer|min:1',
             'depsection' => 'nullable|string|max:255',
-            'voucher_id' => 'nullable|exists:vouchers,id',
+            'voucher_id' => 'nullable|string',
             'prefer_vip' => 'nullable|boolean',
             'menus' => 'nullable|array',
             'menus.*.menu_id' => 'required_with:menus|exists:menus,id',
@@ -291,6 +291,22 @@ class DatBanAnController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        $voucherId = null;
+        if (!empty($request->voucher_id)) {
+            $voucher = Voucher::where('code', $request->voucher_id)
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$voucher) {
+                return response()->json([
+                    'error' => 'Mã voucher không hợp lệ hoặc đã hết hạn.'
+                ], 400);
+            }
+
+            $voucherId = $voucher->id;
         }
 
         try {
@@ -400,7 +416,7 @@ class DatBanAnController extends Controller
 
             $availableTables = $selectedTables;
             $tablesNeeded = $availableTables->count();
-            
+
             // Kiểm tra loại bàn được chọn (có phòng VIP hay không)
             $hasVipRoom = $availableTables->where('type', 'vip')->isNotEmpty();
             $hasNormalTables = $availableTables->where('type', 'normal')->isNotEmpty();
@@ -445,12 +461,12 @@ class DatBanAnController extends Controller
                 $tableDeposit = max(1, (int)$normalDeposit); // Đảm bảo >= 1
             }
             // Ngày thường + bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
-            
+
             // Cọc món ăn (luôn cọc toàn bộ tiền món ăn nếu có)
             if ($totalPrice > 0) {
                 $menuDeposit = $totalPrice;
             }
-            
+
             $totalDeposit = $tableDeposit + $menuDeposit;
 
             // Nếu cần cọc → chờ đặt cọc, nếu không cần cọc → đặt thành công (deposit_paid)
@@ -467,7 +483,7 @@ class DatBanAnController extends Controller
                 'shift' => $request->shift,
                 'num_people' => $request->num_people,
                 'depsection' => $request->depsection,
-                'voucher_id' => $request->voucher_id,
+                'voucher_id' => $voucherId,
                 'status' => $initialStatus,
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
