@@ -47,6 +47,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Thông tin người dùng hiện tại
     Route::get('/user', [AuthController::class, 'user']);
 
+    // Cập nhật profile (tên, email)
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+
+    // Đổi mật khẩu
+    Route::put('/user/password', [AuthController::class, 'changePassword']);
+
     // Logout
     Route::post('/logout', [AuthController::class, 'logout']);
 
