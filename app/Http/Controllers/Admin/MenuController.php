@@ -45,22 +45,26 @@ class MenuController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:menus,name',
+            'name' => 'required|string|max:100|unique:menus,name' . (isset($menu) ? (',' . $menu->id) : ''),
             'category_id' => 'required|exists:menu_categories,id',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:1000',
+            'price' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'status' => 'required|boolean',
         ], [
             'name.required' => 'Vui lòng nhập tên món ăn.',
+            'name.max' => 'Tên món không được vượt quá 100 ký tự.',
             'name.unique' => 'Tên món ăn này đã tồn tại.',
             'category_id.required' => 'Vui lòng chọn danh mục.',
             'category_id.exists' => 'Danh mục được chọn không hợp lệ.',
             'price.required' => 'Vui lòng nhập giá món ăn.',
-            'price.numeric' => 'Giá phải là số.',
+            'price.regex' => 'Giá không hợp lệ — chỉ chấp nhận số dương, tối đa 8 chữ số nguyên và tối đa 2 chữ số thập phân (ví dụ: 99999999.99).',
             'image.image' => 'File tải lên phải là hình ảnh.',
             'image.mimes' => 'Chỉ chấp nhận các định dạng: jpeg, png, jpg, webp.',
             'image.max' => 'Kích thước ảnh tối đa là 2MB.',
+            'description.max' => 'Ghi chú không được vượt quá 1000 ký tự.',
+            'status.required' => 'Trạng thái bắt buộc.',
+            'status.boolean' => 'Trạng thái không hợp lệ.',
         ]);
 
         // Upload ảnh nếu có
@@ -91,12 +95,26 @@ class MenuController extends Controller
     public function update(Request $request, Menu $menu)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:menus,name,' . $menu->id,
+            'name' => 'required|string|max:100|unique:menus,name' . (isset($menu) ? (',' . $menu->id) : ''),
             'category_id' => 'required|exists:menu_categories,id',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:1000',
+            'price' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'status' => 'required|boolean',
+        ], [
+            'name.required' => 'Vui lòng nhập tên món ăn.',
+            'name.max' => 'Tên món không được vượt quá 100 ký tự.',
+            'name.unique' => 'Tên món ăn này đã tồn tại.',
+            'category_id.required' => 'Vui lòng chọn danh mục.',
+            'category_id.exists' => 'Danh mục được chọn không hợp lệ.',
+            'price.required' => 'Vui lòng nhập giá món ăn.',
+            'price.regex' => 'Giá không hợp lệ — chỉ chấp nhận số dương, tối đa 8 chữ số nguyên và tối đa 2 chữ số thập phân (ví dụ: 99999999.99).',
+            'image.image' => 'File tải lên phải là hình ảnh.',
+            'image.mimes' => 'Chỉ chấp nhận các định dạng: jpeg, png, jpg, webp.',
+            'image.max' => 'Kích thước ảnh tối đa là 2MB.',
+            'description.max' => 'Ghi chú không được vượt quá 1000 ký tự.',
+            'status.required' => 'Trạng thái bắt buộc.',
+            'status.boolean' => 'Trạng thái không hợp lệ.',
         ]);
 
         // Nếu có upload ảnh mới → xóa ảnh cũ rồi lưu ảnh mới
@@ -116,7 +134,7 @@ class MenuController extends Controller
     // 7. Xóa món ăn
     public function destroy(Menu $menu)
     {
-        
+
 
         $menu->delete();
 
@@ -144,16 +162,15 @@ class MenuController extends Controller
 
     // Xóa vĩnh viễn món ăn (và xóa ảnh luôn)
     public function forceDelete($id)
-{
-    $menu = Menu::onlyTrashed()->findOrFail($id);
+    {
+        $menu = Menu::onlyTrashed()->findOrFail($id);
 
-    if ($menu->image && Storage::disk('public')->exists($menu->image)) {
-        Storage::disk('public')->delete($menu->image); // Xóa file thật
+        if ($menu->image && Storage::disk('public')->exists($menu->image)) {
+            Storage::disk('public')->delete($menu->image); // Xóa file thật
+        }
+
+        $menu->forceDelete();
+
+        return redirect()->route('admin.menus.trash')->with('success', 'Đã xóa vĩnh viễn món ăn!');
     }
-
-    $menu->forceDelete();
-
-    return redirect()->route('admin.menus.trash')->with('success', 'Đã xóa vĩnh viễn món ăn!');
-}
-
 }

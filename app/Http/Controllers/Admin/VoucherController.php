@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PointVoucherTier;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 
@@ -24,12 +25,16 @@ class VoucherController extends Controller
     public function create()
     {
         $title = "Thêm voucher mới";
-        return view('admin.vouchers.voucher.create', compact('title'));
+
+        $tiers = PointVoucherTier::where('is_active', true)->get();
+
+        return view('admin.vouchers.voucher.create', compact('title', 'tiers'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
+            'tier_id' => 'nullable|exists:point_voucher_tiers,id',
             'code' => 'required|string|unique:vouchers,code',
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [
@@ -59,6 +64,7 @@ class VoucherController extends Controller
         ]);
 
         Voucher::create([
+            'tier_id' => $request->tier_id,
             'code' => $request->code,
             'discount_type' => $request->discount_type,
             'discount_value' => $request->discount_value,
@@ -76,8 +82,9 @@ class VoucherController extends Controller
     public function edit($id)
     {
         $voucher = Voucher::findOrFail($id);
+        $tiers = PointVoucherTier::where('is_active', true)->get();
         $title = 'Chỉnh sửa Voucher';
-        return view('admin.vouchers.voucher.edit', compact('voucher', 'title'));
+        return view('admin.vouchers.voucher.edit', compact('voucher', 'title', 'tiers'));
     }
 
     public function update(Request $request, $id)
@@ -85,6 +92,7 @@ class VoucherController extends Controller
         $voucher = Voucher::findOrFail($id);
 
         $request->validate([
+            'tier_id' => 'nullable|exists:point_voucher_tiers,id',
             'code' => 'required|string|unique:vouchers,code,' . $voucher->id,
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [

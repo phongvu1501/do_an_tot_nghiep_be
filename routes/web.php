@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuCategoryController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DepositRequiredDateController;
+use App\Http\Controllers\Admin\TierController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -57,12 +58,17 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
     Route::post('dat-ban/{id}/confirm-phone', [DatBanController::class, 'confirmPhone'])->name('admin.datBan.confirmPhone');
 
+    Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
+    Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
     Route::resource('deposit-required-dates', DepositRequiredDateController::class)->names('admin.depositRequiredDate');
     Route::post('deposit-required-dates/range', [DepositRequiredDateController::class, 'storeRange'])->name('admin.depositRequiredDate.storeRange');
     Route::put('deposit-required-dates/range/update', [DepositRequiredDateController::class, 'updateRange'])->name('admin.depositRequiredDate.updateRange');
     Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
     Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
     Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
+
+    Route::resource('/tiers', TierController::class)->names('admin.tiers');
+     Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
 
     // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');

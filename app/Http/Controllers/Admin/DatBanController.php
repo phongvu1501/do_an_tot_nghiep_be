@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BanAn;
+use App\Models\PointLog;
 use App\Models\Reservation;
+use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +18,7 @@ class DatBanController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Reservation::with(['reservationItems.menu', 'tables', 'user']);
+        $query = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher']);
 
         // Lọc theo ngày
         if ($request->filled('date')) {
@@ -41,8 +43,8 @@ class DatBanController extends Controller
         }
 
         $reservations = $query->orderByDesc('id')
-                              ->paginate(10)
-                              ->appends($request->except('page'));
+            ->paginate(10)
+            ->appends($request->except('page'));
 
         return view('admin.datBan.index', [
             'title' => 'Trang quản lý đặt bàn',
@@ -163,7 +165,7 @@ class DatBanController extends Controller
         $reservation->tables()->attach($request->table_ids);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Tạo đơn đặt bàn thành công! ");
+                         ->with('success', "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}");
     }
 
     /**
@@ -171,7 +173,7 @@ class DatBanController extends Controller
      */
     public function show(string $id)
     {
-        $reservation = Reservation::with(['reservationItems.menu', 'tables'])->findOrFail($id);
+        $reservation = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher'])->findOrFail($id);
         return view('admin.datBan.show', compact('reservation'));
     }
 
@@ -189,10 +191,25 @@ class DatBanController extends Controller
         $reservation->tables()->sync([$request->table_id]);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', 'Cập nhật bàn thành công!');
+            ->with('success', 'Cập nhật bàn thành công!');
     }
 
- 
+
+    public function confirm(Request $request, $id)
+    {
+        $reservation = Reservation::findOrFail($id);
+
+        if ($reservation->status !== 'pending') {
+            return back()->with('error', 'Chỉ có thể xác nhận đơn đặt bàn đang ở trạng thái "Chờ xác nhận".');
+        }
+
+        $reservation->status = 'confirmed';
+        $reservation->save();
+
+        return redirect()->route('admin.datBan.index')
+            ->with('success', "Đã xác nhận đơn đặt bàn #{$reservation->id} thành công!");
+    }
+
 
     /**
      * Cập nhật trạng thái đơn đặt bàn
@@ -206,6 +223,8 @@ class DatBanController extends Controller
         ]);
 
         $reservation = Reservation::findOrFail($request->reservation_id);
+
+        $oldStatus = $reservation->getOriginal('status');
 
         if ($request->status === 'serving') {
             if (!in_array($reservation->status, ['deposit_paid', 'serving'])) {
@@ -234,7 +253,7 @@ class DatBanController extends Controller
                 $tableNames = collect($conflictingTables)->pluck('table.name')->implode(', ');
                 $conflictingReservationIds = collect($conflictingTables)->pluck('conflicting_reservation.id')->unique()->implode(', ');
                 $conflictingTableIds = collect($conflictingTables)->pluck('table.id')->toArray();
-                
+
                 $conflictingInfo = collect($conflictingTables)->map(function ($item) {
                     return [
                         'table_id' => $item['table']->id,
@@ -242,7 +261,7 @@ class DatBanController extends Controller
                         'conflicting_reservation_code' => $item['conflicting_reservation']->reservation_code ?? '#' . $item['conflicting_reservation']->id,
                     ];
                 })->toArray();
-                
+
                 return redirect()->route('admin.datBan.index')
                     ->with('error', "Không thể bắt đầu phục vụ! {$tableNames} đang được sử dụng bởi đơn khác")
                     ->with('open_edit_modal', $reservation->id)
@@ -258,6 +277,31 @@ class DatBanController extends Controller
 
         $reservation->save();
 
+        if ($request->status === 'completed' && $oldStatus !== 'completed') {
+
+            $user = $reservation->user;
+
+            if ($user) {
+                // Tổng tiền sau voucher
+                $amount = $reservation->total_amount ?? 0;
+
+                // 1 điểm = 1.000đ
+                $points = floor($amount / 1000);
+
+                // Cập nhật điểm
+                $user->points = ($user->points ?? 0) + $points;
+                $user->save();
+
+                // Ghi log điểm
+                PointLog::create([
+                    'user_id' => $user->id,
+                    'reservation_id' => $reservation->id,
+                    'points' => $points,    
+                    'action' => 'Hoàn tất đơn hàng #' . ($reservation->reservation_code ?? $reservation->id),
+                ]);
+            }
+        }
+
         // Điều hướng theo yêu cầu
         if ($request->redirect_to === 'banAn') {
             return redirect()->route('admin.banAn.index', [
@@ -267,7 +311,7 @@ class DatBanController extends Controller
         }
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
+            ->with('success', 'Cập nhật trạng thái đặt bàn thành công!');
     }
 
     /**
@@ -298,13 +342,15 @@ class DatBanController extends Controller
                 ->join('reservations', 'reservation_tables.reservation_id', '=', 'reservations.id')
                 ->where('reservation_tables.table_id', $tableId)
                 ->where('reservations.id', '!=', $reservation->id)
-                ->where(function($query) use ($reservation) {
+                ->where(function ($query) use ($reservation) {
                     if ($reservation->status === 'serving') {
                         $query->where('reservations.status', 'serving');
                     } else {
                         $query->where('reservations.reservation_date', $reservation->reservation_date)
-                              ->where('reservations.shift', $reservation->shift)
-                              ->whereIn('reservations.status', ['deposit_paid', 'serving']);
+                            ->where('reservations.shift', $reservation->shift)
+                            ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving'])
+                            ->where('reservations.shift', $reservation->shift)
+                            ->whereIn('reservations.status', ['deposit_paid', 'serving']);
                     }
                 })
                 ->first();
@@ -327,7 +373,7 @@ class DatBanController extends Controller
                     'conflicting_reservation_code' => $item['conflicting_reservation']->reservation_code ?? '#' . $item['conflicting_reservation']->id,
                 ];
             })->toArray();
-            
+
             return redirect()->route('admin.datBan.index')
                 ->with('error', "Không thể cập nhật bàn! Các bàn sau đang được sử dụng bởi đơn khác (đang phục vụ): {$tableNames}.")
                 ->with('open_edit_modal', $reservation->id)
@@ -342,7 +388,7 @@ class DatBanController extends Controller
         $reservation->tables()->sync($request->table_ids);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Đã cập nhật bàn cho đơn #{$reservation->id} thành công! (Tổng số bàn: " . count($request->table_ids) . ")");
+            ->with('success', "Đã cập nhật bàn cho đơn #{$reservation->id} thành công! (Tổng số bàn: " . count($request->table_ids) . ")");
     }
 
     /**
@@ -357,8 +403,10 @@ class DatBanController extends Controller
 
         $busyTableIds = BanAn::whereHas('reservations', function ($q) use ($date, $shift) {
             $q->where('reservation_date', $date)
-              ->where('shift', $shift)
-              ->whereIn('status', ['deposit_paid', 'serving']);
+                ->where('shift', $shift)
+                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
+                ->where('shift', $shift)
+                ->whereIn('status', ['deposit_paid', 'serving']);
         })->pluck('id');
 
         return response()->json([
@@ -366,20 +414,20 @@ class DatBanController extends Controller
             'busyTableIds' => $busyTableIds,
         ]);
     }
-
+    
     /**
      * Xác nhận đã gọi điện cho khách hàng
      */
     public function confirmPhone($id)
     {
         $reservation = Reservation::findOrFail($id);
-        
+
         $reservation->update([
             'phone_confirmed' => true,
         ]);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', 'Đã xác nhận gọi điện cho khách hàng!');
+            ->with('success', 'Đã xác nhận gọi điện cho khách hàng!');
     }
 
     /**
@@ -388,7 +436,7 @@ class DatBanController extends Controller
     public function checkUserByPhone(Request $request)
     {
         $phone = $request->query('phone');
-        
+
         if (!$phone) {
             return response()->json([
                 'success' => false,

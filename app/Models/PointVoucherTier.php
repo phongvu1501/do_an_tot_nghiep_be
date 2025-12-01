@@ -16,7 +16,13 @@ class PointVoucherTier extends Model
         'discount_percent',
         'max_discount_value',
         'min_order_value',
+        'order_value_allowed',
         'name',
         'is_active',
     ];
+
+    public function vouchers()
+    {
+        return $this->hasMany(Voucher::class, 'tier_id');
+    }
 }

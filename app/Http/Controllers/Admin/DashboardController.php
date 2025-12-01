@@ -20,11 +20,25 @@ class DashboardController extends Controller
         $to = $request->input('to') ? Carbon::parse($request->input('to')) : Carbon::now();
 
         // --- TỔNG QUAN ---
+        //Đơn đặt bàn mới
         $totalReservations = Reservation::whereBetween('created_at', [$from, $to])->count();
 
+        $reservationsList = Reservation::whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        //Đơn hủy
         $totalCancelled = Reservation::whereBetween('created_at', [$from, $to])
             ->where('status', 'cancelled')
             ->count();
+
+        $cancelledList = Reservation::whereBetween('created_at', [$from, $to])
+            ->where('status', 'cancelled')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+
+
 
         $totalCompleted = Reservation::whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
@@ -34,7 +48,13 @@ class DashboardController extends Controller
             ->where('status', 'completed')
             ->sum('total_amount');
 
+
+        //Người dùng 
         $newUsers = User::whereBetween('created_at', [$from, $to])->count();
+
+        $listUsers = User::whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         // --- BIỂU ĐỒ THEO NGÀY ---
         $period = CarbonPeriod::create($from, '1 day', $to);
@@ -67,13 +87,15 @@ class DashboardController extends Controller
 
         return view('admin.layouts.dashboard', compact(
             'dashboard',
-            
+
             'totalReservations',
+            'reservationsList',
             'totalCancelled',
+            'cancelledList',
             'totalCompleted',
             'totalRevenue',
             'newUsers',
-
+            'listUsers',
             'labels',
             'chartReserved',
             'chartCancelled',

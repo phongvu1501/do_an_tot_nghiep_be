@@ -16,165 +16,164 @@ class OrderController extends Controller
 {
     //Tạo đơn hàng mới (Order) và thêm các món ăn.
     public function store(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    if (!$user) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-
-    // Kiểm tra có phải admin không
-    if ($user->role !== 'admin') {
-        return response()->json([
-            'error' => 'Forbidden',
-            'message' => 'Bạn không có quyền truy cập chức năng này.'
-        ], 403);
-    }
-
-    // Validated dữ liệu
-    $validator = Validator::make($request->all(), [
-        'reservation_id' => 'required|exists:reservations,id',
-        'menus' => 'required|array|min:1',
-        'menus.*.menu_id' => 'required|exists:menus,id',
-        'menus.*.quantity' => 'required|integer|min:1',
-    ], [
-        'reservation_id.required' => 'Mã đặt bàn là bắt buộc.',
-        'reservation_id.exists' => 'Mã đặt bàn không tồn tại.',
-        'menus.required' => 'Danh sách món ăn không được để trống.',
-        'menus.*.menu_id.exists' => 'Món ăn không tồn tại.',
-        'menus.*.quantity.min' => 'Số lượng món ăn phải tối thiểu là 1.',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['error' => $validator->errors()], 422);
-    }
-
-    try {
-        DB::beginTransaction();
-
-        // Admin có thể tìm đơn đặt bàn bằng ID
-        $reservation = Reservation::where('id', $request->reservation_id)
-            ->with('reservationItems')
-            ->first();
-
-        if (!$reservation) {
-            return response()->json([
-                'error' => 'Không tìm thấy đặt bàn',
-                'message' => 'Đơn đặt bàn không tồn tại.',
-            ], 404);
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        // Kiểm tra trạng thái status của reservation, nếu hoàn thành hay bỏ rồi thì báo message luôn
-        if (in_array($reservation->status, ['completed', 'cancelled'])) {
+        // Kiểm tra có phải admin không
+        if ($user->role !== 'admin') {
             return response()->json([
-                'error' => 'Không thể thêm món',
-                'message' => 'Đơn đặt bàn đã ' . $reservation->status . ' không thể thêm hoặc xóa món.'
-            ], 400);
+                'error' => 'Forbidden',
+                'message' => 'Bạn không có quyền truy cập chức năng này.'
+            ], 403);
         }
 
-        // Chuẩn bị dữ liệu cho việc tạo bản ghi order mới, và gộp món ăn trong reservation_items
-        $itemsToAttach = [];       
-        $subtotalOrderAmount = 0;
-
-        // Lấy tất cả các bản ghi ReservationItem hiện tại
-        $currentReservationItems = $reservation->reservationItems;
-
-        // Lặp qua Request menus để chuẩn bị dữ liệu Pivot và cập nhật Reservation Items
-        foreach ($request->menus as $menuItem) {
-            $menuId = $menuItem['menu_id'];
-            $quantity = (int)$menuItem['quantity'];
-
-            $menu = Menu::find($menuId);
-            
-            // Kiểm tra xem cái món đó có tồn tại hay không, hoặc món đó đang phục vụ hay không
-            if (!$menu) {
-                throw new \Exception("Món ăn ID: {$menuId} không tồn tại.");
-            }
-
-            $itemPrice = $menu->price;
-            $itemTotal = $itemPrice * $quantity;
-            $subtotalOrderAmount += $itemTotal; // Tổng tiền của order mới (chưa có VAT)
-
-            $itemsToAttach[$menuId] = [
-                'quantity' => $quantity,
-                'price' => $itemPrice,
-                'created_at' => now(), 
-                'updated_at' => now(),
-            ];
-
-            // 2. Cập nhật món mới hoặc cộng tổng số lượng vào Reservation Items
-            $currentItem = $currentReservationItems->firstWhere('menu_id', $menuId);
-
-            if ($currentItem) {
-                // Món đã tồn tại: Cập nhật số lượng và giá
-                $currentItem->quantity += $quantity;
-                $currentItem->price = $itemPrice; 
-                $currentItem->save();
-            } else {
-                // Món mới: Thêm bản ghi mới vào Reservation Items
-                $reservation->reservationItems()->create([
-                    'menu_id' => $menu->id,
-                    'quantity' => $quantity,
-                    'price' => $itemPrice,
-                ]);
-            }
-        } 
-
-        // Cập nhật lại tổng tiền của reservation (có VAT)
-        $reservation->load('reservationItems');
-
-        $subtotalReservation = $reservation->reservationItems->sum(function ($item) {
-            return $item->price * $item->quantity;
-        });
-        $vatReservation = $subtotalReservation * 0.1;
-        $reservation->total_amount = $subtotalReservation + $vatReservation;
-        $reservation->save();
-
-        // Tính VAT cho order mới
-        $vatOrderAmount = $subtotalOrderAmount * 0.1;
-        $totalOrderAmount = $subtotalOrderAmount + $vatOrderAmount;
-
-        // Tạo bản ghi order mới
-        $order = Order::create([
-            'reservation_id' => $reservation->id,
-            'total_price' => $totalOrderAmount,
-            'payment_status' => 'pending',
+        // Validated dữ liệu
+        $validator = Validator::make($request->all(), [
+            'reservation_id' => 'required|exists:reservations,id',
+            'menus' => 'required|array|min:1',
+            'menus.*.menu_id' => 'required|exists:menus,id',
+            'menus.*.quantity' => 'required|integer|min:1',
+        ], [
+            'reservation_id.required' => 'Mã đặt bàn là bắt buộc.',
+            'reservation_id.exists' => 'Mã đặt bàn không tồn tại.',
+            'menus.required' => 'Danh sách món ăn không được để trống.',
+            'menus.*.menu_id.exists' => 'Món ăn không tồn tại.',
+            'menus.*.quantity.min' => 'Số lượng món ăn phải tối thiểu là 1.',
         ]);
 
-        // Lưu các món gọi thêm vào Order Items
-        $order->menus()->attach($itemsToAttach);
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
 
-        DB::commit();
+        try {
+            DB::beginTransaction();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Đã thêm món vào đơn hàng thành công! Tổng tiền đơn đặt bàn đã được cập nhật',
-            'order' => $order->load('menus'),
-            'new_items' => [
-                'subtotal' => $subtotalOrderAmount,
-                'vat' => $vatOrderAmount,
-                'total' => $totalOrderAmount,
-            ],
-            'reservation_total' => [
-                'subtotal' => $subtotalReservation,
-                'vat' => $vatReservation,
-                'total' => $reservation->total_amount,
-            ],
-        ], 201);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'error' => 'Tạo đơn hàng thất bại',
-            'message' => 'Đã có lỗi xảy ra trong quá trình tạo đơn hàng. Vui lòng thử lại.',
-            'details' => $e->getMessage(),
-        ], 500);
+            // Admin có thể tìm đơn đặt bàn bằng ID
+            $reservation = Reservation::where('id', $request->reservation_id)
+                ->with('reservationItems')
+                ->first();
+
+            if (!$reservation) {
+                return response()->json([
+                    'error' => 'Không tìm thấy đặt bàn',
+                    'message' => 'Đơn đặt bàn không tồn tại.',
+                ], 404);
+            }
+
+            // Kiểm tra trạng thái status của reservation, nếu hoàn thành hay bỏ rồi thì báo message luôn
+            if (in_array($reservation->status, ['completed', 'cancelled'])) {
+                return response()->json([
+                    'error' => 'Không thể thêm món',
+                    'message' => 'Đơn đặt bàn đã ' . $reservation->status . ' không thể thêm hoặc xóa món.'
+                ], 400);
+            }
+
+            // Chuẩn bị dữ liệu cho việc tạo bản ghi order mới, và gộp món ăn trong reservation_items
+            $itemsToAttach = [];
+            $subtotalOrderAmount = 0;
+
+            // Lấy tất cả các bản ghi ReservationItem hiện tại
+            $currentReservationItems = $reservation->reservationItems;
+
+            // Lặp qua Request menus để chuẩn bị dữ liệu Pivot và cập nhật Reservation Items
+            foreach ($request->menus as $menuItem) {
+                $menuId = $menuItem['menu_id'];
+                $quantity = (int)$menuItem['quantity'];
+
+                $menu = Menu::find($menuId);
+
+                // Kiểm tra xem cái món đó có tồn tại hay không, hoặc món đó đang phục vụ hay không
+                if (!$menu) {
+                    throw new \Exception("Món ăn ID: {$menuId} không tồn tại.");
+                }
+
+                $itemPrice = $menu->price;
+                $itemTotal = $itemPrice * $quantity;
+                $subtotalOrderAmount += $itemTotal; // Tổng tiền của order mới (chưa có VAT)
+
+                $itemsToAttach[$menuId] = [
+                    'quantity' => $quantity,
+                    'price' => $itemPrice,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                // 2. Cập nhật món mới hoặc cộng tổng số lượng vào Reservation Items
+                $currentItem = $currentReservationItems->firstWhere('menu_id', $menuId);
+
+                if ($currentItem) {
+                    // Món đã tồn tại: Cập nhật số lượng và giá
+                    $currentItem->quantity += $quantity;
+                    $currentItem->price = $itemPrice;
+                    $currentItem->save();
+                } else {
+                    // Món mới: Thêm bản ghi mới vào Reservation Items
+                    $reservation->reservationItems()->create([
+                        'menu_id' => $menu->id,
+                        'quantity' => $quantity,
+                        'price' => $itemPrice,
+                    ]);
+                }
+            }
+
+            // Cập nhật lại tổng tiền của reservation (có VAT)
+            $reservation->load('reservationItems');
+
+            $subtotalReservation = $reservation->reservationItems->sum(function ($item) {
+                return $item->price * $item->quantity;
+            });
+            $vatReservation = $subtotalReservation * 0.1;
+            $reservation->total_amount = $subtotalReservation + $vatReservation;
+            $reservation->save();
+
+            // Tính VAT cho order mới
+            $vatOrderAmount = $subtotalOrderAmount * 0.1;
+            $totalOrderAmount = $subtotalOrderAmount + $vatOrderAmount;
+
+            // Tạo bản ghi order mới
+            $order = Order::create([
+                'reservation_id' => $reservation->id,
+                'total_price' => $totalOrderAmount,
+                'payment_status' => 'pending',
+            ]);
+
+            // Lưu các món gọi thêm vào Order Items
+            $order->menus()->attach($itemsToAttach);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã thêm món vào đơn hàng thành công! Tổng tiền đơn đặt bàn đã được cập nhật',
+                'order' => $order->load('menus'),
+                'new_items' => [
+                    'subtotal' => $subtotalOrderAmount,
+                    'vat' => $vatOrderAmount,
+                    'total' => $totalOrderAmount,
+                ],
+                'reservation_total' => [
+                    'subtotal' => $subtotalReservation,
+                    'vat' => $vatReservation,
+                    'total' => $reservation->total_amount,
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Tạo đơn hàng thất bại',
+                'message' => 'Đã có lỗi xảy ra trong quá trình tạo đơn hàng. Vui lòng thử lại.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
-}
-    
 
 
-    
+
+
     public function destroy(Request $request, $reservationId)
     {
         //Xác thực user + kiểm tra xem phải admin hay không
@@ -289,4 +288,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+   
 }
