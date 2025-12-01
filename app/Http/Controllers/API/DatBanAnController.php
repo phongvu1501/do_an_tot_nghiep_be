@@ -299,9 +299,15 @@ class DatBanAnController extends Controller
 
         $voucherId = null;
         if (!empty($request->voucher_id)) {
+            $now = Carbon::now();
             $voucher = Voucher::where('code', $request->voucher_id)
-                ->where('user_id', $user->id)
+                ->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                        ->orWhereNull('user_id');
+                })
                 ->where('status', 'active')
+                ->where('start_date', '<=', $now)
+                ->where('end_date', '>=', $now)
                 ->first();
 
             if (!$voucher) {

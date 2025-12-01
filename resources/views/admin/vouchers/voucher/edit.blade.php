@@ -5,11 +5,7 @@
         <!-- Content Header -->
         <section class="content-header">
             <div class="container-fluid">
-                <div class="row mb-2">
-                    <div class="col-sm-6">
-                        <h1>{{ $title }}</h1>
-                    </div>
-                </div>
+                <h1>{{ $title ?? 'Chỉnh sửa Voucher' }}</h1>
             </div>
         </section>
 
@@ -27,6 +23,42 @@
                                 <form action="{{ route('admin.vouchers.voucher.update', $voucher->id) }}" method="POST">
                                     @csrf
                                     @method('PUT')
+
+                                    <!-- Chọn User -->
+                                    <div class="form-group">
+                                        <label for="user_id">Người dùng (tuỳ chọn)</label>
+                                        <select id="user_id" name="user_id"
+                                            class="form-control @error('user_id') is-invalid @enderror">
+                                            <option value="">-- Không gán --</option>
+                                            @foreach ($users as $user)
+                                                <option value="{{ $user->id }}"
+                                                    {{ old('user_id', $voucher->user_id) == $user->id ? 'selected' : '' }}>
+                                                    {{ $user->name }} ({{ $user->email }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('user_id')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
+                                    <!-- Chọn Tier -->
+                                    <div class="form-group">
+                                        <label for="tier_id">Tier (tuỳ chọn)</label>
+                                        <select id="tier_id" name="tier_id"
+                                            class="form-control @error('tier_id') is-invalid @enderror">
+                                            <option value="">-- Không chọn --</option>
+                                            @foreach ($tiers as $tier)
+                                                <option value="{{ $tier->id }}"
+                                                    {{ old('tier_id', $voucher->tier_id) == $tier->id ? 'selected' : '' }}>
+                                                    {{ $tier->name }} - {{ $tier->discount_percent }}%
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('tier_id')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
 
                                     <!-- Mã voucher -->
                                     <div class="form-group">
@@ -48,8 +80,8 @@
                                             <option value="percent"
                                                 {{ old('discount_type', $voucher->discount_type) == 'percent' ? 'selected' : '' }}>
                                                 Giảm theo %</option>
-                                            <option value="amount"
-                                                {{ old('discount_type', $voucher->discount_type) == 'amount' ? 'selected' : '' }}>
+                                            <option value="fixed"
+                                                {{ old('discount_type', $voucher->discount_type) == 'fixed' ? 'selected' : '' }}>
                                                 Giảm theo tiền</option>
                                         </select>
                                         @error('discount_type')
@@ -96,7 +128,8 @@
                                     <!-- Giá trị đơn hàng áp dụng -->
                                     <div class="form-group">
                                         <label for="order_value_allowed">Giá trị đơn hàng áp dụng</label>
-                                        <input type="number" step="0.01" id="order_value_allowed" name="order_value_allowed"
+                                        <input type="number" step="0.01" id="order_value_allowed"
+                                            name="order_value_allowed"
                                             class="form-control @error('order_value_allowed') is-invalid @enderror"
                                             placeholder="Nhập giá trị đơn hàng áp dụng"
                                             value="{{ old('order_value_allowed', $voucher->order_value_allowed) }}">
@@ -148,8 +181,10 @@
                                     <!-- Nút -->
                                     <div class="form-group">
                                         <button type="submit" class="btn btn-primary">Cập nhật</button>
-                                        <a href="{{ route('admin.vouchers.voucher.index') }}" class="btn btn-secondary">Quay lại</a>
+                                        <a href="{{ route('admin.vouchers.voucher.index') }}"
+                                            class="btn btn-secondary">Quay lại</a>
                                     </div>
+
                                 </form>
                             </div>
                         </div>
