@@ -80,6 +80,8 @@ class DatBanAnController extends Controller
                     return $item->price * $item->quantity;
                 }) * 1.1,
                 'deposit' => $reservation->deposit,
+                'table_deposit' => $reservation->getTableDeposit(),
+                'food_deposit' => $reservation->getFoodDeposit(),
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
                 'cancellation_reason' => $reservation->cancellation_reason,
@@ -160,6 +162,8 @@ class DatBanAnController extends Controller
                     return $item->price * $item->quantity;
                 }) * 1.1,
                 'deposit' => $reservation->deposit,
+                'table_deposit' => $reservation->getTableDeposit(),
+                'food_deposit' => $reservation->getFoodDeposit(),
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
                 'cancellation_reason' => $reservation->cancellation_reason,

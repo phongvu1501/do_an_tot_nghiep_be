@@ -34,12 +34,13 @@
                                     
                                     <div class="form-group">
                                         <label for="customer_phone">Số điện thoại <span class="text-danger">*</span></label>
-                                        <input type="tel" 
+                                        <input type="number" 
                                                class="form-control @error('customer_phone') is-invalid @enderror" 
                                                id="customer_phone" 
                                                name="customer_phone" 
                                                value="{{ old('customer_phone') }}"
                                                placeholder="Nhập số điện thoại"
+                                               min="0"
                                                required>
                                         <small class="form-text text-muted" id="phoneHelp">Nhập số điện thoại để tìm thông tin khách hàng</small>
                                         <div id="phoneLoading" class="spinner-border spinner-border-sm d-none" role="status">
@@ -64,14 +65,19 @@
                                         @enderror
                                     </div>
 
-                                    <div class="form-group" id="userEmailGroup" style="display: none;">
-                                        <label for="customer_email">Email</label>
+                                    <div class="form-group" id="userEmailGroup">
+                                        <label for="customer_email">Email <span class="text-danger">*</span></label>
                                         <input type="email" 
-                                               class="form-control" 
+                                               class="form-control @error('customer_email') is-invalid @enderror" 
                                                id="customer_email" 
                                                name="customer_email" 
-                                               readonly>
-                                        <small class="form-text text-muted">Email từ tài khoản</small>
+                                               value="{{ old('customer_email') }}"
+                                               placeholder="Nhập email"
+                                               required>
+                                        <small class="form-text text-muted" id="emailHelp">Email để tạo tài khoản mới (nếu chưa có tài khoản)</small>
+                                        @error('customer_email')
+                                            <span class="invalid-feedback">{{ $message }}</span>
+                                        @enderror
                                     </div>
 
                                     <input type="hidden" id="user_id" name="user_id" value="{{ old('user_id') }}">
@@ -230,7 +236,10 @@ document.getElementById('customer_phone').addEventListener('blur', function() {
                 customerName.readOnly = true;
                 customerName.classList.add('bg-light');
                 customerEmail.value = data.user.email || '';
-                userEmailGroup.style.display = data.user.email ? 'block' : 'none';
+                customerEmail.readOnly = true;
+                customerEmail.classList.add('bg-light');
+                customerEmail.required = true;
+                document.getElementById('emailHelp').textContent = 'Email từ tài khoản';
                 phoneHelp.textContent = ''; // Xóa text "Đang tìm kiếm..."
                 
                 // Kiểm tra đặt bàn trùng nếu đã chọn ngày và ca
@@ -243,7 +252,10 @@ document.getElementById('customer_phone').addEventListener('blur', function() {
                 customerName.readOnly = false;
                 customerName.classList.remove('bg-light');
                 customerEmail.value = '';
-                userEmailGroup.style.display = 'none';
+                customerEmail.readOnly = false;
+                customerEmail.classList.remove('bg-light');
+                customerEmail.required = true;
+                document.getElementById('emailHelp').textContent = 'Email để tạo tài khoản mới (nếu chưa có tài khoản)';
                 phoneHelp.innerHTML = '<span class="text-info">Khách hàng chưa có tài khoản!</span>';
                 existingReservationAlert.style.display = 'none';
                 hasExistingReservation = false;

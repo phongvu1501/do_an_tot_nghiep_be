@@ -204,7 +204,7 @@
                 ->where('reservation_date', $filterDate)
                 ->where('shift', $filterShift)
                 ->whereNotIn('status', ['cancelled', 'completed'])
-                ->with(['user', 'reservationItems.menu'])
+                ->with(['user', 'reservationItems.menu', 'tables'])
                 ->first();
         @endphp
 
@@ -293,25 +293,52 @@
                                 </tbody>
                                 <tfoot class="bg-light">
                                     @php
-                                        $totalMenuPrice = $activeReservation->reservationItems->sum(function($item) {
+                                        $subtotal = $activeReservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
-                                        $depositPaid = $activeReservation->deposit ?? 0;
+                                        $vat = $subtotal * 0.1;
+                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền menu hiện tại (có VAT)
+                                        // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
+                                        $tableDeposit = $activeReservation->getTableDeposit();
+                                        $foodDeposit = $activeReservation->getFoodDeposit(); // Cọc đồ ăn ban đầu
+                                        $remainingAmount = $totalMenuPrice - $tableDeposit - $foodDeposit;
                                     @endphp
                                     <tr>
-                                        <th colspan="3" class="text-right">Tổng tiền món ăn:</th>
+                                        <th colspan="3" class="text-right">Tổng tiền món ăn (đã có VAT 10%):</th>
                                         <th class="text-right">{{ number_format($totalMenuPrice, 0, ',', '.') }}đ</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">Tiền cọc đã trả:</th>
-                                        <th class="text-right text-success">- {{ number_format($depositPaid, 0, ',', '.') }}đ</th>
+                                        <th colspan="3" class="text-right">Tiền cọc bàn</th>
+                                        <th class="text-right text-success">- {{ number_format($tableDeposit, 0, ',', '.') }}đ</th>
                                     </tr>
+                                    @if($foodDeposit > 0)
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tiền cọc đồ ăn</th>
+                                        <th class="text-right text-success">- {{ number_format($foodDeposit, 0, ',', '.') }}đ</th>
+                                    </tr>
+                                    @endif
+                                    @if($remainingAmount > 0)
                                     <tr class="bg-warning">
                                         <th colspan="3" class="text-right">Còn phải thu:</th>
-                                        <th class="text-right text-danger">
-                                            <strong>{{ number_format($totalMenuPrice - $depositPaid, 0, ',', '.') }}đ</strong>
+                                        <th class="text-right">
+                                            <strong>{{ number_format($remainingAmount, 0, ',', '.') }}đ</strong>
                                         </th>
                                     </tr>
+                                    @elseif($remainingAmount < 0)
+                                    <tr class="bg-warning">
+                                        <th colspan="3" class="text-right">Hoàn lại cho khách:</th>
+                                        <th class="text-right">
+                                            <strong>{{ number_format(abs($remainingAmount), 0, ',', '.') }}đ</strong>
+                                        </th>
+                                    </tr>
+                                    @else
+                                    <tr class="bg-warning">
+                                        <th colspan="3" class="text-right">Đã thanh toán đủ:</th>
+                                        <th class="text-right">
+                                            <strong>0đ</strong>
+                                        </th>
+                                    </tr>
+                                    @endif
                                 </tfoot>
                             </table>
                         @else
@@ -332,7 +359,7 @@
                 ->where('reservation_date', $filterDate)
                 ->where('shift', $filterShift)
                 ->where('status', 'serving')
-                ->with(['user', 'reservationItems.menu'])
+                ->with(['user', 'reservationItems.menu', 'tables'])
                 ->first();
         @endphp
 
@@ -372,30 +399,70 @@
                                 </tbody>
                                 <tfoot class="bg-light">
                                     @php
-                                        $totalMenuPrice = $servingReservation->reservationItems->sum(function($item) {
+                                        $subtotal = $servingReservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
-                                        $depositPaid = $servingReservation->deposit ?? 0;
-                                        $remainingAmount = $totalMenuPrice - $depositPaid;
+                                        $vat = $subtotal * 0.1;
+                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền menu hiện tại (có VAT)
+                                        // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
+                                        $tableDeposit = $servingReservation->getTableDeposit();
+                                        $foodDeposit = $servingReservation->getFoodDeposit(); // Cọc đồ ăn ban đầu
+                                        $remainingAmount = $totalMenuPrice - $tableDeposit - $foodDeposit;
                                     @endphp
                                     <tr>
-                                        <th colspan="3" class="text-right">Tổng tiền món ăn:</th>
+                                        <th colspan="3" class="text-right">Tạm tính:</th>
+                                        <th class="text-right">
+                                            {{ number_format($subtotal, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th class="text-right">
+                                            {{ number_format($vat, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tổng tiền:</th>
                                         <th class="text-right">
                                             {{ number_format($totalMenuPrice, 0, ',', '.') }}đ
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">Tiền cọc đã trả:</th>
+                                        <th colspan="3" class="text-right">Tiền cọc bàn đã trả:</th>
                                         <th class="text-right text-success">
-                                            - {{ number_format($depositPaid, 0, ',', '.') }}đ
+                                            - {{ number_format($tableDeposit, 0, ',', '.') }}đ
                                         </th>
                                     </tr>
+                                    @if($foodDeposit > 0)
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tiền cọc đồ ăn đã trả:</th>
+                                        <th class="text-right text-success">
+                                            - {{ number_format($foodDeposit, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    @endif
+                                    @if($remainingAmount > 0)
                                     <tr class="bg-warning">
                                         <th colspan="3" class="text-right">Còn phải thanh toán:</th>
-                                        <th class="text-right text-danger">
+                                        <th class="text-right">
                                             <h5 class="mb-0">{{ number_format($remainingAmount, 0, ',', '.') }}đ</h5>
                                         </th>
                                     </tr>
+                                    @elseif($remainingAmount < 0)
+                                    <tr class="bg-warning">
+                                        <th colspan="3" class="text-right">Hoàn lại cho khách:</th>
+                                        <th class="text-right">
+                                            <h5 class="mb-0">{{ number_format(abs($remainingAmount), 0, ',', '.') }}đ</h5>
+                                        </th>
+                                    </tr>
+                                    @else
+                                    <tr class="bg-warning">
+                                        <th colspan="3" class="text-right">Đã thanh toán đủ:</th>
+                                        <th class="text-right">
+                                            <h5 class="mb-0">0đ</h5>
+                                        </th>
+                                    </tr>
+                                    @endif
                                 </tfoot>
                             </table>
                         @else
@@ -404,6 +471,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                        @if($servingReservation->reservationItems->count() > 0)
                         <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                             @csrf
                             <input type="hidden" name="reservation_id" value="{{ $servingReservation->id }}">
@@ -415,6 +483,11 @@
                                 <i class="fas fa-check"></i> Xác nhận hoàn tất
                             </button>
                         </form>
+                        @else
+                        <button type="button" class="btn btn-success" disabled title="Khách chưa đặt món nào">
+                            <i class="fas fa-check"></i> Xác nhận hoàn tất
+                        </button>
+                        @endif
                     </div>
                 </div>
             </div>

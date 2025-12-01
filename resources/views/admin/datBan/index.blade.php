@@ -35,10 +35,15 @@
 
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
-                                    <form action="{{ route('admin.datBan.index') }}" method="GET" class="row" id="filterFormDatBan">
+                                    <form action="{{ route('admin.datBan.index') }}" method="GET" class="row g-3" id="filterFormDatBan">
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Ngày đặt</label>
                                             <input type="date" name="date" class="form-control" value="{{ request('date') }}" onchange="document.getElementById('filterFormDatBan').submit()">
+                                            <div class="mt-2">
+                                                <a href="{{ route('admin.datBan.index') }}" class="btn btn-secondary btn-sm">
+                                                    <i class="fas fa-redo"></i> Đặt lại
+                                                </a>
+                                            </div>
                                         </div>
                                         <div class="col-md-2">
                                             <label class="font-weight-bold">Ca</label>
@@ -50,7 +55,7 @@
                                                 <option value="night" {{ request('shift') == 'night' ? 'selected' : '' }}>Ca tối</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label class="font-weight-bold">Trạng thái</label>
                                             <select name="status" class="form-control" onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
@@ -62,10 +67,21 @@
                                                 <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-4 d-flex align-items-end">
-                                            <a href="{{ route('admin.datBan.index') }}" class="btn btn-secondary">
-                                                <i class="fas fa-redo"></i> Reset
-                                            </a>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Số điện thoại</label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       name="phone" 
+                                                       class="form-control" 
+                                                       value="{{ request('phone') }}" 
+                                                       placeholder="Nhập số điện thoại"
+                                                       onkeypress="if(event.key === 'Enter') { document.getElementById('filterFormDatBan').submit(); }">
+                                                <div class="input-group-append" style="margin-left: 5px;">
+                                                    <button type="submit" class="btn btn-primary">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </form>
                                 </div>
@@ -277,6 +293,32 @@
 
                         <hr>
 
+                        <h6 class="font-weight-bold">Thông tin thanh toán:</h6>
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                @php
+                                    $tableDeposit = $reservation->getTableDeposit();
+                                    $foodDeposit = $reservation->getFoodDeposit();
+                                @endphp
+                                <p class="mb-2">
+                                    <strong>Tiền cọc bàn:</strong> 
+                                    <span class="text-primary">{{ number_format($tableDeposit, 0, ',', '.') }} VND</span>
+                                </p>
+                                @if($foodDeposit > 0)
+                                <p class="mb-2">
+                                    <strong>Tiền cọc món gọi trước:</strong> 
+                                    <span class="text-primary">{{ number_format($foodDeposit, 0, ',', '.') }} VND</span>
+                                </p>
+                                @endif
+                                <p class="mb-0">
+                                    <strong>Tổng tiền cọc:</strong> 
+                                    <span class="text-success font-weight-bold">{{ number_format($reservation->deposit ?? 0, 0, ',', '.') }} VND</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <hr>
+
                         <h6 class="font-weight-bold">Bàn đã gán:</h6>
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div>
@@ -364,10 +406,10 @@
                         @method('PUT')
                         <div class="modal-header bg-warning">
                             <h5 class="modal-title">
-                                <i class="fas fa-edit"></i> Chỉnh sửa bàn cho đơn #{{ $reservation->id }}
+                                <i class="fas fa-edit"></i> Chỉnh sửa bàn cho đơn #{{ $reservation->reservation_code }}
                             </h5>
-                            <button type="button" class="close" data-dismiss="modal">
-                                <span>&times;</span>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <div class="modal-body">
@@ -396,7 +438,7 @@
                                         @foreach(session('conflicting_tables') as $conflict)
                                             <li>
                                                 <strong>Bàn {{ $conflict['table_name'] }}</strong> - 
-                                                Đang phục vụ cho đơn #{{ $conflict['conflicting_reservation_id'] }}
+                                                Đang phục vụ cho đơn {{ $conflict['conflicting_reservation_code'] }}
                                             </li>
                                         @endforeach
                                     </ul>
@@ -512,9 +554,11 @@
                                             return $item->price * $item->quantity;
                                         });
                                         $vat = $subtotal * 0.1;
-                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền đã có VAT
-                                        $depositPaid = $reservation->deposit ?? 0;
-                                        $remainingAmount = $totalMenuPrice - $depositPaid;
+                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền menu hiện tại (có VAT)
+                                        // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
+                                        $tableDeposit = $reservation->getTableDeposit();
+                                        $foodDeposit = $reservation->getFoodDeposit(); // Cọc đồ ăn ban đầu
+                                        $remainingAmount = $totalMenuPrice - $tableDeposit - $foodDeposit;
                                     @endphp
                                     <tr>
                                         <th colspan="3" class="text-right">Tạm tính:</th>
@@ -535,17 +579,41 @@
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">Tiền đặt cọc đã trả:</th>
+                                        <th colspan="3" class="text-right">Tiền cọc bàn:</th>
                                         <th class="text-right text-success">
-                                            - {{ number_format($depositPaid, 0, ',', '.') }}đ
+                                            - {{ number_format($tableDeposit, 0, ',', '.') }}đ
                                         </th>
                                     </tr>
+                                    @if($foodDeposit > 0)
+                                    <tr>
+                                        <th colspan="3" class="text-right">Tiền cọc đồ ăn:</th>
+                                        <th class="text-right text-success">
+                                            - {{ number_format($foodDeposit, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    @endif
+                                    @if($remainingAmount > 0)
                                     <tr class="bg-warning">
                                         <th colspan="3" class="text-right">Còn phải thanh toán:</th>
-                                        <th class="text-right text-danger">
+                                        <th class="text-right">
                                             <h5 class="mb-0">{{ number_format($remainingAmount, 0, ',', '.') }}đ</h5>
                                         </th>
                                     </tr>
+                                    @elseif($remainingAmount < 0)
+                                    <tr class="bg-warning">
+                                        <th colspan="3" class="text-right">Hoàn lại cho khách:</th>
+                                        <th class="text-right">
+                                            <h5 class="mb-0">{{ number_format(abs($remainingAmount), 0, ',', '.') }}đ</h5>
+                                        </th>
+                                    </tr>
+                                    @else
+                                    <tr class="bg-warning">
+                                        <th colspan="3" class="text-right">Đã thanh toán đủ:</th>
+                                        <th class="text-right">
+                                            <h5 class="mb-0">0đ</h5>
+                                        </th>
+                                    </tr>
+                                    @endif
                                 </tfoot>
                             </table>
                         @else
@@ -554,6 +622,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                        @if($reservation->reservationItems->count() > 0)
                         <form action="{{ route('admin.datBan.updateStatus') }}" method="POST" style="display:inline;">
                             @csrf
                             <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
@@ -562,6 +631,11 @@
                                 <i class="fas fa-check"></i> Xác nhận hoàn tất
                             </button>
                         </form>
+                        @else
+                        <button type="button" class="btn btn-success" disabled title="Khách chưa đặt món nào">
+                            <i class="fas fa-check"></i> Xác nhận hoàn tất
+                        </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -629,7 +703,15 @@
 // Tự động mở modal chỉnh sửa bàn nếu có bàn trùng
 @if(session('open_edit_modal'))
     $(document).ready(function() {
-        $('#editTablesModal{{ session('open_edit_modal') }}').modal('show');
+        var modalId = '#editTablesModal{{ session('open_edit_modal') }}';
+        // Đợi một chút để đảm bảo DOM đã load xong
+        setTimeout(function() {
+            $(modalId).modal({
+                backdrop: true,
+                keyboard: true,
+                show: true
+            });
+        }, 100);
     });
 @endif
 

@@ -72,8 +72,24 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h5 class="fw-bold text-primary mb-3">Thông tin thanh toán</h5>
-                    <p><strong>Tiền cọc:</strong> {{ number_format($reservation->deposit ?? 0, 0, ',', '.') }} VND</p>
-                    <p><strong>Còn lại:</strong> {{ number_format(($total - ($reservation->deposit ?? 0)), 0, ',', '.') }} VND</p>
+                    @php
+                        // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
+                        $tableDeposit = $reservation->getTableDeposit();
+                        $foodDeposit = $reservation->getFoodDeposit(); // Cọc đồ ăn ban đầu
+                        $remainingAmount = $total - $tableDeposit - $foodDeposit;
+                    @endphp
+                    <p><strong>Tiền cọc bàn:</strong> {{ number_format($tableDeposit, 0, ',', '.') }} VND</p>
+                    @if($foodDeposit > 0)
+                    <p><strong>Tiền cọc đồ ăn:</strong> {{ number_format($foodDeposit, 0, ',', '.') }} VND</p>
+                    @endif
+                    <p><strong>Tiền cọc tổng:</strong> {{ number_format($reservation->deposit ?? 0, 0, ',', '.') }} VND</p>
+                    @if($remainingAmount > 0)
+                    <p><strong>Còn phải thanh toán:</strong> {{ number_format($remainingAmount, 0, ',', '.') }} VND</p>
+                    @elseif($remainingAmount < 0)
+                    <p><strong>Hoàn lại cho khách:</strong> {{ number_format(abs($remainingAmount), 0, ',', '.') }} VND</p>
+                    @else
+                    <p><strong>Đã thanh toán đủ:</strong> 0 VND</p>
+                    @endif
                     <p><strong>Trạng thái:</strong>
                         <span class="badge {{ $reservation->status == 'completed' ? 'bg-success' : 'bg-warning text-dark' }}">
                             {{ ucfirst($reservation->status ?? 'Đang xử lý') }}

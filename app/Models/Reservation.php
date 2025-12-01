@@ -72,4 +72,57 @@ class Reservation extends Model
         return $this->review()->exists();
     }
 
+    /**
+     * Tính tiền cọc bàn (không bao gồm cọc đồ ăn)
+     * @return float
+     */
+    public function getTableDeposit(): float
+    {
+        $tables = $this->tables;
+        
+        if ($tables->isEmpty()) {
+            return 0;
+        }
+
+        // Kiểm tra có phòng VIP không
+        $hasVipRoom = $tables->where('type', 'vip')->isNotEmpty();
+        $hasNormalTables = $tables->where('type', 'normal')->isNotEmpty();
+
+        // Phòng VIP: Luôn cọc theo cấu hình
+        if ($hasVipRoom) {
+            return max(1, (float)Setting::getValue('deposit_vip_rooms', 1000000));
+        }
+
+        // Bàn thường: Chỉ cọc nếu là ngày lễ
+        if ($hasNormalTables) {
+            $holidayDate = DepositRequiredDate::where('is_active', true)
+                ->whereDate('date', $this->reservation_date)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($holidayDate) {
+                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
+                return max(1, (float)$normalDeposit);
+            }
+        }
+
+        // Ngày thường + bàn thường: không cần cọc bàn
+        return 0;
+    }
+
+    /**
+     * Tính tiền cọc đồ ăn ban đầu (số tiền đã cọc khi đặt bàn)
+     * @return float
+     */
+    public function getFoodDeposit(): float
+    {
+        // Cọc đồ ăn ban đầu = Tổng cọc đã trả - Cọc bàn
+        // Vì deposit = table_deposit + food_deposit (khi tạo reservation)
+        $totalDeposit = $this->deposit ?? 0;
+        $tableDeposit = $this->getTableDeposit();
+        $foodDeposit = $totalDeposit - $tableDeposit;
+        
+        // Đảm bảo không âm
+        return max(0, $foodDeposit);
+    }
 }

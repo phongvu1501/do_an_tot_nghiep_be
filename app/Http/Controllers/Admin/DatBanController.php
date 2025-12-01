@@ -33,6 +33,13 @@ class DatBanController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Lọc theo số điện thoại (tìm chính xác)
+        if ($request->filled('phone')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('phone', $request->phone);
+            });
+        }
+
         $reservations = $query->orderByDesc('id')
                               ->paginate(10)
                               ->appends($request->except('page'));
@@ -63,6 +70,7 @@ class DatBanController extends Controller
         $request->validate([
             'customer_name'     => 'required|string|max:255',
             'customer_phone'    => 'required|string|max:20',
+            'customer_email'    => 'required|email|max:255',
             'num_people'        => 'required|integer|min:1',
             'reservation_date'  => 'required|date|after_or_equal:today',
             'shift'             => 'required|in:morning,afternoon,evening,night',
@@ -73,6 +81,8 @@ class DatBanController extends Controller
         ], [
             'customer_name.required'     => 'Vui lòng nhập tên khách hàng!',
             'customer_phone.required'    => 'Vui lòng nhập số điện thoại!',
+            'customer_email.required'    => 'Vui lòng nhập email!',
+            'customer_email.email'       => 'Email không hợp lệ!',
             'num_people.required'        => 'Vui lòng nhập số lượng người!',
             'num_people.min'             => 'Số người phải lớn hơn 0!',
             'reservation_date.required'  => 'Vui lòng chọn ngày đặt bàn!',
@@ -112,8 +122,33 @@ class DatBanController extends Controller
         }
 
         // Tạo đơn đặt bàn (do admin tạo)
-        // Nếu có user_id thì dùng user_id đó, nếu không thì tạo mới hoặc dùng user mặc định
-        $userId = $request->filled('user_id') ? $request->user_id : (auth()->id() ?? 1);
+        // Nếu có user_id thì dùng user_id đó, nếu không thì tạo user mới
+        if ($request->filled('user_id')) {
+            $userId = $request->user_id;
+        } else {
+            $existingUserByPhone = \App\Models\User::where('phone', $request->customer_phone)->first();
+            
+            if ($existingUserByPhone) {
+                $userId = $existingUserByPhone->id;
+            } else {
+                $existingUserByEmail = \App\Models\User::where('email', $request->customer_email)->first();
+                
+                if ($existingUserByEmail) {
+                    return back()->withInput()
+                        ->with('error', 'Email đã tồn tại!');
+                }
+                
+                $user = \App\Models\User::create([
+                    'name' => $request->customer_name,
+                    'phone' => $request->customer_phone,
+                    'email' => $request->customer_email,
+                    'password' => bcrypt('123456'),
+                    'role' => 'user',
+                    'points' => 0,
+                ]);
+                $userId = $user->id;
+            }
+        }
 
         $reservation = Reservation::create([
             'user_id'          => $userId,
@@ -128,7 +163,7 @@ class DatBanController extends Controller
         $reservation->tables()->attach($request->table_ids);
 
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}");
+                         ->with('success', "Tạo đơn đặt bàn thành công! ");
     }
 
     /**
@@ -173,7 +208,6 @@ class DatBanController extends Controller
         $reservation = Reservation::findOrFail($request->reservation_id);
 
         if ($request->status === 'serving') {
-            // Cho phép chuyển sang serving từ deposit_paid trở lên (đặt thành công)
             if (!in_array($reservation->status, ['deposit_paid', 'serving'])) {
                 return back()->with('error', 'Đơn đặt bàn phải ở trạng thái "Đặt thành công" trước khi bắt đầu phục vụ.');
             }
@@ -205,12 +239,12 @@ class DatBanController extends Controller
                     return [
                         'table_id' => $item['table']->id,
                         'table_name' => $item['table']->name,
-                        'conflicting_reservation_id' => $item['conflicting_reservation']->id,
+                        'conflicting_reservation_code' => $item['conflicting_reservation']->reservation_code ?? '#' . $item['conflicting_reservation']->id,
                     ];
                 })->toArray();
                 
                 return redirect()->route('admin.datBan.index')
-                    ->with('error', "Không thể bắt đầu phục vụ! Các bàn sau đang được sử dụng bởi đơn khác (đang phục vụ): {$tableNames}. Vui lòng chỉnh sửa bàn trước.")
+                    ->with('error', "Không thể bắt đầu phục vụ! {$tableNames} đang được sử dụng bởi đơn khác")
                     ->with('open_edit_modal', $reservation->id)
                     ->with('conflicting_tables', $conflictingInfo);
             }
@@ -290,7 +324,7 @@ class DatBanController extends Controller
                 return [
                     'table_id' => $item['table']->id,
                     'table_name' => $item['table']->name,
-                    'conflicting_reservation_id' => $item['conflicting_reservation']->id,
+                    'conflicting_reservation_code' => $item['conflicting_reservation']->reservation_code ?? '#' . $item['conflicting_reservation']->id,
                 ];
             })->toArray();
             
