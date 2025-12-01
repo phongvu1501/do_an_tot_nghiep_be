@@ -15,6 +15,7 @@ use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\API\ReviewApiController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\API\DepositRequiredDateController;
+use App\Http\Controllers\api\TierController;
 
 // ======================================================
 // 🔓 PUBLIC ROUTES (Không cần token)
@@ -84,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Xóa món hoặc giảm số lượng món khỏi đơn đặt bàn
     Route::delete('/dat-ban-an/{reservationId}/order-items', [OrderController::class, 'destroy']);
+
     // VNPAY Payment Routes
     Route::get('/payment', [VnPayController::class, 'createPayment']);
 
@@ -102,18 +104,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
 
     // // Áp dụng voucher 
-    // Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
-    // Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
+    Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
+    Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
+    Route::get('/user/vouchers', [VoucherController::class, 'getUserVouchers']);
 
-    // // Tích điểm đổi voucher 
-    // Route::get('/redeem/tiers', [RedemptionApiController::class, 'getTiers']);
-    // Route::post('/redeem/exchange', [RedemptionApiController::class, 'exchange']);
-    // Route::get('/point-voucher/tiers', [PointVoucherController::class, 'tiers']);
-    // Route::post('/point-voucher/redeem', [PointVoucherController::class, 'redeem']);
-    // Route::get('/point-voucher/history', [PointVoucherController::class, 'history']);
+    //Tích điểm khi thanh toán thành công
+    Route::post('/points/add', [PointController::class, 'addPoints']);
+    Route::get('/points/history', [PointController::class, 'history']);
+    Route::get('/points/userPoints', [PointController::class, 'userPoints']);
 
-    // // Tích điểm nội bộ 
-    // Route::post('/points/add', [PointController::class, 'addPoints']);
-    // Route::get('/points', [PointController::class, 'getPoints']);
-    // Route::get('/points/history', [PointController::class, 'history']);
+    // Voucher tiers (bảng quy đổi)
+    // Route::get('/vouchers/tiers', [VoucherController::class, 'tiers']);
+
+    // Redeem voucher
+    Route::post('/vouchers/redeem', [PointVoucherController::class, 'redeem']);
+    Route::get('/vouchers/redeem/history', [PointVoucherController::class, 'history']);
+
+    //Tất cả các Tier voucher
+    Route::get('/tiers/getAllTiers', [TierController::class, 'getAllTiers']);
 });

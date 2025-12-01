@@ -18,6 +18,7 @@ class Reservation extends Model
         'num_people',
         'depsection',
         'voucher_id',
+        'voucher_discount',
         'status',
         'deposit',
         'total_amount',
@@ -46,8 +47,8 @@ class Reservation extends Model
     public function menus()
     {
         return $this->belongsToMany(Menu::class, 'reservation_menu')
-                    ->withPivot('quantity')
-                    ->withTimestamps();
+            ->withPivot('quantity')
+            ->withTimestamps();
     }
 
     public function tables()
@@ -72,4 +73,44 @@ class Reservation extends Model
         return $this->review()->exists();
     }
 
+    // vouchers
+    public function voucher()
+    {
+        return $this->belongsTo(Voucher::class, 'voucher_id', 'id');
+    }
+
+    public function calculateVoucherDiscount(): float
+    {
+        if (!$this->voucher_id) return 0;
+
+        $voucher = Voucher::find($this->voucher_id);
+        if (!$voucher || $voucher->status !== 'active') return 0;
+
+        $subtotal = $this->reservationItems->sum(fn($item) => $item->price * $item->quantity);
+        $vat = $subtotal * 0.1;
+        $total = $subtotal + $vat;
+
+        // Kiểm tra điều kiện min/max
+        if ($voucher->min_order_value && $total < $voucher->min_order_value) return 0;
+        if ($voucher->order_value_allowed && $total > $voucher->order_value_allowed) return 0;
+
+        // Tính giảm
+        $discount = $voucher->discount_type === 'percent'
+            ? ($total * $voucher->discount_value) / 100
+            : $voucher->discount_value;
+
+        if ($voucher->max_discount_value) {
+            $discount = min($discount, $voucher->max_discount_value);
+        }
+
+        return $discount;
+    }
+    public function calculateTotalAmount(): float
+    {
+        $subtotal = $this->reservationItems->sum(fn($item) => $item->price * $item->quantity);
+        $vat = $subtotal * 0.1;
+        $voucherDiscount = $this->calculateVoucherDiscount();
+
+        return $subtotal + $vat - $voucherDiscount;
+    }
 }

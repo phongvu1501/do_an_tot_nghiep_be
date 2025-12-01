@@ -89,4 +89,25 @@ class VoucherController extends Controller
             'data' => $vouchers
         ]);
     }
+    public function getUserVouchers(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Người dùng không tồn tại.',
+            ], 404);
+        }
+        $vouchers = Voucher::where('user_id', $user->id)
+            ->where('status', 'active') 
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Lấy danh sách voucher của người dùng thành công.',
+            'data' => $vouchers
+        ]);
+    }
 }

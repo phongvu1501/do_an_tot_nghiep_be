@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DepositRequiredDate;
 use App\Models\Order;
 use App\Models\Reservation;
+use App\Models\Voucher;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -45,6 +46,40 @@ class DatBanAnController extends Controller
         $reservations = $query->orderBy('id', 'desc')->paginate(10);
 
         $data = $reservations->map(function ($reservation) {
+
+            $subtotal = $reservation->reservationItems->sum(
+                fn($item) =>
+                $item->price * $item->quantity
+            );
+
+            $vat = $subtotal * 0.1;
+            $total_price = $subtotal + $vat;
+
+            $voucher = null;
+            $discount_value = 0;
+
+            if ($reservation->voucher_id) {
+                $voucher = Voucher::find($reservation->voucher_id);
+
+                if ($voucher && $voucher->status === 'active') {
+
+                    if (!$voucher->min_order_value || $total_price >= $voucher->min_order_value) {
+
+                        if (!$voucher->order_value_allowed || $total_price <= $voucher->order_value_allowed) {
+
+                            if ($voucher->discount_type === 'percent') {
+                                $discount_value = ($total_price * $voucher->discount_value) / 100;
+                            } else {
+                                $discount_value = floatval($voucher->discount_value);
+                            }
+                        }
+                    }
+                }
+            }
+
+            $final_amount = $total_price - $discount_value;
+            if ($final_amount < 0) $final_amount = 0;
+
             return [
                 'id' => $reservation->id,
                 'reservation_date' => $reservation->reservation_date,
@@ -54,31 +89,38 @@ class DatBanAnController extends Controller
                 'depsection' => $reservation->depsection,
                 'status' => $reservation->status,
                 'status_text' => $this->getStatusText($reservation->status),
-                'tables' => $reservation->tables->map(function ($table) {
-                    return [
-                        'id' => $table->id,
-                        'name' => $table->name,
-                    ];
-                }),
+
+                'tables' => $reservation->tables->map(fn($table) => [
+                    'id' => $table->id,
+                    'name' => $table->name,
+                ]),
                 'tables_count' => $reservation->tables->count(),
-                'menus' => $reservation->reservationItems->map(function ($item) {
-                    return [
-                        'id' => $item->menu->id,
-                        'name' => $item->menu->name,
-                        'price' => $item->price,
-                        'quantity' => $item->quantity,
-                        'total' => $item->price * $item->quantity,
-                    ];
-                }),
-                'subtotal' => $reservation->reservationItems->sum(function ($item) {
-                    return $item->price * $item->quantity;
-                }),
-                'vat' => $reservation->reservationItems->sum(function ($item) {
-                    return $item->price * $item->quantity;
-                }) * 0.1,
-                'total_price' => $reservation->reservationItems->sum(function ($item) {
-                    return $item->price * $item->quantity;
-                }) * 1.1,
+
+                'menus' => $reservation->reservationItems->map(fn($item) => [
+                    'id' => $item->menu->id,
+                    'name' => $item->menu->name,
+                    'price' => $item->price,
+                    'quantity' => $item->quantity,
+                    'total' => $item->price * $item->quantity,
+                ]),
+
+                'subtotal' => $subtotal,
+                'vat' => $vat,
+                'total_price' => $total_price,
+
+                'voucher' => $voucher ? [
+                    'id' => $voucher->id,
+                    'code' => $voucher->code,
+                    'discount_type' => $voucher->discount_type,
+                    'discount_value' => $voucher->discount_value,
+                    'min_order_value' => $voucher->min_order_value,
+                    'order_value_allowed' => $voucher->order_value_allowed,
+                    'status' => $voucher->status,
+                ] : null,
+
+                'voucher_discount' => $discount_value,
+                'final_amount' => $final_amount,
+
                 'deposit' => $reservation->deposit,
                 'payment_url' => $reservation->payment_url,
                 'reservation_code' => $reservation->reservation_code,
@@ -101,6 +143,7 @@ class DatBanAnController extends Controller
             ],
         ], 200);
     }
+
 
 
     public function show(Request $request, $id)
@@ -221,7 +264,7 @@ class DatBanAnController extends Controller
             'shift' => 'required|in:morning,afternoon,evening,night',
             'num_people' => 'required|integer|min:1',
             'depsection' => 'nullable|string|max:255',
-            'voucher_id' => 'nullable|exists:vouchers,id',
+            'voucher_id' => 'nullable|string',
             'prefer_vip' => 'nullable|boolean',
             'menus' => 'nullable|array',
             'menus.*.menu_id' => 'required_with:menus|exists:menus,id',
@@ -250,6 +293,22 @@ class DatBanAnController extends Controller
             return response()->json(['error' => $validator->errors()], 422);
         }
 
+        $voucherId = null;
+        if (!empty($request->voucher_id)) {
+            $voucher = Voucher::where('code', $request->voucher_id)
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$voucher) {
+                return response()->json([
+                    'error' => 'Mã voucher không hợp lệ hoặc đã hết hạn.'
+                ], 400);
+            }
+
+            $voucherId = $voucher->id;
+        }
+
         try {
             DB::beginTransaction();
             $existingReservation = Reservation::where('user_id', $user->id)
@@ -271,6 +330,24 @@ class DatBanAnController extends Controller
                 ], 400);
             }
 
+            // Lấy danh sách tất cả bàn trống trong ca này
+            $allAvailableTables = \App\Models\BanAn::whereDoesntHave('reservations', function ($query) use ($request) {
+                $query->where('reservation_date', $request->reservation_date)
+                    ->where('shift', $request->shift)
+                    ->where('status', '!=', 'cancelled');
+            })
+                ->orderBy('limit_number', 'asc') // Sắp xếp theo sức chứa tăng dần
+                ->get();
+
+            if ($allAvailableTables->isEmpty()) {
+                return response()->json([
+                    'error' => 'Hết bàn trống',
+                    'message' => 'Không còn đủ bàn trống, vui lòng chọn ca khác hoặc liên hệ với quán',
+                    'shift_info' => $this->getShiftInfo($request->shift),
+                ], 400);
+            }
+
+            // Sắp xếp bàn tự động dựa vào số người
             $numPeople = $request->num_people;
             $preferVip = $request->boolean('prefer_vip', false);
             $selectedTables = collect();
@@ -339,7 +416,7 @@ class DatBanAnController extends Controller
 
             $availableTables = $selectedTables;
             $tablesNeeded = $availableTables->count();
-            
+
             // Kiểm tra loại bàn được chọn (có phòng VIP hay không)
             $hasVipRoom = $availableTables->where('type', 'vip')->isNotEmpty();
             $hasNormalTables = $availableTables->where('type', 'normal')->isNotEmpty();
@@ -354,7 +431,7 @@ class DatBanAnController extends Controller
                     }
                 }
             }
-            
+
             // Tính VAT 10% và tổng tiền cuối cùng
             $vat = $subtotal * 0.1;
             $totalPrice = $subtotal + $vat;
@@ -365,7 +442,7 @@ class DatBanAnController extends Controller
                 ->whereDate('date', $request->reservation_date)
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             $isHoliday = $holidayDate !== null;
 
             $totalDeposit = 0;
@@ -384,12 +461,12 @@ class DatBanAnController extends Controller
                 $tableDeposit = max(1, (int)$normalDeposit); // Đảm bảo >= 1
             }
             // Ngày thường + bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
-            
+
             // Cọc món ăn (luôn cọc toàn bộ tiền món ăn nếu có)
             if ($totalPrice > 0) {
                 $menuDeposit = $totalPrice;
             }
-            
+
             $totalDeposit = $tableDeposit + $menuDeposit;
 
             // Nếu cần cọc → chờ đặt cọc, nếu không cần cọc → đặt thành công (deposit_paid)
@@ -406,7 +483,7 @@ class DatBanAnController extends Controller
                 'shift' => $request->shift,
                 'num_people' => $request->num_people,
                 'depsection' => $request->depsection,
-                'voucher_id' => $request->voucher_id,
+                'voucher_id' => $voucherId,
                 'status' => $initialStatus,
                 'deposit' => $totalDeposit,
                 'total_amount' => $totalPrice,
@@ -429,21 +506,21 @@ class DatBanAnController extends Controller
 
             if ($totalDeposit > 0) {
                 $depositDetails = [];
-                
+
                 if ($tableDeposit > 0) {
                     $depositDetails[] = 'Cọc bàn: ' . number_format($tableDeposit, 0, ',', '.') . ' VND';
                 }
-                
+
                 if ($menuDeposit > 0) {
                     $depositDetails[] = 'Cọc món ăn: ' . number_format($menuDeposit, 0, ',', '.') . ' VND';
                 }
-                
-                $depositInfo = !empty($depositDetails) 
-                    ? implode(' | ', $depositDetails) 
+
+                $depositInfo = !empty($depositDetails)
+                    ? implode(' | ', $depositDetails)
                     : 'Đặt cọc đơn hàng';
-                
+
                 $depositInfo .= ' - Mã đơn: ' . $reservation->reservation_code;
-                
+
                 $orderData = [
                     'code' => $reservation->reservation_code,
                     'total' => $totalDeposit,
@@ -461,7 +538,7 @@ class DatBanAnController extends Controller
             DB::commit();
 
             $message = $totalDeposit > 0
-                ? 'Đặt bàn thành công! Vui lòng thanh toán tiền cọc trong 15 phút.' 
+                ? 'Đặt bàn thành công! Vui lòng thanh toán tiền cọc trong 15 phút.'
                 : 'Đặt bàn thành công! Đơn đặt bàn của bạn đang chờ xác nhận.';
 
             return response()->json([
@@ -472,7 +549,7 @@ class DatBanAnController extends Controller
                 'deposit_amount' => $totalDeposit,
                 'payment_url' => $paymentUrl,
                 'shift_info' => $this->getShiftInfo($request->shift),
-                'tables_assigned' => $availableTables->map(function($table) {
+                'tables_assigned' => $availableTables->map(function ($table) {
                     return [
                         'id' => $table->id,
                         'name' => $table->name,
@@ -535,7 +612,7 @@ class DatBanAnController extends Controller
     //     ], 200);
     // }
 
-   
+
     public function getServingReservations(Request $request)
     {
         $user = $request->user();
