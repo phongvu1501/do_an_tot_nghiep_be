@@ -35,10 +35,27 @@
                 <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
                 <li class="nav-item">
-                    <a href="{{ route('admin.dashboard') }}" class="nav-link">
+                    <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Thống kê</p>
+                        <i class="right fas fa-angle-left"></i>
                     </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('admin.dashboard') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Tổng quan</p>
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('admin.reservationStatistics') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Thống kê đặt bàn</p>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
 
                 <li class="nav-item">

@@ -11,14 +11,14 @@ class BanAnController extends Controller
     public function index(Request $request)
     {
         $currentHour = now()->hour;
-        if ($currentHour >= 6 && $currentHour < 10) {
+        if ($currentHour >= 8 && $currentHour < 13) {
             $currentShift = 'morning';
-        } elseif ($currentHour >= 10 && $currentHour < 14) {
+        } elseif ($currentHour >= 13 && $currentHour < 18) {
             $currentShift = 'afternoon';
-        } elseif ($currentHour >= 14 && $currentHour < 18) {
+        } elseif ($currentHour >= 18 && $currentHour < 23) {
             $currentShift = 'evening';
         } else {
-            $currentShift = 'night';
+            $currentShift = 'morning';
         }
 
         $filterDate = $request->filled('date') ? $request->date : now()->toDateString();

@@ -44,12 +44,12 @@
                                     <form action="{{ route('admin.depositRequiredDate.updateDepositSettings') }}" method="POST" class="row align-items-end">
                                         @csrf
                                         @method('PUT')
-                                        <div class="col-md-4">
+                                        <!-- <div class="col-md-4">
                                             <label class="font-weight-bold">Tiền cọc bàn thường (VND)</label>
                                             <input type="number" name="deposit_normal_tables" class="form-control" 
                                                    value="{{ old('deposit_normal_tables', $deposit_normal_tables ?? 500000) }}" 
                                                    min="1" step="1" placeholder="Nhập số tiền cọc" required>
-                                        </div>
+                                        </div> -->
                                         <div class="col-md-4">
                                             <label class="font-weight-bold">Tiền cọc phòng VIP (VND) </label>
                                             <input type="number" name="deposit_vip_rooms" class="form-control" 

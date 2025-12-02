@@ -38,10 +38,9 @@
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Ca</label>
                                             <select name="shift" class="form-control" onchange="document.getElementById('filterForm').submit()">
-                                                <option value="morning" {{ $filterShift == 'morning' ? 'selected' : '' }}>Ca sáng (6-10h)</option>
-                                                <option value="afternoon" {{ $filterShift == 'afternoon' ? 'selected' : '' }}>Ca trưa (10-14h)</option>
-                                                <option value="evening" {{ $filterShift == 'evening' ? 'selected' : '' }}>Ca chiều (14-18h)</option>
-                                                <option value="night" {{ $filterShift == 'night' ? 'selected' : '' }}>Ca tối (18-22h)</option>
+                                                <option value="morning" {{ $filterShift == 'morning' ? 'selected' : '' }}>Ca sáng (8-13h)</option>
+                                                <option value="afternoon" {{ $filterShift == 'afternoon' ? 'selected' : '' }}>Ca trưa (13-18h)</option>
+                                                <option value="evening" {{ $filterShift == 'evening' ? 'selected' : '' }}>Ca tối (18-23h)</option>
                                             </select>
                                         </div>
                                         <div class="col-md-6 d-flex align-items-end justify-content-end">
@@ -236,10 +235,9 @@
                                     <strong>Mã đơn:</strong> {{ $activeReservation->reservation_code ?? '#'.$activeReservation->id }}<br>
                                     <strong>Ngày:</strong> {{ \Carbon\Carbon::parse($activeReservation->reservation_date)->format('d/m/Y') }}<br>
                                     <strong>Ca:</strong>
-                                    @if($activeReservation->shift == 'morning') Ca sáng (6-10h)
-                                    @elseif($activeReservation->shift == 'afternoon') Ca trưa (10-14h)
-                                    @elseif($activeReservation->shift == 'evening') Ca chiều (14-18h)
-                                    @else Ca tối (18-22h)
+                                    @if($activeReservation->shift == 'morning') Ca sáng (8-13h)
+                                    @elseif($activeReservation->shift == 'afternoon') Ca trưa (13-18h)
+                                    @else Ca tối (18-23h)
                                     @endif
                                     <br>
                                     <strong>Số người:</strong> {{ $activeReservation->num_people }} người<br>
