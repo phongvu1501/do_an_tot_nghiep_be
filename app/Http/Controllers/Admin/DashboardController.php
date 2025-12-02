@@ -59,6 +59,15 @@ class DashboardController extends Controller
         // --- BIỂU ĐỒ THEO NGÀY ---
         $period = CarbonPeriod::create($from, '1 day', $to);
 
+        //Bàn đặt trong ngày
+        $today = Carbon::today()->toDateString();
+
+        $tablesToday = Reservation::with(['tables', 'user'])
+            ->whereDate('reservation_date', $today)
+            ->orderBy('shift', 'asc')
+            ->get();
+
+
         $chartReserved = [];     // Đặt mới
         $chartCancelled = [];    // Hủy
         $chartCompleted = [];    // Hoàn thành
@@ -96,13 +105,14 @@ class DashboardController extends Controller
             'totalRevenue',
             'newUsers',
             'listUsers',
+            'today',
             'labels',
             'chartReserved',
             'chartCancelled',
             'chartCompleted',
             'chartRevenue',
             'chartNewUsers',
-
+            'tablesToday',
             'from',
             'to'
         ));

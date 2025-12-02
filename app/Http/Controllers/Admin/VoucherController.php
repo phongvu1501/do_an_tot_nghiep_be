@@ -13,7 +13,9 @@ class VoucherController extends Controller
     public function index()
     {
         $title = "Trang voucher";
-        $vouchers = Voucher::with(['tier', 'user'])->get(); // load relation để show
+        $vouchers = Voucher::with(['tier', 'user'])
+            ->orderBy('id', 'desc')
+            ->paginate(10);
         return view('admin.vouchers.voucher.index', compact('title', 'vouchers'));
     }
 
@@ -37,10 +39,12 @@ class VoucherController extends Controller
         $request->validate([
             'tier_id' => 'nullable|exists:point_voucher_tiers,id',
             'user_id' => 'nullable|exists:users,id',
-            'code' => 'required|string|unique:vouchers,code',
+            // 'code' => 'required|string|unique:vouchers,code',
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [
-                'required', 'numeric', 'min:0',
+                'required',
+                'numeric',
+                'min:0',
                 function ($attribute, $value, $fail) use ($request) {
                     if ($request->discount_type === 'percent' && $value > 100) {
                         $fail('Giá trị giảm phần trăm không được lớn hơn 100%.');
@@ -55,10 +59,16 @@ class VoucherController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
+        do {
+            $code = strtoupper('VC-' . uniqid());
+        } while (Voucher::where('code', $code)->exists()); {
+            $request->merge(['code' => $code]);
+        }
+
         $voucher = Voucher::create([
             'tier_id' => $request->tier_id,
             'user_id' => $request->user_id,
-            'code' => $request->code,
+            'code' => $code,
             'discount_type' => $request->discount_type,
             'discount_value' => $request->discount_value,
             'order_value_allowed' => $request->order_value_allowed,
@@ -89,7 +99,9 @@ class VoucherController extends Controller
             'code' => 'required|string|unique:vouchers,code,' . $voucher->id,
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [
-                'required', 'numeric', 'min:0',
+                'required',
+                'numeric',
+                'min:0',
                 function ($attribute, $value, $fail) use ($request) {
                     if ($request->discount_type === 'percent' && $value > 100) {
                         $fail('Giá trị giảm phần trăm không được lớn hơn 100%.');

@@ -108,6 +108,88 @@
                 </div>
             </div>
         </section>
+        <div class="container mt-4">
+            <h4 class="mb-3">📌 Các bàn đặt trong ngày ({{ \Carbon\Carbon::today()->format('d/m/Y') }})</h4>
+
+            @if (isset($tablesToday) && $tablesToday->count())
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Khách hàng</th>
+                            <th>Bàn</th>
+                            <th>Số người</th>
+                            <th>Giờ đặt</th>
+                            <th>Ghi chú</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach ($tablesToday as $index => $item)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+
+                                <td>{{ $item->user->name ?? '—' }}</td>
+
+                                <td>
+                                    @if ($item->tables && count($item->tables))
+                                        @foreach ($item->tables as $tb)
+                                            <span class="badge badge-primary">Bàn {{ $tb->name }}</span>
+                                        @endforeach
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+
+                                <td>{{ $item->num_people }}</td>
+
+                                <td>
+                                    {{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
+                                </td>
+
+                                <td>{{ $item->depsection ?? '—' }}</td>
+
+                                @php
+                                    $statusColors = [
+                                        'cancelled' => 'badge badge-danger',
+                                        'pending' => 'badge badge-warning',
+                                        'deposit_pending' => 'badge badge-warning',
+                                        'deposit_paid' => 'badge badge-info',
+                                        'confirmed' => 'badge badge-primary',
+                                        'serving' => 'badge badge-secondary',
+                                        'completed' => 'badge badge-success',
+                                        'waiting_for_payment' => 'badge badge-warning',
+                                        'suspended' => 'badge badge-dark',
+                                    ];
+
+                                    $statusLabels = [
+                                        'cancelled' => 'Đã hủy',
+                                        'pending' => 'Chờ xác nhận',
+                                        'deposit_pending' => 'Chờ đặt cọc',
+                                        'deposit_paid' => 'Đã đặt cọc',
+                                        'confirmed' => 'Đã xác nhận',
+                                        'serving' => 'Đang phục vụ',
+                                        'completed' => 'Hoàn tất',
+                                        'waiting_for_payment' => 'Chờ thanh toán',
+                                        'suspended' => 'Tạm dừng',
+                                    ];
+                                @endphp
+
+                                <td>
+                                    <span class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
+                                        {{ $statusLabels[$item->status] ?? $item->status }}
+                                    </span>
+                                </td>
+
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <p>Không có bàn nào được đặt hôm nay.</p>
+            @endif
+        </div>
     </div>
 
     <!-- ============================== -->
@@ -349,5 +431,11 @@
             </div>
         </div>
     </div>
+    <!-- ============================== -->
+    <!--  TABLE: CÁC BÀN ĐẶT TRONG NGÀY -->
+    <!-- ============================== -->
+
+
+
 
 @endsection

@@ -51,10 +51,8 @@
                                             <th>Mã voucher</th>
                                             <th>Loại giảm giá</th>
                                             <th>Giá trị giảm</th>
-
                                             <th>Thuộc Tier</th>
                                             <th>Áp dụng cho</th>
-
                                             <th>Giới hạn sử dụng</th>
                                             <th>Đơn hàng tối thiểu</th>
                                             <th>Đơn hàng tối đa áp dụng</th>
@@ -67,51 +65,34 @@
                                     </thead>
 
                                     <tbody>
-                                        @forelse ($vouchers as $index => $voucher)
+                                        @forelse ($vouchers as $voucher)
                                             <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>{{ $voucher->code }}</td>
-
-                                                <td>
-                                                    {{ $voucher->discount_type === 'percent' ? 'Phần trăm' : 'Số tiền' }}
+                                                <td>{{ ($vouchers->currentPage() - 1) * $vouchers->perPage() + $loop->iteration }}
                                                 </td>
-
+                                                <td>{{ $voucher->code }}</td>
+                                                <td>{{ $voucher->discount_type === 'percent' ? 'Phần trăm' : 'Số tiền' }}
+                                                </td>
                                                 <td>{{ number_format($voucher->discount_value) }}</td>
-
-                                                {{-- TIER --}}
                                                 <td>
                                                     @if ($voucher->tier)
-                                                        <span class="badge badge-info">
-                                                            {{ $voucher->tier->name }}
-                                                        </span>
+                                                        <span class="badge badge-info">{{ $voucher->tier->name }}</span>
                                                     @else
                                                         <span class="text-muted">Không thuộc tier</span>
                                                     @endif
                                                 </td>
-
-                                                {{-- USER --}}
                                                 <td>
                                                     @if ($voucher->user)
-                                                        <span class="badge badge-primary">
-                                                            {{ $voucher->user->name }} 
-                                                        </span>
+                                                        <span class="badge badge-primary">{{ $voucher->user->name }}</span>
                                                     @else
                                                         <span class="badge badge-success">Tất cả người dùng</span>
                                                     @endif
                                                 </td>
-
                                                 <td>{{ $voucher->max_uses ?? 'Không giới hạn' }}</td>
                                                 <td>{{ number_format($voucher->min_order_value, 0) }}</td>
-
-                                                <td>
-                                                    {{ $voucher->order_value_allowed
-                                                        ? number_format($voucher->order_value_allowed) . ' ₫'
-                                                        : 'Không giới hạn' }}
+                                                <td>{{ $voucher->order_value_allowed ? number_format($voucher->order_value_allowed) . ' ₫' : 'Không giới hạn' }}
                                                 </td>
-
                                                 <td>{{ date('d/m/Y', strtotime($voucher->start_date)) }}</td>
                                                 <td>{{ date('d/m/Y', strtotime($voucher->end_date)) }}</td>
-
                                                 <td>
                                                     @if ($voucher->status === 'active')
                                                         <span class="badge badge-success">Hoạt động</span>
@@ -119,18 +100,15 @@
                                                         <span class="badge badge-secondary">Tạm dừng</span>
                                                     @endif
                                                 </td>
-
                                                 <td>{{ $voucher->created_at->format('d/m/Y') }}</td>
-
                                                 <td>
                                                     <a href="{{ route('admin.vouchers.voucher.show', $voucher->id) }}"
                                                         class="btn btn-info btn-sm">Chi tiết</a>
-
                                                     <a href="{{ route('admin.vouchers.voucher.edit', $voucher->id) }}"
                                                         class="btn btn-warning btn-sm">Sửa</a>
-
                                                     @if ($voucher->status === 'active')
-                                                        <form action="{{ route('admin.vouchers.voucher.disable', $voucher->id) }}"
+                                                        <form
+                                                            action="{{ route('admin.vouchers.voucher.disable', $voucher->id) }}"
                                                             method="POST" style="display:inline;">
                                                             @csrf
                                                             @method('PUT')
@@ -152,6 +130,18 @@
                                     </tbody>
                                 </table>
 
+                                {{-- PHÂN TRANG NẰM NGOÀI TABLE --}}
+                                @if ($vouchers->hasPages())
+                                    <div class="mt-3">
+                                        {{ $vouchers->links() }}
+                                    </div>
+                                @endif
+
+                                @if ($vouchers->hasPages())
+                                    <div class="mt-3">
+                                        {{ $vouchers->links() }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
