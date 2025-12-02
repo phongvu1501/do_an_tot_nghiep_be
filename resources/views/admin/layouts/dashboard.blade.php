@@ -3,7 +3,6 @@
 @section('noidung')
     <div class="content-wrapper">
 
-        <!-- HEADER -->
         <div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -25,19 +24,17 @@
                                 class="form-control ml-2">
                         </div>
 
-                        <button type="submit" class="btn btn-primary mb-2 ml-3">Filter</button>
+                        <button type="submit" class="btn btn-primary mb-2 ml-3">Tìm kiếm</button>
                     </form>
 
                 </div>
             </div>
         </div>
 
-        <!-- CONTENT -->
         <section class="content">
             <div class="container-fluid">
                 <div class="row">
 
-                    <!-- TOTAL RESERVATIONS -->
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-info">
                             <div class="inner">
@@ -54,7 +51,6 @@
                         </div>
                     </div>
 
-                    <!-- TOTAL CANCELLED -->
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-success">
                             <div class="inner">
@@ -71,7 +67,6 @@
                         </div>
                     </div>
 
-                    <!-- NEW USERS -->
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-warning">
                             <div class="inner">
@@ -88,7 +83,6 @@
                         </div>
                     </div>
 
-                    <!-- TOTAL REVENUE -->
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-danger">
                             <div class="inner">
@@ -108,334 +102,339 @@
                 </div>
             </div>
         </section>
-        <div class="container mt-4">
-            <h4 class="mb-3">📌 Các bàn đặt trong ngày ({{ \Carbon\Carbon::today()->format('d/m/Y') }})</h4>
 
-            @if (isset($tablesToday) && $tablesToday->count())
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>STT</th>
-                            <th>Khách hàng</th>
-                            <th>Bàn</th>
-                            <th>Số người</th>
-                            <th>Giờ đặt</th>
-                            <th>Ghi chú</th>
-                            <th>Trạng thái</th>
-                        </tr>
-                    </thead>
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-primary">
+                            <div class="card-header">
+                                <h3 class="card-title">📌 Các bàn đặt trong khoảng
+                                    ({{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} -
+                                    {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }})
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                @if ($tablesToday->count())
+                                    @php
+                                        $groupedTables = $tablesToday->groupBy(fn($item) => $item->reservation_date);
+                                    @endphp
 
-                    <tbody>
-                        @foreach ($tablesToday as $index => $item)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
+                                    @foreach ($groupedTables as $date => $tables)
+                                        <h5 class="mt-3">Ngày {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-striped w-100">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 5%">STT</th>
+                                                        <th style="width: 15%">Khách hàng</th>
+                                                        <th style="width: 25%">Bàn</th>
+                                                        <th style="width: 10%">Số người</th>
+                                                        <th style="width: 10%">Giờ đặt</th>
+                                                        <th style="width: 25%">Ghi chú</th>
+                                                        <th style="width: 10%">Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($tables as $index => $item)
+                                                        <tr>
+                                                            <td>{{ $index + 1 }}</td>
+                                                            <td>{{ $item->user->name ?? '—' }}</td>
+                                                            <td>
+                                                                @if ($item->tables && count($item->tables))
+                                                                    @foreach ($item->tables as $tb)
+                                                                        <span class="badge badge-primary">Bàn
+                                                                            {{ $tb->name }}</span>
+                                                                    @endforeach
+                                                                @else
+                                                                    —
+                                                                @endif
+                                                            </td>
+                                                            <td>{{ $item->num_people }}</td>
+                                                            <td>{{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
+                                                            </td>
+                                                            <td>{{ $item->depsection ?? '—' }}</td>
+                                                            @php
+                                                                $statusColors = [
+                                                                    'cancelled' => 'badge badge-danger',
+                                                                    'pending' => 'badge badge-warning',
+                                                                    'deposit_pending' => 'badge badge-warning',
+                                                                    'deposit_paid' => 'badge badge-info',
+                                                                    'confirmed' => 'badge badge-primary',
+                                                                    'serving' => 'badge badge-secondary',
+                                                                    'completed' => 'badge badge-success',
+                                                                    'waiting_for_payment' => 'badge badge-warning',
+                                                                    'suspended' => 'badge badge-dark',
+                                                                ];
+                                                                $statusLabels = [
+                                                                    'cancelled' => 'Đã hủy',
+                                                                    'pending' => 'Chờ xác nhận',
+                                                                    'deposit_pending' => 'Chờ đặt cọc',
+                                                                    'deposit_paid' => 'Đã đặt cọc',
+                                                                    'confirmed' => 'Đã xác nhận',
+                                                                    'serving' => 'Đang phục vụ',
+                                                                    'completed' => 'Hoàn tất',
+                                                                    'waiting_for_payment' => 'Chờ thanh toán',
+                                                                    'suspended' => 'Tạm dừng',
+                                                                ];
+                                                            @endphp
+                                                            <td>
+                                                                <span
+                                                                    class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
+                                                                    {{ $statusLabels[$item->status] ?? $item->status }}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <p>Không có bàn nào trong khoảng này.</p>
+                                @endif
+                            </div>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </section>
+        <div class="modal fade" id="reservationsModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
 
-                                <td>{{ $item->user->name ?? '—' }}</td>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Danh sách đơn đặt</h5>
+                        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    </div>
 
-                                <td>
-                                    @if ($item->tables && count($item->tables))
-                                        @foreach ($item->tables as $tb)
-                                            <span class="badge badge-primary">Bàn {{ $tb->name }}</span>
+                    <div class="modal-body">
+                        @if (isset($reservationsList) && $reservationsList->count())
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped w-100">
+                                    <thead>
+                                        <tr>
+                                            <th>STT</th>
+                                            <th>Khách hàng</th>
+                                            <th>Số người</th>
+                                            <th>Ngày giờ đặt</th>
+                                            <th>Ghi chú</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        @foreach ($reservationsList as $index => $item)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+
+                                                <td>{{ $item->user->name ?? 'Không có' }}</td>
+
+                                                <td>{{ $item->num_people }}</td>
+
+                                                <td>{{ \Carbon\Carbon::parse($item->reservation_date)->format('d/m/Y') }}
+                                                    {{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
+                                                </td>
+
+                                                <td>{{ $item->depsection ?? '—' }}</td>
+                                                @php
+                                                    $statusColors = [
+                                                        'cancelled' => 'badge badge-danger',
+                                                        'pending' => 'badge badge-warning',
+                                                        'deposit_pending' => 'badge badge-warning',
+                                                        'deposit_paid' => 'badge badge-info',
+                                                        'confirmed' => 'badge badge-primary',
+                                                        'serving' => 'badge badge-secondary',
+                                                        'completed' => 'badge badge-success',
+                                                        'waiting_for_payment' => 'badge badge-warning',
+                                                        'suspended' => 'badge badge-dark',
+                                                    ];
+
+                                                    $statusLabels = [
+                                                        'cancelled' => 'Đã hủy',
+                                                        'pending' => 'Chờ xác nhận',
+                                                        'deposit_pending' => 'Chờ đặt cọc',
+                                                        'deposit_paid' => 'Đã đặt cọc',
+                                                        'confirmed' => 'Đã xác nhận',
+                                                        'serving' => 'Đang phục vụ',
+                                                        'completed' => 'Hoàn tất',
+                                                        'waiting_for_payment' => 'Chờ thanh toán',
+                                                        'suspended' => 'Tạm dừng',
+                                                    ];
+                                                @endphp
+
+                                                <td>
+                                                    <span
+                                                        class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
+                                                        {{ $statusLabels[$item->status] ?? $item->status }}
+                                                    </span>
+                                                </td>
+
+
+                                            </tr>
                                         @endforeach
-                                    @else
-                                        —
-                                    @endif
-                                </td>
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p>Không có đơn đặt nào.</p>
+                        @endif
+                    </div>
 
-                                <td>{{ $item->num_people }}</td>
-
-                                <td>
-                                    {{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
-                                </td>
-
-                                <td>{{ $item->depsection ?? '—' }}</td>
-
-                                @php
-                                    $statusColors = [
-                                        'cancelled' => 'badge badge-danger',
-                                        'pending' => 'badge badge-warning',
-                                        'deposit_pending' => 'badge badge-warning',
-                                        'deposit_paid' => 'badge badge-info',
-                                        'confirmed' => 'badge badge-primary',
-                                        'serving' => 'badge badge-secondary',
-                                        'completed' => 'badge badge-success',
-                                        'waiting_for_payment' => 'badge badge-warning',
-                                        'suspended' => 'badge badge-dark',
-                                    ];
-
-                                    $statusLabels = [
-                                        'cancelled' => 'Đã hủy',
-                                        'pending' => 'Chờ xác nhận',
-                                        'deposit_pending' => 'Chờ đặt cọc',
-                                        'deposit_paid' => 'Đã đặt cọc',
-                                        'confirmed' => 'Đã xác nhận',
-                                        'serving' => 'Đang phục vụ',
-                                        'completed' => 'Hoàn tất',
-                                        'waiting_for_payment' => 'Chờ thanh toán',
-                                        'suspended' => 'Tạm dừng',
-                                    ];
-                                @endphp
-
-                                <td>
-                                    <span class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
-                                        {{ $statusLabels[$item->status] ?? $item->status }}
-                                    </span>
-                                </td>
-
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @else
-                <p>Không có bàn nào được đặt hôm nay.</p>
-            @endif
-        </div>
-    </div>
-
-    <!-- ============================== -->
-    <!--  MODAL: TỔNG ĐƠN ĐẶT          -->
-    <!-- ============================== -->
-    <div class="modal fade" id="reservationsModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-
-                <div class="modal-header">
-                    <h5>Danh sách đơn đặt</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                 </div>
-
-                <div class="modal-body">
-                    @if (isset($reservationsList) && $reservationsList->count())
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>STT</th>
-                                    <th>Khách hàng</th>
-                                    <th>Số người</th>
-                                    <th>Ngày giờ đặt</th>
-                                    <th>Ghi chú</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach ($reservationsList as $index => $item)
-                                    <tr>
-                                        <td>{{ $index + 1 }}</td>
-
-                                        <td>{{ $item->user->name ?? 'Không có' }}</td>
-
-                                        <td>{{ $item->num_people }}</td>
-
-                                        <td>{{ \Carbon\Carbon::parse($item->reservation_date)->format('d/m/Y') }}
-                                            {{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
-                                        </td>
-
-                                        <td>{{ $item->depsection ?? '—' }}</td>
-                                        @php
-                                            $statusColors = [
-                                                'cancelled' => 'badge badge-danger',
-                                                'pending' => 'badge badge-warning',
-                                                'deposit_pending' => 'badge badge-warning',
-                                                'deposit_paid' => 'badge badge-info',
-                                                'confirmed' => 'badge badge-primary',
-                                                'serving' => 'badge badge-secondary',
-                                                'completed' => 'badge badge-success',
-                                                'waiting_for_payment' => 'badge badge-warning',
-                                                'suspended' => 'badge badge-dark',
-                                            ];
-
-                                            $statusLabels = [
-                                                'cancelled' => 'Đã hủy',
-                                                'pending' => 'Chờ xác nhận',
-                                                'deposit_pending' => 'Chờ đặt cọc',
-                                                'deposit_paid' => 'Đã đặt cọc',
-                                                'confirmed' => 'Đã xác nhận',
-                                                'serving' => 'Đang phục vụ',
-                                                'completed' => 'Hoàn tất',
-                                                'waiting_for_payment' => 'Chờ thanh toán',
-                                                'suspended' => 'Tạm dừng',
-                                            ];
-                                        @endphp
-
-                                        <td>
-                                            <span class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
-                                                {{ $statusLabels[$item->status] ?? $item->status }}
-                                            </span>
-                                        </td>
-
-
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @else
-                        <p>Không có đơn đặt nào.</p>
-                    @endif
-                </div>
-
             </div>
         </div>
-    </div>
 
 
 
-    <!-- ============================== -->
-    <!--  MODAL: ĐƠN HỦY                -->
-    <!-- ============================== -->
-    <div class="modal fade" id="cancelledModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
+        <div class="modal fade" id="cancelledModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
 
-                <div class="modal-header">
-                    <h5>Danh sách đơn hủy</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Danh sách đơn hủy</h5>
+                        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @if (isset($cancelledList) && $cancelledList->count())
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped w-100">
+                                    <thead>
+                                        <tr>
+                                            <th>STT</th>
+                                            <th>Khách hàng</th>
+                                            <th>Số người</th>
+                                            <th>Ngày giờ đặt</th>
+                                            <th>Ghi chú</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        @foreach ($cancelledList as $index => $item)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>{{ $item->user->name ?? 'Không có' }}</td>
+                                                <td>{{ $item->num_people }}</td>
+                                                <td>
+                                                    {{ \Carbon\Carbon::parse($item->reservation_date)->format('d/m/Y') }}
+                                                    {{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
+                                                </td>
+                                                <td>{{ $item->depsection ?? '—' }}</td>
+                                                @php
+                                                    $statusColors = [
+                                                        'cancelled' => 'badge badge-danger',
+                                                    ];
+
+                                                    $statusLabels = [
+                                                        'cancelled' => 'Đã hủy',
+                                                    ];
+                                                @endphp
+
+                                                <td>
+                                                    <span
+                                                        class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
+                                                        {{ $statusLabels[$item->status] ?? $item->status }}
+                                                    </span>
+                                                </td>
+
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p>Không có đơn hủy nào.</p>
+                        @endif
+                    </div>
+
                 </div>
-
-                <div class="modal-body">
-                    @if (isset($cancelledList) && $cancelledList->count())
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>STT</th>
-                                    <th>Khách hàng</th>
-                                    <th>Số người</th>
-                                    <th>Ngày giờ đặt</th>
-                                    <th>Ghi chú</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach ($cancelledList as $index => $item)
-                                    <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $item->user->name ?? 'Không có' }}</td>
-                                        <td>{{ $item->num_people }}</td>
-                                        <td>
-                                            {{ \Carbon\Carbon::parse($item->reservation_date)->format('d/m/Y') }}
-                                            {{ \Carbon\Carbon::parse($item->reservation_time)->format('H:i') }}
-                                        </td>
-                                        <td>{{ $item->depsection ?? '—' }}</td>
-                                        @php
-                                            $statusColors = [
-                                                'cancelled' => 'badge badge-danger',
-                                            ];
-
-                                            $statusLabels = [
-                                                'cancelled' => 'Đã hủy',
-                                            ];
-                                        @endphp
-
-                                        <td>
-                                            <span class="{{ $statusColors[$item->status] ?? 'badge badge-light' }}">
-                                                {{ $statusLabels[$item->status] ?? $item->status }}
-                                            </span>
-                                        </td>
-
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @else
-                        <p>Không có đơn hủy nào.</p>
-                    @endif
-                </div>
-
             </div>
         </div>
-    </div>
 
-    <!-- ============================== -->
-    <!--  MODAL: USER MỚI               -->
-    <!-- ============================== -->
-    <div class="modal fade" id="newUsersModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+        <div class="modal fade" id="newUsersModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
 
-                <div class="modal-header">
-                    <h5>Danh sách tài khoản mới</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Danh sách tài khoản mới</h5>
+                        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @if (isset($listUsers) && $listUsers->count())
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped w-100">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Email</th>
+                                            <th>Tên</th>
+                                            <th>Ngày tạo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($listUsers as $index => $user)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>{{ $user->email }}</td>
+                                                <td>{{ $user->name ?? '—' }}</td>
+                                                <td>{{ $user->created_at }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p>Không có tài khoản mới.</p>
+                        @endif
+                    </div>
+
                 </div>
-
-                <div class="modal-body">
-                    @if (isset($listUsers) && $listUsers->count())
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Email</th>
-                                    <th>Tên</th>
-                                    <th>Ngày tạo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($listUsers as $index => $user)
-                                    <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $user->email }}</td>
-                                        <td>{{ $user->name ?? '—' }}</td>
-                                        <td>{{ $user->created_at }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @else
-                        <p>Không có tài khoản mới.</p>
-                    @endif
-                </div>
-
             </div>
         </div>
-    </div>
 
-    <!-- ============================== -->
-    <!--  MODAL: DOANH THU              -->
-    <!-- ============================== -->
-    <div class="modal fade" id="revenueModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
+        <div class="modal fade" id="revenueModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
 
-                <div class="modal-header">
-                    <h5>Chi tiết doanh thu</h5>
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chi tiết doanh thu</h5>
+                        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    </div>
+
+                    <div class="modal-body">
+                        @if (isset($revenueList) && $revenueList->count())
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped w-100">
+                                    <thead>
+                                        <tr>
+                                            <th>Mã đơn</th>
+                                            <th>Khách hàng</th>
+                                            <th>Tổng tiền</th>
+                                            <th>Ngày thanh toán</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{-- @foreach ($revenueList as $item)
+                        <tr>
+                            <td>{{ $item->id }}</td>
+                            <td>{{ $item->customer_name ?? '—' }}</td>
+                            <td>{{ number_format($item->total_price) }} đ</td>
+                            <td>{{ $item->updated_at }}</td>
+                        </tr>
+                        @endforeach --}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p>Không có dữ liệu doanh thu.</p>
+                        @endif
+                    </div>
+
                 </div>
-
-                <div class="modal-body">
-                    @if (isset($revenueList) && $revenueList->count())
-                        <table class="table table-bordered table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Mã đơn</th>
-                                    <th>Khách hàng</th>
-                                    <th>Tổng tiền</th>
-                                    <th>Ngày thanh toán</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {{-- @foreach ($revenueList as $item)
-                        <tr>
-                            <td>{{ $item->id }}</td>
-                            <td>{{ $item->customer_name ?? '—' }}</td>
-                            <td>{{ number_format($item->total_price) }} đ</td>
-                            <td>{{ $item->updated_at }}</td>
-                        </tr>
-                        @endforeach --}}
-                            </tbody>
-                        </table>
-                    @else
-                        <p>Không có dữ liệu doanh thu.</p>
-                    @endif
-                </div>
-
             </div>
         </div>
-    </div>
-    <!-- ============================== -->
-    <!--  TABLE: CÁC BÀN ĐẶT TRONG NGÀY -->
-    <!-- ============================== -->
-
-
-
-
+        </div>
 @endsection

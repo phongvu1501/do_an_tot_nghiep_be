@@ -13,7 +13,6 @@ class Voucher extends Model
 
     protected $fillable = [
         'tier_id',
-        'user_id',
         'code',
         'discount_type',
         'discount_value',
@@ -30,8 +29,10 @@ class Voucher extends Model
         return $this->belongsTo(PointVoucherTier::class, 'tier_id');
     }
 
-    public function user()
+    public function users()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsToMany(User::class, 'user_voucher')
+            ->withPivot(['status', 'used_at'])
+            ->withTimestamps();
     }
 }

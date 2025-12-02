@@ -13,16 +13,19 @@ class VoucherController extends Controller
     public function index()
     {
         $title = "Trang voucher";
-        $vouchers = Voucher::with(['tier', 'user'])
+
+        $vouchers = Voucher::with(['tier', 'users'])
             ->orderBy('id', 'desc')
             ->paginate(10);
+
         return view('admin.vouchers.voucher.index', compact('title', 'vouchers'));
     }
 
     public function show(Voucher $voucher)
     {
-        $voucher->load(['tier', 'user']);
+        $voucher->load(['tier', 'users']);
         $title = "Chi tiết voucher";
+
         return view('admin.vouchers.voucher.show', compact('title', 'voucher'));
     }
 
@@ -31,6 +34,7 @@ class VoucherController extends Controller
         $title = "Thêm voucher mới";
         $tiers = PointVoucherTier::where('is_active', true)->get();
         $users = User::all();
+
         return view('admin.vouchers.voucher.create', compact('title', 'tiers', 'users'));
     }
 
@@ -38,8 +42,8 @@ class VoucherController extends Controller
     {
         $request->validate([
             'tier_id' => 'nullable|exists:point_voucher_tiers,id',
-            'user_id' => 'nullable|exists:users,id',
-            // 'code' => 'required|string|unique:vouchers,code',
+            'user_ids' => 'nullable|array',
+            'user_ids.*' => 'exists:users,id',
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [
                 'required',
@@ -61,13 +65,10 @@ class VoucherController extends Controller
 
         do {
             $code = strtoupper('VC-' . uniqid());
-        } while (Voucher::where('code', $code)->exists()); {
-            $request->merge(['code' => $code]);
-        }
+        } while (Voucher::where('code', $code)->exists());
 
         $voucher = Voucher::create([
             'tier_id' => $request->tier_id,
-            'user_id' => $request->user_id,
             'code' => $code,
             'discount_type' => $request->discount_type,
             'discount_value' => $request->discount_value,
@@ -79,15 +80,20 @@ class VoucherController extends Controller
             'end_date' => $request->end_date,
         ]);
 
+        if ($request->has('user_ids')) {
+            $voucher->users()->sync($request->user_ids);
+        }
+
         return redirect()->route('admin.vouchers.voucher.index')->with('success', 'Voucher được tạo thành công.');
     }
 
     public function edit(Voucher $voucher)
     {
-        $voucher->load(['tier', 'user']);
+        $voucher->load(['tier', 'users']);
         $tiers = PointVoucherTier::where('is_active', true)->get();
         $users = User::all();
         $title = 'Chỉnh sửa Voucher';
+
         return view('admin.vouchers.voucher.edit', compact('voucher', 'title', 'tiers', 'users'));
     }
 
@@ -95,7 +101,8 @@ class VoucherController extends Controller
     {
         $request->validate([
             'tier_id' => 'nullable|exists:point_voucher_tiers,id',
-            'user_id' => 'nullable|exists:users,id',
+            'user_ids' => 'nullable|array',
+            'user_ids.*' => 'exists:users,id',
             'code' => 'required|string|unique:vouchers,code,' . $voucher->id,
             'discount_type' => 'required|in:percent,fixed',
             'discount_value' => [
@@ -118,7 +125,6 @@ class VoucherController extends Controller
 
         $voucher->update([
             'tier_id' => $request->tier_id,
-            'user_id' => $request->user_id,
             'code' => $request->code,
             'discount_type' => $request->discount_type,
             'discount_value' => $request->discount_value,
@@ -129,6 +135,12 @@ class VoucherController extends Controller
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
         ]);
+
+        if ($request->has('user_ids')) {
+            $voucher->users()->sync($request->user_ids);
+        } else {
+            $voucher->users()->detach();
+        }
 
         return redirect()->route('admin.vouchers.voucher.index')->with('success', 'Cập nhật voucher thành công.');
     }
