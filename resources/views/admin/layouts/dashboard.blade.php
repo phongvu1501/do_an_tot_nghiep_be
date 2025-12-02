@@ -35,77 +35,298 @@
         <!-- CONTENT -->
         <section class="content">
             <div class="container-fluid">
-                <div class="row">
+                <ul class="nav nav-tabs" id="statisticsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" role="tab" aria-controls="overview" aria-selected="true">
+                            <i class="fas fa-chart-line"></i> Tổng quan
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" id="reservation-tab" data-toggle="tab" href="#reservation" role="tab" aria-controls="reservation" aria-selected="false">
+                            <i class="fas fa-calendar-check"></i> Thống kê đặt bàn
+                        </a>
+                    </li>
+                </ul>
 
-                    <!-- TOTAL RESERVATIONS -->
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-info">
-                            <div class="inner">
-                                <h3>{{ $totalReservations }}</h3>
-                                <p>Tổng đơn đặt</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-bag"></i>
+                <!-- TABS CONTENT -->
+                <div class="tab-content" id="statisticsTabsContent">
+                    <!-- TAB: TỔNG QUAN -->
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                        <div class="row mt-3">
+                            <!-- TOTAL RESERVATIONS -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ $totalReservations }}</h3>
+                                        <p>Tổng đơn đặt</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-bag"></i>
+                                    </div>
+
+                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#reservationsModal">
+                                        Chi tiết
+                                    </a>
+                                </div>
                             </div>
 
-                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#reservationsModal">
-                                Chi tiết
-                            </a>
+                            <!-- TOTAL CANCELLED -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>{{ $totalCancelled }}</h3>
+                                        <p>Tổng đơn hủy</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-stats-bars"></i>
+                                    </div>
+
+                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#cancelledModal">
+                                        Chi tiết
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- NEW USERS -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>{{ $newUsers }}</h3>
+                                        <p>Tài khoản mới</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-person-add"></i>
+                                    </div>
+
+                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#newUsersModal">
+                                        Chi tiết
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- TOTAL REVENUE -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-danger">
+                                    <div class="inner">
+                                        <h3>{{ number_format($totalRevenue) }}</h3>
+                                        <p>Doanh số (VNĐ)</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-pie-graph"></i>
+                                    </div>
+
+                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#revenueModal">
+                                        Chi tiết
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- TOTAL CANCELLED -->
+                    <!-- TAB: THỐNG KÊ ĐẶT BÀN -->
+                    <div class="tab-pane fade" id="reservation" role="tabpanel" aria-labelledby="reservation-tab">
+                        <!-- ============================== -->
+                        <!--  THỐNG KÊ ĐẶT BÀN CHI TIẾT     -->
+                        <!-- ============================== -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h3 class="mb-3">Thống kê đặt bàn</h3>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Đơn đặt bàn hôm nay -->
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3>{{ $totalToday ?? 0 }}</h3>
+                                <p>Đơn đặt bàn hôm nay</p>
+                            </div>
+                            <div class="icon">
+                                <i class="ion ion-calendar"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Đơn đặt bàn trong tháng -->
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-success">
                             <div class="inner">
-                                <h3>{{ $totalCancelled }}</h3>
-                                <p>Tổng đơn hủy</p>
+                                <h3>{{ $totalThisMonth ?? 0 }}</h3>
+                                <p>Đơn đặt bàn trong tháng</p>
                             </div>
                             <div class="icon">
                                 <i class="ion ion-stats-bars"></i>
                             </div>
-
-                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#cancelledModal">
-                                Chi tiết
-                            </a>
                         </div>
                     </div>
 
-                    <!-- NEW USERS -->
+                    <!-- Đơn hoàn thành (tất cả) -->
                     <div class="col-lg-3 col-6">
-                        <div class="small-box bg-warning">
+                        <div class="small-box bg-primary">
                             <div class="inner">
-                                <h3>{{ $newUsers }}</h3>
-                                <p>Tài khoản mới</p>
+                                <h3>{{ $totalCompletedAll ?? 0 }}</h3>
+                                <p>Đơn hoàn thành (tất cả)</p>
                             </div>
                             <div class="icon">
-                                <i class="ion ion-person-add"></i>
+                                <i class="ion ion-checkmark-circled"></i>
                             </div>
-
-                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#newUsersModal">
-                                Chi tiết
-                            </a>
                         </div>
                     </div>
 
-                    <!-- TOTAL REVENUE -->
+                    <!-- Đơn đã hủy (tất cả) -->
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-danger">
                             <div class="inner">
-                                <h3>{{ $totalRevenue }}</h3>
-                                <p>Doanh số</p>
+                                <h3>{{ $totalCancelledAll ?? 0 }}</h3>
+                                <p>Đơn đã hủy (tất cả)</p>
+                            </div>
+                            <div class="icon">
+                                <i class="ion ion-close-circled"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3>{{ $totalPending ?? 0 }}</h3>
+                                <p>Đơn chờ xác nhận</p>
+                            </div>
+                            <div class="icon">
+                                <i class="ion ion-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-secondary">
+                            <div class="inner">
+                                <h3>{{ $cancellationRate ?? 0 }}%</h3>
+                                <p>Tỷ lệ hủy</p>
                             </div>
                             <div class="icon">
                                 <i class="ion ion-pie-graph"></i>
                             </div>
-
-                            <a href="#" class="small-box-footer" data-toggle="modal" data-target="#revenueModal">
-                                Chi tiết
-                            </a>
                         </div>
                     </div>
 
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3>{{ $avgNumPeople ?? 0 }}</h3>
+                                <p>Số khách trung bình/đơn</p>
+                            </div>
+                            <div class="icon">
+                                <i class="ion ion-person-stalker"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Thống kê theo ca ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-info elevation-1">
+                                                <i class="fas fa-sun"></i>
+                                            </span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Ca sáng</span>
+                                                <span class="info-box-number">{{ $morningCountPeriod ?? 0 }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-success elevation-1">
+                                                <i class="fas fa-cloud-sun"></i>
+                                            </span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Ca trưa</span>
+                                                <span class="info-box-number">{{ $afternoonCountPeriod ?? 0 }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="info-box">
+                                            <span class="info-box-icon bg-warning elevation-1">
+                                                <i class="fas fa-moon"></i>
+                                            </span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">Ca tối</span>
+                                                <span class="info-box-number">{{ $eveningCountPeriod ?? 0 }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Thống kê đơn đặt bàn theo ngày</h3>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="reservationChart" style="height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng thống kê chi tiết theo ngày -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Chi tiết thống kê theo ngày</h3>
+                            </div>
+                            <div class="card-body table-responsive p-0">
+                                <table class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Ngày</th>
+                                            <th>Tổng đơn</th>
+                                            <th>Hoàn thành</th>
+                                            <th>Đã hủy</th>
+                                            <th>Chờ xác nhận</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if(isset($dailyStatistics))
+                                            @foreach ($dailyStatistics as $stat)
+                                                <tr>
+                                                    <td>{{ $stat['date_display'] }}</td>
+                                                    <td><span class="badge badge-info">{{ $stat['count'] }}</span></td>
+                                                    <td><span class="badge badge-success">{{ $stat['completed'] }}</span></td>
+                                                    <td><span class="badge badge-danger">{{ $stat['cancelled'] }}</span></td>
+                                                    <td><span class="badge badge-warning">{{ $stat['pending'] }}</span></td>
+                                                </tr>
+                                            @endforeach
+                                        @endif
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                    <!-- END TAB: THỐNG KÊ ĐẶT BÀN -->
+                </div>
+                <!-- END TABS CONTENT -->
+
             </div>
         </section>
     </div>
@@ -349,5 +570,75 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Biểu đồ thống kê đơn đặt bàn theo ngày
+        @if(isset($reservationChartLabels) && isset($reservationChartData) && isset($reservationChartCompleted) && isset($reservationChartCancelled) && isset($reservationChartPending))
+        const ctx = document.getElementById('reservationChart');
+        if (ctx) {
+            const reservationChart = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: @json($reservationChartLabels),
+                    datasets: [
+                        {
+                            label: 'Tổng đơn',
+                            data: @json($reservationChartData),
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Hoàn thành',
+                            data: @json($reservationChartCompleted),
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Đã hủy',
+                            data: @json($reservationChartCancelled),
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Chờ xác nhận',
+                            data: @json($reservationChartPending),
+                            borderColor: 'rgb(255, 206, 86)',
+                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Thống kê đơn đặt bàn theo ngày'
+                        }
+                    }
+                }
+            });
+        }
+        @endif
+    </script>
+    @endpush
 
 @endsection

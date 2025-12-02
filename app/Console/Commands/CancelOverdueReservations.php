@@ -15,13 +15,11 @@ class CancelOverdueReservations extends Command
     public function handle()
     {
         $shiftEndTimes = [
-            'morning' => '10:00',   
-            'afternoon' => '14:00', 
-            'evening' => '18:00',   
-            'night' => '22:00',    
+            'morning' => '13:00',   
+            'afternoon' => '18:00', 
+            'evening' => '23:00',   
         ];
 
-        // Lấy các đơn đã đặt cọc  chưa  chuyển sang th đang phục vụ
         $reservations = Reservation::where('status', 'deposit_paid')
             ->whereIn('shift', array_keys($shiftEndTimes))
             ->get();

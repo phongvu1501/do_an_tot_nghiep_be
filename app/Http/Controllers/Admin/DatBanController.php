@@ -75,7 +75,7 @@ class DatBanController extends Controller
             'customer_email'    => 'required|email|max:255',
             'num_people'        => 'required|integer|min:1',
             'reservation_date'  => 'required|date|after_or_equal:today',
-            'shift'             => 'required|in:morning,afternoon,evening,night',
+            'shift'             => 'required|in:morning,afternoon,evening',
             'table_ids'         => 'required|array|min:1',
             'table_ids.*'       => 'exists:tables,id',
             'note'              => 'nullable|string|max:500',
