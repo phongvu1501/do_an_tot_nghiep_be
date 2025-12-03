@@ -75,6 +75,11 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
 
     Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');
+
+
+    Route::get('/admin/accounts', [UserController::class, 'loc'])
+    ->name('admin.accounts.users');
+
 });
 
 
