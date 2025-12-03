@@ -265,7 +265,7 @@ class DatBanAnController extends Controller
 
         $validator = Validator::make($request->all(), [
             'reservation_date' => 'required|date|after_or_equal:' . Carbon::today()->toDateString(),
-            'shift' => 'required|in:morning,afternoon,evening,night',
+            'shift' => 'required|in:morning,afternoon,evening',
             'num_people' => 'required|integer|min:1',
             'depsection' => 'nullable|string|max:255',
             'voucher_id' => 'nullable|string',
@@ -278,7 +278,7 @@ class DatBanAnController extends Controller
             'reservation_date.date' => 'Ngày đặt bàn không hợp lệ.',
             'reservation_date.after_or_equal' => 'Ngày đặt bàn không thể là ngày quá khứ.',
             'shift.required' => 'Ca đặt bàn là bắt buộc.',
-            'shift.in' => 'Ca đặt bàn phải là: morning (sáng), afternoon (trưa), evening (chiều), night (tối).',
+            'shift.in' => 'Ca đặt bàn phải là: morning (sáng 8h-13h), afternoon (trưa 13h-18h), evening (tối 18h-23h).',
             'num_people.required' => 'Số lượng người là bắt buộc.',
             'num_people.integer' => 'Số lượng người phải là số nguyên.',
             'num_people.min' => 'Số lượng người phải tối thiểu 1.',
@@ -689,10 +689,9 @@ class DatBanAnController extends Controller
     private function getShiftInfo($shift)
     {
         $shifts = [
-            'morning' => ['name' => 'Ca sáng', 'time' => '6:00 - 10:00'],
-            'afternoon' => ['name' => 'Ca trưa', 'time' => '10:00 - 14:00'],
-            'evening' => ['name' => 'Ca chiều', 'time' => '14:00 - 18:00'],
-            'night' => ['name' => 'Ca tối', 'time' => '18:00 - 22:00'],
+            'morning' => ['name' => 'Ca sáng', 'time' => '8:00 - 13:00'],
+            'afternoon' => ['name' => 'Ca trưa', 'time' => '13:00 - 18:00'],
+            'evening' => ['name' => 'Ca tối', 'time' => '18:00 - 23:00'],
         ];
 
         return $shifts[$shift] ?? ['name' => 'Không xác định', 'time' => ''];

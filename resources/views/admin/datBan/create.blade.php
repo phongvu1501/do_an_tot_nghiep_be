@@ -141,10 +141,9 @@
                                                 onchange="updateAvailableTables(); checkExistingReservation();"
                                                 required>
                                             <option value="">-- Chọn ca --</option>
-                                            <option value="morning" {{ old('shift') == 'morning' ? 'selected' : '' }}>Sáng (6-10h)</option>
-                                            <option value="afternoon" {{ old('shift') == 'afternoon' ? 'selected' : '' }}>Trưa (10-14h)</option>
-                                            <option value="evening" {{ old('shift') == 'evening' ? 'selected' : '' }}>Chiều (14-18h)</option>
-                                            <option value="night" {{ old('shift') == 'night' ? 'selected' : '' }}>Tối (18-22h)</option>
+                                            <option value="morning" {{ old('shift') == 'morning' ? 'selected' : '' }}>Sáng (8-13h)</option>
+                                            <option value="afternoon" {{ old('shift') == 'afternoon' ? 'selected' : '' }}>Trưa (13-18h)</option>
+                                            <option value="evening" {{ old('shift') == 'evening' ? 'selected' : '' }}>Tối (18-23h)</option>
                                         </select>
                                         @error('shift')
                                             <span class="invalid-feedback">{{ $message }}</span>
