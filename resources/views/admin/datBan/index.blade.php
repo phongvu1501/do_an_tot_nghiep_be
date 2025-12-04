@@ -1336,7 +1336,6 @@
                                                 <div><i class="fas fa-check-circle text-success"></i> <strong>Điều kiện:</strong></div>
                                                 <ul class="mb-1 pl-3">
                                                     ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
-                                                    ${voucher.order_value_allowed ? '<li>Đơn hàng tối đa: ' + number_format(voucher.order_value_allowed) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối đa</li>'}
                                                     <li>Còn lại ${getRemainingUses(voucher)} lần sử dụng</li>
                                                 </ul>
                                             </div>
@@ -1374,7 +1373,6 @@
                                             <div><i class="fas fa-times-circle text-danger"></i> <strong>Điều kiện:</strong></div>
                                             <ul class="mb-1 pl-3">
                                                 ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
-                                                ${voucher.order_value_allowed ? '<li>Đơn hàng tối đa: ' + number_format(voucher.order_value_allowed) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối đa</li>'}
                                                 <li>Còn lại ${getRemainingUses(voucher)} lần sử dụng</li>
                                             </ul>
                                         </div>

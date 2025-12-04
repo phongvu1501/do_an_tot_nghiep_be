@@ -137,24 +137,31 @@ class Reservation extends Model
     {
         if (!$this->voucher_id) return 0;
 
-        $voucher = Voucher::find($this->voucher_id);
+        $voucher = Voucher::with('tier')->find($this->voucher_id);
         if (!$voucher || $voucher->status !== 'active') return 0;
 
         $subtotal = $this->reservationItems->sum(fn($item) => $item->price * $item->quantity);
         $vat = $subtotal * 0.1;
         $total = $subtotal + $vat;
 
-        // Kiểm tra điều kiện min/max
+        // Kiểm tra điều kiện giá trị đơn hàng tối thiểu
         if ($voucher->min_order_value && $total < $voucher->min_order_value) return 0;
-        if ($voucher->order_value_allowed && $total > $voucher->order_value_allowed) return 0;
 
         // Tính giảm
         $discount = $voucher->discount_type === 'percent'
             ? ($total * $voucher->discount_value) / 100
             : $voucher->discount_value;
 
-        if ($voucher->max_discount_value) {
-            $discount = min($discount, $voucher->max_discount_value);
+        // Áp dụng giới hạn giá trị giảm tối đa từ order_value_allowed (chỉ cho giảm theo %)
+        if ($voucher->discount_type === 'percent' && $voucher->order_value_allowed && $discount > $voucher->order_value_allowed) {
+            $discount = $voucher->order_value_allowed;
+        }
+
+        // Kiểm tra max_discount_value từ tier nếu có
+        if ($voucher->tier && $voucher->tier->max_discount_value) {
+            if ($discount > $voucher->tier->max_discount_value) {
+                $discount = $voucher->tier->max_discount_value;
+            }
         }
 
         return $discount;
