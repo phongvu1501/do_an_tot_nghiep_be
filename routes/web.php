@@ -41,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/reservation-statistics', [DashboardController::class, 'reservationStatistics'])->name('admin.reservationStatistics');
+    Route::get('/voucher-statistics', [DashboardController::class, 'voucherStatistics'])->name('admin.voucherStatistics');
     Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
     Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');

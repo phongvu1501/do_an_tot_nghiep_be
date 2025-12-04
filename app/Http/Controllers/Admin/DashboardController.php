@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Models\Voucher;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -16,8 +17,14 @@ class DashboardController extends Controller
         $dashboard = "Trang thống kê";
 
         // Lấy filter thời gian từ request, nếu không có thì mặc định 30 ngày
-        $from = $request->input('from') ? Carbon::parse($request->input('from')) : Carbon::now()->subDays(30);
-        $to = $request->input('to') ? Carbon::parse($request->input('to')) : Carbon::now();
+        $from = $request->input('from')
+            ? Carbon::parse($request->input('from'))->startOfDay()
+            : Carbon::now()->subDays(30)->startOfDay();
+
+        $to = $request->input('to')
+            ? Carbon::parse($request->input('to'))->endOfDay()
+            : Carbon::now()->endOfDay();
+
 
         // --- TỔNG QUAN ---
         $totalReservations = Reservation::whereBetween('created_at', [$from, $to])->count();
@@ -42,6 +49,16 @@ class DashboardController extends Controller
 
         $newUsers = User::whereBetween('created_at', [$from, $to])->count();
         $listUsers = User::whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalVouchersUsed = Reservation::whereBetween('created_at', [$from, $to])
+            ->whereNotNull('voucher_id')
+            ->count();
+
+        $activeVouchers = Voucher::where('status', 'active')
+            ->whereDate('start_date', '<=', $to)
+            ->whereDate('end_date', '>=', $from)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -92,8 +109,8 @@ class DashboardController extends Controller
 
         //Tỷ lệ hủy= đơn hủy / tổng đơn
         $totalAllReservations = Reservation::count();
-        $cancellationRate = $totalAllReservations > 0 
-            ? round(($totalCancelledAll / $totalAllReservations) * 100, 2) 
+        $cancellationRate = $totalAllReservations > 0
+            ? round(($totalCancelledAll / $totalAllReservations) * 100, 2)
             : 0;
 
         // Số đơn theo từng ca
@@ -102,12 +119,12 @@ class DashboardController extends Controller
             ->get()
             ->pluck('count', 'shift')
             ->toArray();
-        
+
         $morningCount = $reservationsByShift['morning'] ?? 0;
         $afternoonCount = $reservationsByShift['afternoon'] ?? 0;
         $eveningCount = $reservationsByShift['evening'] ?? 0;
 
-        
+
         $dailyStatistics = [];
         foreach ($period as $date) {
             $dailyStatistics[] = [
@@ -163,6 +180,8 @@ class DashboardController extends Controller
             'chartCompleted',
             'chartRevenue',
             'chartNewUsers',
+            'totalVouchersUsed',
+            'activeVouchers',
             'tablesToday',
             'from',
             'to',
@@ -190,59 +209,59 @@ class DashboardController extends Controller
         ));
     }
 
-    
+
     public function reservationStatistics(Request $request)
     {
         $today = Carbon::today();
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
-        
+
         $filterType = $request->input('filter', 'this_month'); // today, this_week, this_month, this_year, custom
-        
+
         switch ($filterType) {
             case 'today':
                 $from = Carbon::today();
                 $to = Carbon::today()->endOfDay();
                 $filterLabel = 'Hôm nay';
                 break;
-                
+
             case 'this_week':
                 $from = Carbon::now()->startOfWeek();
                 $to = Carbon::now()->endOfWeek();
                 $filterLabel = 'Tuần này';
                 break;
-                
+
             case 'this_month':
                 $from = Carbon::now()->startOfMonth();
                 $to = Carbon::now()->endOfMonth();
                 $filterLabel = 'Tháng này';
                 break;
-                
+
             case 'this_year':
                 $from = Carbon::now()->startOfYear();
                 $to = Carbon::now()->endOfYear();
                 $filterLabel = 'Năm nay';
                 break;
-                
+
             case 'custom':
                 $from = $request->input('from') ? Carbon::parse($request->input('from'))->startOfDay() : Carbon::now()->startOfMonth();
                 $to = $request->input('to') ? Carbon::parse($request->input('to'))->endOfDay() : Carbon::now()->endOfMonth();
                 $filterLabel = $from->format('d/m/Y') . ' - ' . $to->format('d/m/Y');
                 break;
-                
+
             case 'all':
                 $from = Reservation::min('reservation_date') ? Carbon::parse(Reservation::min('reservation_date')) : Carbon::now()->startOfYear();
                 $to = Reservation::max('reservation_date') ? Carbon::parse(Reservation::max('reservation_date')) : Carbon::now()->endOfYear();
                 $filterLabel = 'Tất cả';
                 break;
-                
+
             default:
                 $from = Carbon::now()->startOfMonth();
                 $to = Carbon::now()->endOfMonth();
                 $filterLabel = 'Tháng này';
         }
 
-        
+
         $totalReservationsInPeriod = Reservation::whereBetween('reservation_date', [$from->toDateString(), $to->toDateString()])
             ->count();
 
@@ -258,8 +277,8 @@ class DashboardController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        $cancellationRate = $totalReservationsInPeriod > 0 
-            ? round(($totalCancelled / $totalReservationsInPeriod) * 100, 2) 
+        $cancellationRate = $totalReservationsInPeriod > 0
+            ? round(($totalCancelled / $totalReservationsInPeriod) * 100, 2)
             : 0;
 
         $reservationsByShift = Reservation::where('status', 'completed')
@@ -273,18 +292,18 @@ class DashboardController extends Controller
                 ]];
             })
             ->toArray();
-        
+
         $morningCount = isset($reservationsByShift['morning']) ? $reservationsByShift['morning']['count'] : 0;
         $afternoonCount = isset($reservationsByShift['afternoon']) ? $reservationsByShift['afternoon']['count'] : 0;
         $eveningCount = isset($reservationsByShift['evening']) ? $reservationsByShift['evening']['count'] : 0;
-        
+
         $morningPeople = isset($reservationsByShift['morning']) ? ($reservationsByShift['morning']['total_people'] ?? 0) : 0;
         $afternoonPeople = isset($reservationsByShift['afternoon']) ? ($reservationsByShift['afternoon']['total_people'] ?? 0) : 0;
         $eveningPeople = isset($reservationsByShift['evening']) ? ($reservationsByShift['evening']['total_people'] ?? 0) : 0;
 
         $period = CarbonPeriod::create($from, '1 day', $to);
         $dailyStatistics = [];
-        
+
         foreach ($period as $date) {
             $dailyStatistics[] = [
                 'date' => $date->format('Y-m-d'),
@@ -349,7 +368,7 @@ class DashboardController extends Controller
         $morningCountPeriod = isset($shiftStatsInPeriod['morning']) ? $shiftStatsInPeriod['morning']['count'] : 0;
         $afternoonCountPeriod = isset($shiftStatsInPeriod['afternoon']) ? $shiftStatsInPeriod['afternoon']['count'] : 0;
         $eveningCountPeriod = isset($shiftStatsInPeriod['evening']) ? $shiftStatsInPeriod['evening']['count'] : 0;
-        
+
         $morningPeoplePeriod = isset($shiftStatsInPeriod['morning']) ? ($shiftStatsInPeriod['morning']['total_people'] ?? 0) : 0;
         $afternoonPeoplePeriod = isset($shiftStatsInPeriod['afternoon']) ? ($shiftStatsInPeriod['afternoon']['total_people'] ?? 0) : 0;
         $eveningPeoplePeriod = isset($shiftStatsInPeriod['evening']) ? ($shiftStatsInPeriod['evening']['total_people'] ?? 0) : 0;
@@ -398,6 +417,125 @@ class DashboardController extends Controller
             'chartGuestsMorning',
             'chartGuestsAfternoon',
             'chartGuestsEvening'
+        ));
+    }
+
+    public function voucherStatistics(Request $request)
+    {
+        $filterType = $request->input('filter', 'this_month');
+
+        switch ($filterType) {
+            case 'today':
+                $from = Carbon::today();
+                $to = Carbon::today()->endOfDay();
+                $filterLabel = 'Hôm nay';
+                break;
+
+            case 'this_week':
+                $from = Carbon::now()->startOfWeek();
+                $to = Carbon::now()->endOfWeek();
+                $filterLabel = 'Tuần này';
+                break;
+
+            case 'this_month':
+                $from = Carbon::now()->startOfMonth();
+                $to = Carbon::now()->endOfMonth();
+                $filterLabel = 'Tháng này';
+                break;
+
+            case 'this_year':
+                $from = Carbon::now()->startOfYear();
+                $to = Carbon::now()->endOfYear();
+                $filterLabel = 'Năm nay';
+                break;
+
+            case 'custom':
+                $from = $request->input('from')
+                    ? Carbon::parse($request->input('from'))->startOfDay()
+                    : Carbon::now()->startOfMonth();
+
+                $to = $request->input('to')
+                    ? Carbon::parse($request->input('to'))->endOfDay()
+                    : Carbon::now()->endOfMonth();
+
+                $filterLabel = $from->format('d/m/Y') . ' - ' . $to->format('d/m/Y');
+                break;
+
+            case 'all':
+                $from = Voucher::min('created_at')
+                    ? Carbon::parse(Voucher::min('created_at'))
+                    : Carbon::now()->startOfYear();
+
+                $to = Voucher::max('created_at')
+                    ? Carbon::parse(Voucher::max('created_at'))
+                    : Carbon::now()->endOfYear();
+
+                $filterLabel = 'Tất cả';
+                break;
+
+            default:
+                $from = Carbon::now()->startOfMonth();
+                $to = Carbon::now()->endOfMonth();
+                $filterLabel = 'Tháng này';
+        }
+
+
+        $totalVouchersUsed = Reservation::whereNotNull('voucher_id')
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
+
+        $totalVoucherCreated = Voucher::whereBetween('created_at', [$from, $to])->count();
+
+        $expiredVoucher = Voucher::whereBetween('end_date', [$from, $to])
+            ->where('end_date', '<', Carbon::now())
+            ->count();
+
+        $activeVouchers = Voucher::where('status', 'active')
+            ->whereDate('start_date', '<=', $to)
+            ->whereDate('end_date', '>=', $from)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $period = CarbonPeriod::create($from, '1 day', $to);
+
+        $dailyStatistics = [];
+
+        foreach ($period as $date) {
+            $dailyStatistics[] = [
+                'date' => $date->format('Y-m-d'),
+                'date_display' => $date->format('d/m/Y'),
+
+                'created' => Voucher::whereDate('created_at', $date)->count(),
+
+                'expired' => Voucher::whereDate('end_date', $date)
+                    ->where('end_date', '<', Carbon::now())
+                    ->count(),
+
+                'used' => Reservation::whereNotNull('voucher_id')
+                    ->whereDate('created_at', $date)
+                    ->count(),
+            ];
+        }
+
+        $chartLabels = collect($dailyStatistics)->pluck('date_display')->toArray();
+        $chartCreated = collect($dailyStatistics)->pluck('created')->toArray();
+        $chartExpired = collect($dailyStatistics)->pluck('expired')->toArray();
+        $chartUsed = collect($dailyStatistics)->pluck('used')->toArray();
+
+        return view('admin.voucherStatistics.index', compact(
+            'filterType',
+            'filterLabel',
+            'from',
+            'to',
+            'totalVouchersUsed',
+            'totalVoucherCreated',
+            'expiredVoucher',
+            'activeVouchers',
+            'dailyStatistics',
+            'chartLabels',
+            'chartCreated',
+            'chartExpired',
+            'chartUsed'
         ));
     }
 }
