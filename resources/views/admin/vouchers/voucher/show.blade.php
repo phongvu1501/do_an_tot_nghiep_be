@@ -19,14 +19,23 @@
                                     <tr>
                                         <th>Người dùng</th>
                                         <td>
-                                            @if ($voucher->users && $voucher->users->count() > 0)
+                                            @php
+                                                $assignedUsersCount = $voucher->users ? $voucher->users->count() : 0;
+                                                $isForAllUsers = $assignedUsersCount > 0 && $assignedUsersCount == $totalUsers;
+                                            @endphp
+                                            
+                                            @if ($isForAllUsers)
+                                                <span class="badge badge-info">
+                                                    <i class="fas fa-users"></i> Tất cả mọi người
+                                                </span>
+                                            @elseif ($assignedUsersCount > 0)
                                                 <ul class="mb-0">
                                                     @foreach ($voucher->users as $user)
-                                                        <li>{{ $user->name }} ({{ $user->email }})</li>
+                                                        <li>{{ $user->name }} ({{ $user->phone ?: 'Chưa có SĐT' }})</li>
                                                     @endforeach
                                                 </ul>
                                             @else
-                                                Không gán
+                                                <span class="badge badge-secondary">Chưa gán</span>
                                             @endif
                                         </td>
                                     </tr>
@@ -53,10 +62,18 @@
                                         <th>Đơn hàng tối thiểu</th>
                                         <td>{{ number_format($voucher->min_order_value ?? 0, 0, ',', '.') }}đ</td>
                                     </tr>
-                                    <tr>
-                                        <th>Giá trị áp dụng</th>
-                                        <td>{{ number_format($voucher->order_value_allowed ?? 0, 0, ',', '.') }}đ</td>
-                                    </tr>
+                                    @if ($voucher->discount_type === 'percent')
+                                        <tr>
+                                            <th>Giá trị giảm tối đa</th>
+                                            <td>
+                                                @if ($voucher->order_value_allowed)
+                                                    {{ number_format($voucher->order_value_allowed, 0, ',', '.') }} ₫
+                                                @else
+                                                    <span class="text-muted">Không giới hạn</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endif
                                     <tr>
                                         <th>Số lần sử dụng tối đa</th>
                                         <td>{{ $voucher->max_uses ?? 'Không giới hạn' }}</td>

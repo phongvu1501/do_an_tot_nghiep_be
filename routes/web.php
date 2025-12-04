@@ -60,6 +60,11 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
     Route::post('dat-ban/{id}/confirm-phone', [DatBanController::class, 'confirmPhone'])->name('admin.datBan.confirmPhone');
+    
+    // Voucher routes for admin
+    Route::get('dat-ban/{id}/applicable-vouchers', [DatBanController::class, 'getApplicableVouchers'])->name('admin.datBan.getApplicableVouchers');
+    Route::post('dat-ban/{id}/apply-voucher', [DatBanController::class, 'applyVoucher'])->name('admin.datBan.applyVoucher');
+    Route::delete('dat-ban/{id}/remove-voucher', [DatBanController::class, 'removeVoucher'])->name('admin.datBan.removeVoucher');
 
     Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');

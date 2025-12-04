@@ -144,17 +144,15 @@ class Reservation extends Model
         $vat = $subtotal * 0.1;
         $total = $subtotal + $vat;
 
-        // Kiểm tra điều kiện min/max
         if ($voucher->min_order_value && $total < $voucher->min_order_value) return 0;
-        if ($voucher->order_value_allowed && $total > $voucher->order_value_allowed) return 0;
 
-        // Tính giảm
-        $discount = $voucher->discount_type === 'percent'
-            ? ($total * $voucher->discount_value) / 100
-            : $voucher->discount_value;
-
-        if ($voucher->max_discount_value) {
-            $discount = min($discount, $voucher->max_discount_value);
+        if ($voucher->discount_type === 'percent') {
+            $discount = ($total * $voucher->discount_value) / 100;
+            if ($voucher->order_value_allowed && $discount > $voucher->order_value_allowed) {
+                $discount = $voucher->order_value_allowed;
+            }
+        } else {
+            $discount = $voucher->discount_value;
         }
 
         return $discount;

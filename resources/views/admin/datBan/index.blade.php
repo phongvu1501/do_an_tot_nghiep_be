@@ -395,7 +395,10 @@
                                             return $m->price * $m->quantity;
                                         });
                                         $vat = $subtotal * 0.1;
-                                        $total = $subtotal + $vat;
+                                        $totalBeforeDiscount = $subtotal + $vat;
+                                        $voucherDiscount = $reservation->voucher_discount ?? 0;
+                                        $total = $totalBeforeDiscount - $voucherDiscount;
+                                        if ($total < 0) $total = 0;
                                     @endphp
                                     <tr>
                                         <th colspan="3" class="text-right">Tạm tính:</th>
@@ -410,8 +413,28 @@
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">Tổng:</th>
-                                        <th class="text-right text-danger">
+                                        <th colspan="3" class="text-right">Tổng tiền:</th>
+                                        <th class="text-right">
+                                            {{ number_format($totalBeforeDiscount, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    @if($reservation->voucher_id && $voucherDiscount > 0)
+                                    <tr class="bg-success text-white">
+                                        <th colspan="3" class="text-right">
+                                            <i class="fas fa-ticket-alt"></i> Giảm giá voucher
+                                            @if($reservation->voucher)
+                                                ({{ $reservation->voucher->code }})
+                                            @endif
+                                            :
+                                        </th>
+                                        <th class="text-right">
+                                            -{{ number_format($voucherDiscount, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    @endif
+                                    <tr>
+                                        <th colspan="3" class="text-right">Thành tiền:</th>
+                                        <th class="text-right text-danger font-weight-bold">
                                             {{ number_format($total, 0, ',', '.') }}đ
                                         </th>
                                     </tr>
@@ -585,11 +608,16 @@
                                             return $item->price * $item->quantity;
                                         });
                                         $vat = $subtotal * 0.1;
-                                        $totalMenuPrice = $subtotal + $vat; // Tổng tiền menu hiện tại (có VAT)
+                                        $totalBeforeDiscount = $subtotal + $vat;
+                                        
+                                        // Tính với voucher nếu có
+                                        $voucherDiscount = $reservation->voucher_discount ?? 0;
+                                        $totalAfterDiscount = max(0, $totalBeforeDiscount - $voucherDiscount);
+                                        
                                         // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
                                         $tableDeposit = $reservation->getTableDeposit();
-                                        $foodDeposit = $reservation->getFoodDeposit(); // Cọc đồ ăn ban đầu
-                                        $remainingAmount = $totalMenuPrice - $tableDeposit - $foodDeposit;
+                                        $foodDeposit = $reservation->getFoodDeposit();
+                                        $remainingAmount = $totalAfterDiscount - $tableDeposit - $foodDeposit;
                                     @endphp
                                     <tr>
                                         <th colspan="3" class="text-right">Tạm tính:</th>
@@ -606,9 +634,33 @@
                                     <tr>
                                         <th colspan="3" class="text-right">Tổng tiền:</th>
                                         <th class="text-right">
-                                            {{ number_format($totalMenuPrice, 0, ',', '.') }}đ
+                                            {{ number_format($totalBeforeDiscount, 0, ',', '.') }}đ
                                         </th>
                                     </tr>
+                                    @if($reservation->voucher && $voucherDiscount > 0)
+                                    <tr id="voucherDiscountRow{{ $reservation->id }}">
+                                        <th colspan="3" class="text-right">
+                                            @php
+                                                $voucherDisplay = 'Voucher (';
+                                                if ($reservation->voucher->discount_type == 'percent') {
+                                                    $voucherDisplay .= $reservation->voucher->discount_value . '%)';
+                                                } else {
+                                                    $voucherDisplay .= number_format($reservation->voucher->discount_value, 0, ',', '.') . 'đ)';
+                                                }
+                                            @endphp
+                                            {{ $voucherDisplay }}:
+                                        </th>
+                                        <th class="text-right text-danger">
+                                            - {{ number_format($voucherDiscount, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    <tr id="totalAfterDiscountRow{{ $reservation->id }}">
+                                        <th colspan="3" class="text-right">Tổng sau giảm giá:</th>
+                                        <th class="text-right">
+                                            {{ number_format($totalAfterDiscount, 0, ',', '.') }}đ
+                                        </th>
+                                    </tr>
+                                    @endif
                                     <tr>
                                         <th colspan="3" class="text-right">Tiền cọc bàn:</th>
                                         <th class="text-right text-success">
@@ -627,7 +679,9 @@
                                     <tr class="bg-warning">
                                         <th colspan="3" class="text-right">Còn phải thanh toán:</th>
                                         <th class="text-right">
-                                            <h5 class="mb-0">{{ number_format($remainingAmount, 0, ',', '.') }}đ</h5>
+                                            <h5 class="mb-0" id="remainingAmount{{ $reservation->id }}">
+                                                {{ number_format($remainingAmount, 0, ',', '.') }}đ
+                                            </h5>
                                         </th>
                                     </tr>
                                     @elseif($remainingAmount < 0)
@@ -650,6 +704,46 @@
                         @else
                             <p class="text-muted">Khách chưa đặt món</p>
                         @endif
+
+                        <hr>
+
+                        <!-- Phần Voucher -->
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white" @if($reservation->voucher) style="display: none;" @endif>
+                                <h6 class="mb-0">
+                                    <i class="fas fa-ticket-alt"></i> Voucher
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                @if($reservation->voucher)
+                                    <div class="alert alert-success">
+                                        <strong>Voucher đã áp dụng:</strong> {{ $reservation->voucher->code }}<br>
+                                        <strong>Giảm giá:</strong> 
+                                        @if($reservation->voucher->discount_type == 'percent')
+                                            {{ $reservation->voucher->discount_value }}%
+                                        @else
+                                            {{ number_format($reservation->voucher->discount_value, 0, ',', '.') }}đ
+                                        @endif
+                                        <button type="button" class="btn btn-sm btn-danger float-right" onclick="removeVoucher({{ $reservation->id }})">
+                                            <i class="fas fa-times"></i> Hủy voucher
+                                        </button>
+                                    </div>
+                                @else
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="loadVouchers({{ $reservation->id }})">
+                                        <i class="fas fa-search"></i> Xem danh sách voucher
+                                    </button>
+                                @endif
+                                
+                                <div id="voucherList{{ $reservation->id }}" style="display: none; margin-top: 15px;">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Đang tải...</span>
+                                        </div>
+                                        <p class="mt-2">Đang tải danh sách voucher...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
@@ -1152,6 +1246,406 @@
                 // Ẩn thông báo lỗi nếu đã chọn bàn
                 errorMessage.style.display = 'none';
                 return true; // Cho phép form submit
+            }
+
+            // Voucher helper functions
+            function formatDate(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('vi-VN');
+            }
+
+            function getMaxUses(voucher) {
+                if (!voucher || voucher.max_uses === null || voucher.max_uses === undefined) {
+                    return 1;
+                }
+                const maxUses = parseInt(voucher.max_uses, 10);
+                return isNaN(maxUses) || maxUses <= 0 ? 1 : maxUses;
+            }
+
+            function getUsedCount(voucher) {
+                if (!voucher || voucher.used_count === null || voucher.used_count === undefined) {
+                    return 0;
+                }
+                const usedCount = parseInt(voucher.used_count, 10);
+                return isNaN(usedCount) || usedCount < 0 ? 0 : usedCount;
+            }
+
+            function getRemainingUses(voucher) {
+                const maxUses = getMaxUses(voucher);
+                const usedCount = getUsedCount(voucher);
+                const remaining = maxUses - usedCount;
+                return remaining < 0 ? 0 : remaining;
+            }
+
+            // Voucher functions
+            function loadVouchers(reservationId) {
+                const voucherListDiv = document.getElementById('voucherList' + reservationId);
+                voucherListDiv.style.display = 'block';
+                voucherListDiv.innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Đang tải...</span>
+                        </div>
+                        <p class="mt-2">Đang tải danh sách voucher...</p>
+                    </div>
+                `;
+                
+                fetch('{{ url('admin/dat-ban') }}/' + reservationId + '/applicable-vouchers')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            displayVouchers(reservationId, data.data);
+                        } else {
+                            voucherListDiv.innerHTML = '<div class="alert alert-danger">Không thể tải danh sách voucher: ' + (data.message || 'Lỗi không xác định') + '</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading vouchers:', error);
+                        voucherListDiv.innerHTML = '<div class="alert alert-danger">Có lỗi xảy ra khi tải voucher. Vui lòng thử lại.</div>';
+                    });
+            }
+
+            function displayVouchers(reservationId, data) {
+                const voucherListDiv = document.getElementById('voucherList' + reservationId);
+                let html = '';
+
+                if (data.can_apply && data.can_apply.length > 0) {
+                    html += '<div class="list-group mb-3">';
+                    data.can_apply.forEach(voucher => {
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div style="flex: 1;">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <strong class="text-primary">${voucher.code}</strong>
+                                            ${voucher.end_date ? '<small class="text-muted ml-2">(Hết hạn: ' + formatDate(voucher.end_date) + ')</small>' : ''}
+                                        </div>
+                                        <div class="mt-2">
+                                            <div class="mb-1">
+                                                <strong>Giảm giá:</strong> 
+                                                ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : number_format(voucher.discount_value) + 'đ'}
+                                                ${voucher.max_discount_value ? ' (Tối đa: ' + number_format(voucher.max_discount_value) + 'đ)' : ''}
+                                            </div>
+                                            <div class="text-muted small">
+                                                <div><i class="fas fa-check-circle text-success"></i> <strong>Điều kiện:</strong></div>
+                                                <ul class="mb-1 pl-3">
+                                                    ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
+                                                    ${voucher.order_value_allowed ? '<li>Đơn hàng tối đa: ' + number_format(voucher.order_value_allowed) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối đa</li>'}
+                                                    <li>Còn lại ${getRemainingUses(voucher)} lần sử dụng</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3">
+                                        <button class="btn btn-sm btn-primary" onclick="applyVoucher(${reservationId}, ${voucher.id})">
+                                            Áp dụng
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                if (data.cannot_apply && data.cannot_apply.length > 0) {
+                    html += '<div class="list-group">';
+                    data.cannot_apply.forEach(voucher => {
+                        html += `
+                            <div class="list-group-item">
+                                <div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <strong class="text-secondary">${voucher.code}</strong>
+                                        ${voucher.end_date ? '<small class="text-muted ml-2">(Hết hạn: ' + formatDate(voucher.end_date) + ')</small>' : ''}
+                                    </div>
+                                    <div class="mt-2">
+                                        <div class="mb-1">
+                                            <strong>Giảm giá:</strong> 
+                                            ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : number_format(voucher.discount_value) + 'đ'}
+                                            ${voucher.max_discount_value ? ' (Tối đa: ' + number_format(voucher.max_discount_value) + 'đ)' : ''}
+                                        </div>
+                                        <div class="text-muted small">
+                                            <div><i class="fas fa-times-circle text-danger"></i> <strong>Điều kiện:</strong></div>
+                                            <ul class="mb-1 pl-3">
+                                                ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
+                                                ${voucher.order_value_allowed ? '<li>Đơn hàng tối đa: ' + number_format(voucher.order_value_allowed) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối đa</li>'}
+                                                <li>Còn lại ${getRemainingUses(voucher)} lần sử dụng</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                if ((!data.can_apply || data.can_apply.length === 0) && (!data.cannot_apply || data.cannot_apply.length === 0)) {
+                    html = '<div class="alert alert-info">Không có voucher nào</div>';
+                }
+
+                voucherListDiv.innerHTML = html;
+            }
+
+            function applyVoucher(reservationId, voucherId) {
+                // Tìm nút đang được click để disable
+                const buttons = document.querySelectorAll(`button[onclick*="applyVoucher(${reservationId}, ${voucherId})"]`);
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang áp dụng...';
+                });
+
+                fetch('{{ url('admin/dat-ban') }}/' + reservationId + '/apply-voucher', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ voucher_id: voucherId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateInvoiceWithVoucher(reservationId, data.data);
+                        updateVoucherSection(reservationId, data.data.voucher);
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                        buttons.forEach(btn => {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Áp dụng';
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert('Có lỗi xảy ra khi áp dụng voucher');
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Áp dụng';
+                    });
+                });
+            }
+
+            function updateInvoiceWithVoucher(reservationId, data) {
+                // Lấy các giá trị từ bảng hiện tại
+                const tfoot = document.querySelector(`#invoiceModal${reservationId} tfoot`);
+                const totalRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                    row.textContent.includes('Tổng tiền')
+                );
+                const totalBeforeDiscountText = totalRow.querySelector('th:last-child').textContent;
+                const totalBeforeDiscount = parseFloat(totalBeforeDiscountText.replace(/[^\d]/g, '')) || data.total_price;
+
+                const discountAmount = data.discount_amount || 0;
+                const finalAmount = data.final_amount || (totalBeforeDiscount - discountAmount);
+                
+                // Lấy giá trị cọc từ bảng
+                const tableDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                    row.textContent.includes('Tiền cọc bàn')
+                );
+                const tableDepositText = tableDepositRow ? tableDepositRow.querySelector('th:last-child').textContent : '0';
+                const tableDeposit = parseFloat(tableDepositText.replace(/[^\d]/g, '')) || 0;
+                
+                const foodDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                    row.textContent.includes('Tiền cọc đồ ăn')
+                );
+                const foodDepositText = foodDepositRow ? foodDepositRow.querySelector('th:last-child').textContent : '0';
+                const foodDeposit = parseFloat(foodDepositText.replace(/[^\d]/g, '')) || 0;
+
+                const totalAfterDiscount = finalAmount;
+                const remainingAmount = totalAfterDiscount - tableDeposit - foodDeposit;
+
+                // Kiểm tra xem đã có dòng voucher discount chưa
+                let voucherRow = document.getElementById(`voucherDiscountRow${reservationId}`);
+                let totalAfterDiscountRow = document.getElementById(`totalAfterDiscountRow${reservationId}`);
+
+                if (!voucherRow) {
+                    // Thêm dòng giảm giá sau dòng "Tổng tiền"
+                    voucherRow = document.createElement('tr');
+                    voucherRow.id = `voucherDiscountRow${reservationId}`;
+                    totalRow.insertAdjacentElement('afterend', voucherRow);
+                }
+                // Format voucher display: "Voucher (10%)" hoặc "Voucher (100k)"
+                const voucherDisplay = data.voucher.discount_type === 'percent'
+                    ? `Voucher (${data.voucher.discount_value}%)`
+                    : `Voucher (${number_format(data.voucher.discount_value)}đ)`;
+                
+                voucherRow.innerHTML = `
+                    <th colspan="3" class="text-right">${voucherDisplay}:</th>
+                    <th class="text-right text-danger">- ${number_format(discountAmount)}đ</th>
+                `;
+
+                if (!totalAfterDiscountRow) {
+                    // Thêm dòng tổng sau giảm giá
+                    totalAfterDiscountRow = document.createElement('tr');
+                    totalAfterDiscountRow.id = `totalAfterDiscountRow${reservationId}`;
+                    voucherRow.insertAdjacentElement('afterend', totalAfterDiscountRow);
+                }
+                totalAfterDiscountRow.innerHTML = `
+                    <th colspan="3" class="text-right">Tổng sau giảm giá:</th>
+                    <th class="text-right">${number_format(totalAfterDiscount)}đ</th>
+                `;
+
+                // Cập nhật số tiền còn lại
+                updateRemainingAmount(reservationId, remainingAmount);
+            }
+
+            function updateRemainingAmount(reservationId, remainingAmount) {
+                let remainingRow = document.querySelector(`#invoiceModal${reservationId} tfoot .bg-warning`);
+                
+                if (!remainingRow) {
+                    // Tạo dòng mới nếu chưa có
+                    const tfoot = document.querySelector(`#invoiceModal${reservationId} tfoot`);
+                    remainingRow = document.createElement('tr');
+                    remainingRow.className = 'bg-warning';
+                    tfoot.appendChild(remainingRow);
+                }
+
+                if (remainingAmount > 0) {
+                    remainingRow.innerHTML = `
+                        <th colspan="3" class="text-right">Còn phải thanh toán:</th>
+                        <th class="text-right">
+                            <h5 class="mb-0" id="remainingAmount${reservationId}">${number_format(remainingAmount)}đ</h5>
+                        </th>
+                    `;
+                } else if (remainingAmount < 0) {
+                    remainingRow.innerHTML = `
+                        <th colspan="3" class="text-right">Hoàn lại cho khách:</th>
+                        <th class="text-right">
+                            <h5 class="mb-0">${number_format(Math.abs(remainingAmount))}đ</h5>
+                        </th>
+                    `;
+                } else {
+                    remainingRow.innerHTML = `
+                        <th colspan="3" class="text-right">Đã thanh toán đủ:</th>
+                        <th class="text-right">
+                            <h5 class="mb-0">0đ</h5>
+                        </th>
+                    `;
+                }
+            }
+
+            function updateVoucherSection(reservationId, voucher) {
+                // Ẩn header khi voucher đã được áp dụng
+                const voucherHeader = document.querySelector(`#invoiceModal${reservationId} .card-header`);
+                if (voucherHeader) {
+                    voucherHeader.style.display = 'none';
+                }
+
+                // Cập nhật body
+                const voucherBody = document.querySelector(`#invoiceModal${reservationId} .card-body`);
+                const discountDisplay = voucher.discount_type === 'percent' 
+                    ? voucher.discount_value + '%'
+                    : number_format(voucher.discount_value) + 'đ';
+                voucherBody.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>Voucher đã áp dụng:</strong> ${voucher.code}<br>
+                        <strong>Giảm giá:</strong> ${discountDisplay}
+                        <button type="button" class="btn btn-sm btn-danger float-right" onclick="removeVoucher(${reservationId})">
+                            <i class="fas fa-times"></i> Hủy voucher
+                        </button>
+                    </div>
+                `;
+
+                // Ẩn danh sách voucher
+                const voucherListDiv = document.getElementById(`voucherList${reservationId}`);
+                if (voucherListDiv) {
+                    voucherListDiv.style.display = 'none';
+                }
+            }
+
+            function removeVoucher(reservationId) {
+                const btn = event.target.closest('button');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xóa...';
+                }
+
+                fetch('{{ url('admin/dat-ban') }}/' + reservationId + '/remove-voucher', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        removeVoucherFromInvoice(reservationId, data.data);
+                        resetVoucherSection(reservationId);
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-times"></i> Hủy voucher';
+                        }
+                    }
+                })
+                .catch(error => {
+                    alert('Có lỗi xảy ra khi hủy voucher');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-times"></i> Hủy voucher';
+                    }
+                });
+            }
+
+            function removeVoucherFromInvoice(reservationId, data) {
+                const tfoot = document.querySelector(`#invoiceModal${reservationId} tfoot`);
+                
+                // Xóa dòng giảm giá và tổng sau giảm giá
+                const voucherRow = document.getElementById(`voucherDiscountRow${reservationId}`);
+                const totalAfterDiscountRow = document.getElementById(`totalAfterDiscountRow${reservationId}`);
+                
+                if (voucherRow) voucherRow.remove();
+                if (totalAfterDiscountRow) totalAfterDiscountRow.remove();
+
+                // Tính lại số tiền còn lại
+                const totalRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                    row.textContent.includes('Tổng tiền')
+                );
+                const totalBeforeDiscountText = totalRow.querySelector('th:last-child').textContent;
+                const totalBeforeDiscount = parseFloat(totalBeforeDiscountText.replace(/[^\d]/g, '')) || data.total_price;
+
+                const tableDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                    row.textContent.includes('Tiền cọc bàn')
+                );
+                const tableDepositText = tableDepositRow ? tableDepositRow.querySelector('th:last-child').textContent : '0';
+                const tableDeposit = parseFloat(tableDepositText.replace(/[^\d]/g, '')) || 0;
+                
+                const foodDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                    row.textContent.includes('Tiền cọc đồ ăn')
+                );
+                const foodDepositText = foodDepositRow ? foodDepositRow.querySelector('th:last-child').textContent : '0';
+                const foodDeposit = parseFloat(foodDepositText.replace(/[^\d]/g, '')) || 0;
+
+                const remainingAmount = totalBeforeDiscount - tableDeposit - foodDeposit;
+                updateRemainingAmount(reservationId, remainingAmount);
+            }
+
+            function resetVoucherSection(reservationId) {
+                // Hiện lại header khi hủy voucher
+                const voucherHeader = document.querySelector(`#invoiceModal${reservationId} .card-header`);
+                if (voucherHeader) {
+                    voucherHeader.style.display = '';
+                }
+
+                // Reset body
+                const voucherBody = document.querySelector(`#invoiceModal${reservationId} .card-body`);
+                voucherBody.innerHTML = `
+                    <button type="button" class="btn btn-primary btn-sm" onclick="loadVouchers(${reservationId})">
+                        <i class="fas fa-search"></i> Xem danh sách voucher
+                    </button>
+                    <div id="voucherList${reservationId}" style="display: none; margin-top: 15px;"></div>
+                `;
+            }
+
+            function number_format(number) {
+                return new Intl.NumberFormat('vi-VN').format(Math.round(number));
             }
         </script>
     @endpush

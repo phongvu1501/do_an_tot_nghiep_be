@@ -1,7 +1,8 @@
 <footer class="main-footer">
-    <strong>Phong Vũ &copy;  <a href="#">Phong Vũ</a>.</strong>
+   
     <div class="float-right d-none d-sm-inline-block">
-        <b>Phong Vũ</b>
+    <strong>© 2025  WD-19 – FPT Polytechnic
+    </strong>
     </div>
 </footer>
 
