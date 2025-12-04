@@ -2,10 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Reservation;
-use App\Models\User;
-use App\Models\Voucher;
 use Carbon\Carbon;
 use App\Models\User;
 use Carbon\CarbonPeriod;
@@ -13,6 +9,7 @@ use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Voucher;
 
 class DashboardController extends Controller
 {
@@ -22,14 +19,8 @@ class DashboardController extends Controller
 
 
         // Lấy filter thời gian từ request, nếu không có thì mặc định 30 ngày
-        $from = $request->input('from')
-            ? Carbon::parse($request->input('from'))->startOfDay()
-            : Carbon::now()->subDays(30)->startOfDay();
-
-        $to = $request->input('to')
-            ? Carbon::parse($request->input('to'))->endOfDay()
-            : Carbon::now()->endOfDay();
-
+        $from = $request->input('from') ? Carbon::parse($request->input('from')) : Carbon::now()->subDays(30);
+        $to = $request->input('to') ? Carbon::parse($request->input('to')) : Carbon::now();
 
         // --- TỔNG QUAN ---
         $totalReservations = Reservation::whereBetween('created_at', [$from, $to])->count();
@@ -63,9 +54,9 @@ class DashboardController extends Controller
 
         $todayVouchers = now()->toDateString();
 
-        $activeVouchers = Voucher::where('status', 'active')   
-            ->whereDate('start_date', '<=', $todayVouchers)           
-            ->whereDate('end_date', '>=', $todayVouchers)             
+        $activeVouchers = Voucher::where('status', 'active')
+            ->whereDate('start_date', '<=', $todayVouchers)
+            ->whereDate('end_date', '>=', $todayVouchers)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -217,7 +208,6 @@ class DashboardController extends Controller
             'tablesToday',
             'from',
             'to',
-
             // Thống kê đặt bàn
             'totalToday',
             'totalThisMonth',
@@ -459,7 +449,6 @@ class DashboardController extends Controller
             'chartGuestsEvening'
         ));
     }
-
     public function voucherStatistics(Request $request)
     {
         $filterType = $request->input('filter', 'this_month');

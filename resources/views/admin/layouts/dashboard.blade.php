@@ -55,36 +55,17 @@
                         </a>
                     </li>
                     <li class="" role="">
-                        <a class="nav-link" id="" data-toggle="tab" href="" role="tab" aria-controls="" aria-selected="">
+                        <a class="nav-link" id="" data-toggle="tab" href="" role="tab" aria-controls=""
+                            aria-selected="">
                             <i class="fas fa-calendar-check"></i> Thống kê Menu
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('statistics.users') }}">
+                            <i class="fas fa-users"></i> Thống kê user
+                        </a>
+                    </li>
                 </ul>
-               <ul class="nav nav-tabs" id="statisticsTabs" role="tablist">
-
-    <li class="nav-item" role="presentation">
-        <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" 
-           role="tab" aria-controls="overview" aria-selected="true">
-            <i class="fas fa-chart-line"></i> Tổng quan
-        </a>
-    </li>
-
-    <li class="nav-item" role="presentation">
-        <a class="nav-link" id="reservation-tab" data-toggle="tab" href="#reservation" 
-           role="tab" aria-controls="reservation" aria-selected="false">
-            <i class="fas fa-calendar-check"></i> Thống kê đặt bàn
-        </a>
-    </li>
-
-    <!-- Trang riêng -->
-   <li class="nav-item">
-    <a class="nav-link" href="{{ route('statistics.users') }}">
-        <i class="fas fa-users"></i> Thống kê user
-    </a>
-</li>
-
-
-</ul>
 
 
                 <!-- TABS CONTENT -->
