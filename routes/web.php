@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\MenuCategoryController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\DepositRequiredDateController;
 use App\Http\Controllers\Admin\TierController;
+use App\Http\Controllers\Admin\MenuStatisticsController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -41,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/reservation-statistics', [DashboardController::class, 'reservationStatistics'])->name('admin.reservationStatistics');
+    Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
     Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
     Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
@@ -69,7 +71,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
 
     Route::resource('/tiers', TierController::class)->names('admin.tiers');
-     Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
+    Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
 
     // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');

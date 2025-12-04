@@ -46,6 +46,11 @@
                             <i class="fas fa-calendar-check"></i> Thống kê đặt bàn
                         </a>
                     </li>
+                    <li class="" role="">
+                        <a class="nav-link" id="" data-toggle="tab" href="" role="tab" aria-controls="" aria-selected="">
+                            <i class="fas fa-calendar-check"></i> Thống kê Menu
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- TABS CONTENT -->
