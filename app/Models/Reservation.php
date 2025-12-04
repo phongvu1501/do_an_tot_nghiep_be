@@ -91,7 +91,9 @@ class Reservation extends Model
 
         // Phòng VIP: Luôn cọc theo cấu hình
         if ($hasVipRoom) {
-            return max(1, (float)Setting::getValue('deposit_vip_rooms', 1000000));
+            $vipDepositPerTable = max(1, (float)Setting::getValue('deposit_vip_rooms', 1000000));
+            $vipTableCount = $tables->where('type', 'vip')->count();
+            return $vipDepositPerTable * $vipTableCount;
         }
 
         // Bàn thường: Chỉ cọc nếu là ngày lễ
@@ -102,8 +104,13 @@ class Reservation extends Model
                 ->first();
 
             if ($holidayDate) {
-                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
-                return max(1, (float)$normalDeposit);
+                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
+                    ?? $holidayDate->deposit_per_table 
+                    ?? Setting::getValue('deposit_normal_tables', 500000);
+                $normalDepositPerTable = max(1, (float)$normalDepositPerTable);
+                $normalTableCount = $tables->where('type', 'normal')->count();
+                return $normalDepositPerTable * $normalTableCount;
             }
         }
 

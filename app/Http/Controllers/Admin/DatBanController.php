@@ -7,6 +7,8 @@ use App\Models\BanAn;
 use App\Models\PointLog;
 use App\Models\Reservation;
 use App\Models\Voucher;
+use App\Models\DepositRequiredDate;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +63,10 @@ class DatBanController extends Controller
         return view('admin.datBan.create', [
             'title' => 'Tạo đơn đặt bàn mới',
             'allTables' => BanAn::all(),
+            'menus' => \App\Models\Menu::where('status', 1)->with('category')->get(),
+            'categories' => \App\Models\MenuCategory::all(),
+            'depositVipRooms' => Setting::getValue('deposit_vip_rooms', 1000000),
+            'depositNormalTables' => Setting::getValue('deposit_normal_tables', 500000),
         ]);
     }
 
@@ -80,6 +86,10 @@ class DatBanController extends Controller
             'table_ids.*'       => 'exists:tables,id',
             'note'              => 'nullable|string|max:500',
             'user_id'           => 'nullable|exists:users,id',
+            'require_deposit'   => 'nullable|boolean',
+            'menus'             => 'nullable|array',
+            'menus.*.menu_id'   => 'required_with:menus|exists:menus,id',
+            'menus.*.quantity'  => 'required_with:menus|integer|min:1',
         ], [
             'customer_name.required'     => 'Vui lòng nhập tên khách hàng!',
             'customer_phone.required'    => 'Vui lòng nhập số điện thoại!',
@@ -152,20 +162,105 @@ class DatBanController extends Controller
             }
         }
 
+        // Tính tổng tiền món ăn
+        $subtotal = 0;
+        if ($request->has('menus') && is_array($request->menus)) {
+            foreach ($request->menus as $menuItem) {
+                $menu = \App\Models\Menu::find($menuItem['menu_id']);
+                if ($menu) {
+                    $subtotal += $menu->price * $menuItem['quantity'];
+                }
+            }
+        }
+        $vat = $subtotal * 0.1;
+        $totalPrice = $subtotal + $vat;
+        
+        // Tính tiền cọc (chỉ tính nếu require_deposit = true)
+        $requireDeposit = $request->boolean('require_deposit', false);
+        $totalDeposit = 0;
+        $tableDeposit = 0;
+        $menuDeposit = 0;
+        
+        if ($requireDeposit) {
+            // Kiểm tra ngày có yêu cầu đặt cọc hay không (ngày lễ)
+            $holidayDate = DepositRequiredDate::where('is_active', true)
+                ->whereDate('date', $request->reservation_date)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            $isHoliday = $holidayDate !== null;
+            
+            // Kiểm tra có phòng VIP không
+            $selectedTables = BanAn::whereIn('id', $request->table_ids)->get();
+            $hasVipRoom = $selectedTables->where('type', 'vip')->isNotEmpty();
+            $hasNormalTables = $selectedTables->where('type', 'normal')->isNotEmpty();
+            
+            // Cọc bàn:
+            // - VIP: Luôn cần cọc
+            // - Bàn thường: Chỉ cần cọc nếu ngày lễ
+            if ($hasVipRoom) {
+                $vipDepositPerTable = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000));
+                $vipTableCount = $selectedTables->where('type', 'vip')->count();
+                $tableDeposit = $vipDepositPerTable * $vipTableCount;
+            } elseif ($isHoliday && $hasNormalTables) {
+                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
+                    ?? $holidayDate->deposit_per_table 
+                    ?? Setting::getValue('deposit_normal_tables', 500000);
+                $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+                $normalTableCount = $selectedTables->where('type', 'normal')->count();
+                $tableDeposit = $normalDepositPerTable * $normalTableCount;
+            }
+            
+            // Cọc món ăn: Luôn cọc 100% tiền món nếu có món
+            if ($totalPrice > 0) {
+                $menuDeposit = $totalPrice;
+            }
+            
+            $totalDeposit = $tableDeposit + $menuDeposit;
+        }
+        
+        // Xác định status ban đầu
+        // Admin tạo đơn: Luôn là deposit_paid vì người dùng đã cọc rồi admin mới tạo
+        $initialStatus = 'deposit_paid';
+        
+        // Tạo đơn đặt bàn
         $reservation = Reservation::create([
             'user_id'          => $userId,
             'num_people'       => $request->num_people,
             'reservation_date' => $request->reservation_date,
             'shift'            => $request->shift,
             'depsection'       => $request->note,
-            'status'           => 'deposit_paid',
+            'status'           => $initialStatus,
+            'deposit'          => $totalDeposit,
+            'total_amount'     => $totalPrice,
+            'reservation_code' => 'RES-' . strtoupper(\Illuminate\Support\Str::random(10)),
         ]);
 
         // Gán bàn cho đơn đặt
         $reservation->tables()->attach($request->table_ids);
+        
+        // Lưu món ăn vào reservation_items
+        if ($request->has('menus') && is_array($request->menus)) {
+            foreach ($request->menus as $menuItem) {
+                $menu = \App\Models\Menu::find($menuItem['menu_id']);
+                if ($menu) {
+                    $reservation->reservationItems()->create([
+                        'menu_id' => $menu->id,
+                        'quantity' => $menuItem['quantity'],
+                        'price' => $menu->price,
+                    ]);
+                }
+            }
+        }
 
+        $message = "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}";
+        if ($totalDeposit > 0) {
+            $message .= " (Cần đặt cọc: " . number_format($totalDeposit, 0, ',', '.') . " VND)";
+        }
+        
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}");
+                         ->with('success', $message);
     }
 
     /**
@@ -410,7 +505,14 @@ class DatBanController extends Controller
         })->pluck('id');
 
         return response()->json([
-            'tables' => $allTables,
+            'tables' => $allTables->map(function($table) {
+                return [
+                    'id' => $table->id,
+                    'name' => $table->name,
+                    'type' => $table->type,
+                    'limit_number' => $table->limit_number,
+                ];
+            }),
             'busyTableIds' => $busyTableIds,
         ]);
     }

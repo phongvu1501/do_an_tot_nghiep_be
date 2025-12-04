@@ -478,11 +478,18 @@ class DatBanAnController extends Controller
             // Phòng VIP: Luôn cọc theo cấu hình (1,000,000 VND), không phân biệt ngày thường hay ngày lễ
             if ($hasVipRoom) {
                 // Luôn lấy từ database (settings table), không kiểm tra ngày lễ
-                $tableDeposit = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000)); // Đảm bảo >= 1
+                $vipDepositPerTable = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000)); // Đảm bảo >= 1
+                $vipTableCount = $availableTables->where('type', 'vip')->count();
+                $tableDeposit = $vipDepositPerTable * $vipTableCount;
             } elseif ($isHoliday && $hasNormalTables) {
                 // Bàn thường: Chỉ tính cọc nếu là ngày lễ, đảm bảo > 0
-                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
-                $tableDeposit = max(1, (int)$normalDeposit); // Đảm bảo >= 1
+                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
+                    ?? $holidayDate->deposit_per_table 
+                    ?? Setting::getValue('deposit_normal_tables', 500000);
+                $normalDepositPerTable = max(1, (int)$normalDepositPerTable); // Đảm bảo >= 1
+                $normalTableCount = $availableTables->where('type', 'normal')->count();
+                $tableDeposit = $normalDepositPerTable * $normalTableCount;
             }
             // Ngày thường + bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
 
