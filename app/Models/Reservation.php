@@ -44,12 +44,12 @@ class Reservation extends Model
     //     return $this->belongsTo(Voucher::class);
     // }
 
-    public function menus()
-    {
-        return $this->belongsToMany(Menu::class, 'reservation_menu')
-            ->withPivot('quantity')
-            ->withTimestamps();
-    }
+   public function menus()
+{
+    return $this->belongsToMany(Menu::class, 'reservation_menu', 'reservation_id', 'menu_id')
+                ->withPivot('quantity')
+                ->withTimestamps();
+}
 
     public function tables()
     {
@@ -168,4 +168,11 @@ class Reservation extends Model
 
         return $subtotal + $vat - $voucherDiscount;
     }
+
+    public function show($id)
+{
+    $user = \App\Models\User::with(['reservations.menus', 'reservations.tables'])->findOrFail($id);
+    return view('admin.user.show', compact('user'));
+}
+
 }

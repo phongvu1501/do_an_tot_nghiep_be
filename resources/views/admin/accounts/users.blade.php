@@ -7,6 +7,46 @@
             <h2 class="fw-bold mb-1">Danh sách tài khoản khách hàng</h2>
             <p class="text-muted small">Xem tất cả tài khoản người dùng trong hệ thống</p>
         </section>
+        <!-- Bộ lọc tìm kiếm -->
+     <form action="" method="GET" class="row gx-2 gy-2 px-3 py-3 bg-light rounded-3 shadow-sm align-items-end">
+
+    <!-- Tên -->
+    <div class="col-md-3">
+        <label class="form-label fw-semibold">Tên</label>
+        <input type="text" name="name" value="{{ request('name') }}"
+               class="form-control form-control-sm"
+               placeholder="Nhập tên...">
+    </div>
+
+    <!-- Email -->
+    <div class="col-md-3">
+        <label class="form-label fw-semibold">Email</label>
+        <input type="text" name="email" value="{{ request('email') }}"
+               class="form-control form-control-sm"
+               placeholder="Nhập email...">
+    </div>
+
+    <!-- Số điện thoại -->
+    <div class="col-md-3">
+        <label class="form-label fw-semibold">Số điện thoại</label>
+        <input type="text" name="phone" value="{{ request('phone') }}"
+               class="form-control form-control-sm"
+               placeholder="Nhập số điện thoại...">
+    </div>
+
+    <!-- Buttons -->
+    <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-primary btn-sm w-50" type="submit">
+            <i class="fas fa-search me-1"></i> Tìm kiếm
+        </button>
+
+        <a href="{{ route('admin.accounts.users') }}" class="btn btn-outline-secondary btn-sm w-50">
+            <i class="fas fa-undo me-1"></i> Đặt lại
+        </a>
+    </div>
+
+</form>
+
 
         <!-- Nội dung -->
         <section class="content px-4 mt-3">
@@ -28,7 +68,7 @@
                         <tbody>
                             @forelse ($users as $index => $user)
                                 <tr style="background-color: #f8f9fa;">
-                                     <td>{{ $index + 1 }}</td>
+                                    <td>{{ $index + 1 }}</td>
                                     <td class="text-start ps-3">{{ $user->name }}</td>
                                     <td>{{ $user->email }}</td>
                                     <td>{{ $user->phone ?? 'Chưa có' }}</td>

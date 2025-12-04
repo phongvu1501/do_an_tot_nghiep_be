@@ -56,18 +56,61 @@
                                     <p class="text-muted">Không có bàn được chọn.</p>
                                 @endif
                             </div>
-                            <div class="col-md-6">
-                                <h6 class="fw-bold text-dark mt-3"> Món ăn đã đặt:</h6>
-                                @if ($reservation->menus->isNotEmpty())
-                                    <ul class="mb-0">
-                                        @foreach ($reservation->menus as $menu)
-                                            <li>{{ $menu->name }} — SL: {{ $menu->pivot->quantity }}</li>
-                                        @endforeach
-                                    </ul>
-                                @else
-                                    <p class="text-muted">Không có món ăn được chọn.</p>
-                                @endif
-                            </div>
+
+                          <h6 class="font-weight-bold">Món ăn đã đặt:</h6>
+
+@if ($reservation->reservationItems->count() > 0)
+    <div class="table-responsive mt-2">
+        <table class="table table-bordered table-striped table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Món</th>
+                    <th width="80">SL</th>
+                    <th width="120">Đơn giá</th>
+                    <th width="120">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $total = 0;
+                @endphp
+                @foreach ($reservation->reservationItems as $index => $item)
+                    @php
+                        $subtotal = $item->price * $item->quantity;
+                        $total += $subtotal;
+                    @endphp
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $item->menu->name ?? 'N/A' }}</td>
+                        <td class="text-center">{{ $item->quantity }}</td>
+                        <td class="text-right">{{ number_format($item->price, 0, ',', '.') }}đ</td>
+                        <td class="text-right">{{ number_format($subtotal, 0, ',', '.') }}đ</td>
+                    </tr>
+                @endforeach
+                <tr>
+                    <td colspan="4" class="text-right font-weight-bold">Tạm tính:</td>
+                    <td class="text-right font-weight-bold">{{ number_format($total, 0, ',', '.') }}đ</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right font-weight-bold">VAT 10%:</td>
+                    <td class="text-right font-weight-bold">{{ number_format($total * 0.1, 0, ',', '.') }}đ</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right font-weight-bold">Tổng:</td>
+                    <td class="text-right font-weight-bold">{{ number_format($total * 1.1, 0, ',', '.') }}đ</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+@else
+    <p class="text-muted">Người dùng chưa đặt món ăn nào.</p>
+@endif
+
+
+
+
+
                         </div>
                     </div>
                 @empty
