@@ -48,6 +48,12 @@
                             <i class="fas fa-calendar-check"></i> Thống kê đặt bàn
                         </a>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" id="voucher-tab" data-toggle="tab" href="#vouchers" role="tabpanel"
+                            aria-controls="voucher" aria-selected="false">
+                            <i class="fas fa-calendar-check"></i> Thống kê vouchers
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- TABS CONTENT -->
@@ -358,7 +364,6 @@
                         </div>
                     </div>
                     <!-- END TAB: THỐNG KÊ ĐẶT BÀN -->
-                    {{-- TAB: THỐNG KÊ VOUCHERS --}}
                     <!-- TAB: THỐNG KÊ VOUCHERS -->
                     <div class="tab-pane fade" id="vouchers" role="tabpanel" aria-labelledby="vouchers-tab">
 
@@ -500,7 +505,146 @@
                         </div>
 
                     </div>
-                    <!-- END TAB: THỐNG KÊ VOUCHERS -->
+                    <div class="tab-pane fade" id="vouchers" role="tabpanel" aria-labelledby="vouchers-tab">
+
+                        <!-- TITLE -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h3 class="mb-3">Thống kê Vouchers</h3>
+                            </div>
+                        </div>
+
+                        <!-- SUMMARY CARDS -->
+                        <div class="row">
+
+                            <!-- Voucher đang hoạt động -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>{{ $activeVouchersCount ?? 0 }}</h3>
+                                        <p>Voucher đang hoạt động</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-pricetag"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Voucher hết hạn -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-danger">
+                                    <div class="inner">
+                                        <h3>{{ $expiredVouchersCount ?? 0 }}</h3>
+                                        <p>Voucher đã hết hạn</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-close-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tổng lượt dùng -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ $totalVouchersUsed ?? 0 }}</h3>
+                                        <p>Tổng lượt dùng trong kỳ</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-cash"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Voucher sắp hết hạn -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>{{ $soonExpiredCount ?? 0 }}</h3>
+                                        <p>Sắp hết hạn (≤ 7 ngày)</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-alert-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- CHART -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Biểu đồ sử dụng voucher theo ngày</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="voucherChart" style="height: 300px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DETAIL TABLE -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Danh sách voucher trong khoảng
+                                            ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})</h3>
+                                    </div>
+                                    <div class="card-body table-responsive p-0">
+
+                                        <table class="table table-striped table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã</th>
+                                                    <th>Giảm (%)</th>
+                                                    <th>Ngày bắt đầu</th>
+                                                    <th>Ngày kết thúc</th>
+                                                    <th>Đã dùng</th>
+                                                    <th>Giới hạn</th>
+                                                    <th>Trạng thái</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                @foreach ($activeVouchers ?? [] as $v)
+                                                    <tr>
+                                                        <td><strong>{{ $v->code }}</strong></td>
+                                                        <td>{{ $v->discount_percent }}%</td>
+                                                        <td>{{ \Carbon\Carbon::parse($v->start_date)->format('d/m/Y') }}
+                                                        </td>
+                                                        <td>{{ \Carbon\Carbon::parse($v->end_date)->format('d/m/Y') }}</td>
+                                                        <td><span class="badge badge-info">{{ $v->used_count }}</span>
+                                                        </td>
+                                                        <td>{{ $v->max_uses }}</td>
+                                                        <td>
+                                                            @if ($v->status == 'active')
+                                                                <span class="badge badge-success">Active</span>
+                                                            @else
+                                                                <span class="badge badge-secondary">Inactive</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+
+                                                @if (empty($activeVouchers) || count($activeVouchers) == 0)
+                                                    <tr>
+                                                        <td colspan="7" class="text-center text-muted">Không có voucher
+                                                            nào trong khoảng này</td>
+                                                    </tr>
+                                                @endif
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
 
                     {{-- END TAB: THỐNG KÊ VOUCHERS --}}
                 </div>
