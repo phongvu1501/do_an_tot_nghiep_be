@@ -29,7 +29,7 @@ class DatBanAnController extends Controller
         }
 
         $query = Reservation::where('user_id', $user->id)
-            ->with(['tables', 'reservationItems.menu']);
+            ->with(['tables', 'reservationItems.menu', 'voucher.tier']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -55,23 +55,22 @@ class DatBanAnController extends Controller
             $vat = $subtotal * 0.1;
             $total_price = $subtotal + $vat;
 
-            $voucher = null;
-            $discount_value = 0;
+            // Ưu tiên dùng voucher_discount đã lưu, nếu không có thì tính lại
+            $voucher = $reservation->voucher;
+            $discount_value = $reservation->voucher_discount ?? 0;
 
-            if ($reservation->voucher_id) {
-                $voucher = Voucher::find($reservation->voucher_id);
-
-                if ($voucher && $voucher->status === 'active') {
-
+            // Nếu không có voucher_discount đã lưu nhưng có voucher_id, tính lại
+            if ($reservation->voucher_id && !$reservation->voucher_discount && $voucher) {
+                if ($voucher->status === 'active') {
                     if (!$voucher->min_order_value || $total_price >= $voucher->min_order_value) {
-
-                        if (!$voucher->order_value_allowed || $total_price <= $voucher->order_value_allowed) {
-
-                            if ($voucher->discount_type === 'percent') {
-                                $discount_value = ($total_price * $voucher->discount_value) / 100;
-                            } else {
-                                $discount_value = floatval($voucher->discount_value);
+                        if ($voucher->discount_type === 'percent') {
+                            $discount_value = ($total_price * $voucher->discount_value) / 100;
+                            // Áp dụng giới hạn giá trị giảm tối đa (chỉ cho giảm theo %)
+                            if ($voucher->order_value_allowed && $discount_value > $voucher->order_value_allowed) {
+                                $discount_value = $voucher->order_value_allowed;
                             }
+                        } else {
+                            $discount_value = floatval($voucher->discount_value);
                         }
                     }
                 }
@@ -115,6 +114,7 @@ class DatBanAnController extends Controller
                     'discount_value' => $voucher->discount_value,
                     'min_order_value' => $voucher->min_order_value,
                     'order_value_allowed' => $voucher->order_value_allowed,
+                    'max_discount_value' => $voucher->tier ? $voucher->tier->max_discount_value : null,
                     'status' => $voucher->status,
                 ] : null,
 
@@ -156,7 +156,7 @@ class DatBanAnController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $reservation = Reservation::with(['tables', 'reservationItems.menu', 'user'])
+        $reservation = Reservation::with(['tables', 'reservationItems.menu', 'user', 'voucher.tier'])
             ->where('id', $id)
             ->where('user_id', $user->id)
             ->first();
@@ -204,6 +204,20 @@ class DatBanAnController extends Controller
                 'total_price' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
                 }) * 1.1,
+                'voucher' => $reservation->voucher ? [
+                    'id' => $reservation->voucher->id,
+                    'code' => $reservation->voucher->code,
+                    'discount_type' => $reservation->voucher->discount_type,
+                    'discount_value' => $reservation->voucher->discount_value,
+                    'min_order_value' => $reservation->voucher->min_order_value,
+                    'order_value_allowed' => $reservation->voucher->order_value_allowed,
+                    'max_discount_value' => $reservation->voucher->tier ? $reservation->voucher->tier->max_discount_value : null,
+                    'status' => $reservation->voucher->status,
+                ] : null,
+                'voucher_discount' => $reservation->voucher_discount ?? 0,
+                'final_amount' => ($reservation->reservationItems->sum(function ($item) {
+                    return $item->price * $item->quantity;
+                }) * 1.1) - ($reservation->voucher_discount ?? 0),
                 'deposit' => $reservation->deposit,
                 'table_deposit' => $reservation->getTableDeposit(),
                 'food_deposit' => $reservation->getFoodDeposit(),
@@ -464,11 +478,18 @@ class DatBanAnController extends Controller
             // Phòng VIP: Luôn cọc theo cấu hình (1,000,000 VND), không phân biệt ngày thường hay ngày lễ
             if ($hasVipRoom) {
                 // Luôn lấy từ database (settings table), không kiểm tra ngày lễ
-                $tableDeposit = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000)); // Đảm bảo >= 1
+                $vipDepositPerTable = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000)); // Đảm bảo >= 1
+                $vipTableCount = $availableTables->where('type', 'vip')->count();
+                $tableDeposit = $vipDepositPerTable * $vipTableCount;
             } elseif ($isHoliday && $hasNormalTables) {
                 // Bàn thường: Chỉ tính cọc nếu là ngày lễ, đảm bảo > 0
-                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
-                $tableDeposit = max(1, (int)$normalDeposit); // Đảm bảo >= 1
+                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
+                    ?? $holidayDate->deposit_per_table 
+                    ?? Setting::getValue('deposit_normal_tables', 500000);
+                $normalDepositPerTable = max(1, (int)$normalDepositPerTable); // Đảm bảo >= 1
+                $normalTableCount = $availableTables->where('type', 'normal')->count();
+                $tableDeposit = $normalDepositPerTable * $normalTableCount;
             }
             // Ngày thường + bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
 

@@ -57,13 +57,30 @@
                     @php
                         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
                         $tax = $subtotal * 0.1;
-                        $total = $subtotal + $tax;
+                        $totalBeforeDiscount = $subtotal + $tax;
+                        $voucherDiscount = $reservation->voucher_discount ?? 0;
+                        $total = $totalBeforeDiscount - $voucherDiscount;
+                        if ($total < 0) $total = 0;
                     @endphp
                     <p><strong>Tạm tính:</strong> {{ number_format($subtotal, 0, ',', '.') }} VND</p>
-                    <p><strong>Giảm giá:</strong> 0 VND</p>
                     <p><strong>Thuế 10%:</strong> {{ number_format($tax, 0, ',', '.') }} VND</p>
+                    <p><strong>Tổng tiền:</strong> {{ number_format($totalBeforeDiscount, 0, ',', '.') }} VND</p>
+                    @if($reservation->voucher_id && $voucherDiscount > 0)
+                        <p class="text-success">
+                            <strong>
+                                <i class="fas fa-ticket-alt"></i> Giảm giá voucher
+                                @if($reservation->voucher)
+                                    ({{ $reservation->voucher->code }})
+                                @endif
+                                :
+                            </strong> 
+                            -{{ number_format($voucherDiscount, 0, ',', '.') }} VND
+                        </p>
+                    @else
+                        <p><strong>Giảm giá:</strong> 0 VND</p>
+                    @endif
                     <hr>
-                    <p class="fw-bold fs-5">Tổng: {{ number_format($total, 0, ',', '.') }} VND</p>
+                    <p class="fw-bold fs-5">Thành tiền: {{ number_format($total, 0, ',', '.') }} VND</p>
                 </div>
             </div>
         </div>
@@ -78,6 +95,17 @@
                         $foodDeposit = $reservation->getFoodDeposit(); // Cọc đồ ăn ban đầu
                         $remainingAmount = $total - $tableDeposit - $foodDeposit;
                     @endphp
+                    @if($reservation->voucher_id && $reservation->voucher)
+                        <p class="mb-2">
+                            <strong>Voucher đã sử dụng:</strong> 
+                            <span class="badge badge-success">{{ $reservation->voucher->code }}</span>
+                            @if($reservation->voucher->discount_type === 'percent')
+                                <span class="text-muted">(Giảm {{ $reservation->voucher->discount_value }}%)</span>
+                            @else
+                                <span class="text-muted">(Giảm {{ number_format($reservation->voucher->discount_value, 0, ',', '.') }}đ)</span>
+                            @endif
+                        </p>
+                    @endif
                     <p><strong>Tiền cọc bàn:</strong> {{ number_format($tableDeposit, 0, ',', '.') }} VND</p>
                     @if($foodDeposit > 0)
                     <p><strong>Tiền cọc đồ ăn:</strong> {{ number_format($foodDeposit, 0, ',', '.') }} VND</p>

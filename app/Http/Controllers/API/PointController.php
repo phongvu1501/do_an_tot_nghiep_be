@@ -62,12 +62,11 @@ class PointController extends Controller
 
                     if ($voucher->discount_type === 'percent') {
                         $discount_value = ($total_price * $voucher->discount_value) / 100;
+                        if ($voucher->order_value_allowed && $discount_value > $voucher->order_value_allowed) {
+                            $discount_value = $voucher->order_value_allowed;
+                        }
                     } else {
                         $discount_value = $voucher->discount_value;
-                    }
-
-                    if ($voucher->order_value_allowed && $total_price > $voucher->order_value_allowed) {
-                        $discount_value = 0;
                     }
                 }
             }

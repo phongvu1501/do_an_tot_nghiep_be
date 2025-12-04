@@ -61,6 +61,9 @@
                             <a href="{{ route('admin.voucherStatistics') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Thống kê vouchers</p>
+                            <a href="{{ route('admin.menuStatistics') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Thống kê Menu</p>
                             </a>
                         </li>
                     </ul>

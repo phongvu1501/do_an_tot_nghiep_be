@@ -7,6 +7,8 @@ use App\Models\BanAn;
 use App\Models\PointLog;
 use App\Models\Reservation;
 use App\Models\Voucher;
+use App\Models\DepositRequiredDate;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +63,10 @@ class DatBanController extends Controller
         return view('admin.datBan.create', [
             'title' => 'Tạo đơn đặt bàn mới',
             'allTables' => BanAn::all(),
+            'menus' => \App\Models\Menu::where('status', 1)->with('category')->get(),
+            'categories' => \App\Models\MenuCategory::all(),
+            'depositVipRooms' => Setting::getValue('deposit_vip_rooms', 1000000),
+            'depositNormalTables' => Setting::getValue('deposit_normal_tables', 500000),
         ]);
     }
 
@@ -80,6 +86,10 @@ class DatBanController extends Controller
             'table_ids.*'       => 'exists:tables,id',
             'note'              => 'nullable|string|max:500',
             'user_id'           => 'nullable|exists:users,id',
+            'require_deposit'   => 'nullable|boolean',
+            'menus'             => 'nullable|array',
+            'menus.*.menu_id'   => 'required_with:menus|exists:menus,id',
+            'menus.*.quantity'  => 'required_with:menus|integer|min:1',
         ], [
             'customer_name.required'     => 'Vui lòng nhập tên khách hàng!',
             'customer_phone.required'    => 'Vui lòng nhập số điện thoại!',
@@ -152,20 +162,105 @@ class DatBanController extends Controller
             }
         }
 
+        // Tính tổng tiền món ăn
+        $subtotal = 0;
+        if ($request->has('menus') && is_array($request->menus)) {
+            foreach ($request->menus as $menuItem) {
+                $menu = \App\Models\Menu::find($menuItem['menu_id']);
+                if ($menu) {
+                    $subtotal += $menu->price * $menuItem['quantity'];
+                }
+            }
+        }
+        $vat = $subtotal * 0.1;
+        $totalPrice = $subtotal + $vat;
+        
+        // Tính tiền cọc (chỉ tính nếu require_deposit = true)
+        $requireDeposit = $request->boolean('require_deposit', false);
+        $totalDeposit = 0;
+        $tableDeposit = 0;
+        $menuDeposit = 0;
+        
+        if ($requireDeposit) {
+            // Kiểm tra ngày có yêu cầu đặt cọc hay không (ngày lễ)
+            $holidayDate = DepositRequiredDate::where('is_active', true)
+                ->whereDate('date', $request->reservation_date)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            $isHoliday = $holidayDate !== null;
+            
+            // Kiểm tra có phòng VIP không
+            $selectedTables = BanAn::whereIn('id', $request->table_ids)->get();
+            $hasVipRoom = $selectedTables->where('type', 'vip')->isNotEmpty();
+            $hasNormalTables = $selectedTables->where('type', 'normal')->isNotEmpty();
+            
+            // Cọc bàn:
+            // - VIP: Luôn cần cọc
+            // - Bàn thường: Chỉ cần cọc nếu ngày lễ
+            if ($hasVipRoom) {
+                $vipDepositPerTable = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000));
+                $vipTableCount = $selectedTables->where('type', 'vip')->count();
+                $tableDeposit = $vipDepositPerTable * $vipTableCount;
+            } elseif ($isHoliday && $hasNormalTables) {
+                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
+                    ?? $holidayDate->deposit_per_table 
+                    ?? Setting::getValue('deposit_normal_tables', 500000);
+                $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+                $normalTableCount = $selectedTables->where('type', 'normal')->count();
+                $tableDeposit = $normalDepositPerTable * $normalTableCount;
+            }
+            
+            // Cọc món ăn: Luôn cọc 100% tiền món nếu có món
+            if ($totalPrice > 0) {
+                $menuDeposit = $totalPrice;
+            }
+            
+            $totalDeposit = $tableDeposit + $menuDeposit;
+        }
+        
+        // Xác định status ban đầu
+        // Admin tạo đơn: Luôn là deposit_paid vì người dùng đã cọc rồi admin mới tạo
+        $initialStatus = 'deposit_paid';
+        
+        // Tạo đơn đặt bàn
         $reservation = Reservation::create([
             'user_id'          => $userId,
             'num_people'       => $request->num_people,
             'reservation_date' => $request->reservation_date,
             'shift'            => $request->shift,
             'depsection'       => $request->note,
-            'status'           => 'deposit_paid',
+            'status'           => $initialStatus,
+            'deposit'          => $totalDeposit,
+            'total_amount'     => $totalPrice,
+            'reservation_code' => 'RES-' . strtoupper(\Illuminate\Support\Str::random(10)),
         ]);
 
         // Gán bàn cho đơn đặt
         $reservation->tables()->attach($request->table_ids);
+        
+        // Lưu món ăn vào reservation_items
+        if ($request->has('menus') && is_array($request->menus)) {
+            foreach ($request->menus as $menuItem) {
+                $menu = \App\Models\Menu::find($menuItem['menu_id']);
+                if ($menu) {
+                    $reservation->reservationItems()->create([
+                        'menu_id' => $menu->id,
+                        'quantity' => $menuItem['quantity'],
+                        'price' => $menu->price,
+                    ]);
+                }
+            }
+        }
 
+        $message = "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}";
+        if ($totalDeposit > 0) {
+            $message .= " (Cần đặt cọc: " . number_format($totalDeposit, 0, ',', '.') . " VND)";
+        }
+        
         return redirect()->route('admin.datBan.index')
-                         ->with('success', "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}");
+                         ->with('success', $message);
     }
 
     /**
@@ -410,7 +505,14 @@ class DatBanController extends Controller
         })->pluck('id');
 
         return response()->json([
-            'tables' => $allTables,
+            'tables' => $allTables->map(function($table) {
+                return [
+                    'id' => $table->id,
+                    'name' => $table->name,
+                    'type' => $table->type,
+                    'limit_number' => $table->limit_number,
+                ];
+            }),
             'busyTableIds' => $busyTableIds,
         ]);
     }
@@ -518,5 +620,338 @@ class DatBanController extends Controller
         ];
 
         return $statusTexts[$status] ?? $status;
+    }
+
+  
+    public function getApplicableVouchers($id)
+    {
+        $reservation = Reservation::with(['reservationItems.menu', 'user', 'voucher'])->findOrFail($id);
+        
+        $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
+        $vat = $subtotal * 0.1;
+        $totalPrice = $subtotal + $vat;
+
+        $userId = $reservation->user_id;
+        $now = \Carbon\Carbon::now();
+        $totalUsers = \App\Models\User::count();
+
+        $user = \App\Models\User::find($userId);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User không tồn tại',
+            ], 404);
+        }
+
+        $userVouchers = $user->vouchers()
+            ->where('vouchers.status', 'active')
+            ->with('tier')
+            ->get()
+            ->filter(function ($voucher) use ($userId) {
+                $pivot = DB::table('user_voucher')
+                    ->where('user_id', $userId)
+                    ->where('voucher_id', $voucher->id)
+                    ->first();
+                
+                if ($pivot) {
+                    $usedCount = $pivot->used_count ?? 0;
+                    return $usedCount < $voucher->max_uses;
+                }
+                return false;
+            });
+
+        $allActiveVouchers = Voucher::with(['tier', 'users'])
+            ->where('status', 'active')
+            ->get();
+
+        $allUsersVouchers = $allActiveVouchers->filter(function ($voucher) use ($totalUsers, $userId) {
+            if ($voucher->users->count() === $totalUsers) {
+                $pivot = DB::table('user_voucher')
+                    ->where('user_id', $userId)
+                    ->where('voucher_id', $voucher->id)
+                    ->first();
+                
+                if ($pivot) {
+                    $usedCount = $pivot->used_count ?? 0;
+                    return $usedCount < $voucher->max_uses;
+                }
+                return false;
+            }
+            return false;
+        });
+
+        $vouchers = $userVouchers->merge($allUsersVouchers)->unique('id');
+
+        $canApply = [];
+        $cannotApply = [];
+
+        foreach ($vouchers as $voucher) {
+            $errors = [];
+            $isApplicable = true;
+
+            if ($voucher->start_date && $now->lt($voucher->start_date)) {
+                $errors[] = 'Voucher chưa đến thời gian sử dụng';
+                $isApplicable = false;
+            }
+
+            if ($voucher->end_date && $now->gt($voucher->end_date)) {
+                $errors[] = 'Voucher đã hết hạn';
+                $isApplicable = false;
+            }
+
+            if ($voucher->used_count >= $voucher->max_uses) {
+                $errors[] = 'Voucher đã đạt giới hạn sử dụng';
+                $isApplicable = false;
+            }
+
+            if ($voucher->min_order_value && $totalPrice < $voucher->min_order_value) {
+                $errors[] = 'Đơn hàng chưa đạt giá trị tối thiểu: ' . number_format($voucher->min_order_value, 0, ',', '.') . ' VNĐ';
+                $isApplicable = false;
+            }
+
+            if ($reservation->voucher_id == $voucher->id) {
+                $errors[] = 'Voucher đã được áp dụng vào đơn này';
+                $isApplicable = false;
+            }
+
+            $discountAmount = 0;
+            $maxDiscountValue = null;
+            
+            if ($isApplicable) {
+                if ($voucher->discount_type === 'percent') {
+                    $discountAmount = ($voucher->discount_value / 100) * $totalPrice;
+                    if ($voucher->order_value_allowed && $discountAmount > $voucher->order_value_allowed) {
+                        $discountAmount = $voucher->order_value_allowed;
+                    }
+                } else {
+                    $discountAmount = $voucher->discount_value;
+                }
+
+                if ($voucher->tier && $voucher->tier->max_discount_value) {
+                    $maxDiscountValue = $voucher->tier->max_discount_value;
+                    if ($discountAmount > $maxDiscountValue) {
+                        $discountAmount = $maxDiscountValue;
+                    }
+                }
+
+                if ($discountAmount > $totalPrice) {
+                    $discountAmount = $totalPrice;
+                }
+            }
+
+            $finalAmount = max(0, $totalPrice - $discountAmount);
+
+            $voucherData = [
+                'id' => $voucher->id,
+                'code' => $voucher->code,
+                'discount_type' => $voucher->discount_type,
+                'discount_value' => $voucher->discount_value,
+                'min_order_value' => $voucher->min_order_value,
+                'order_value_allowed' => $voucher->order_value_allowed,
+                'max_discount_value' => $maxDiscountValue,
+                'start_date' => $voucher->start_date ? (\Carbon\Carbon::parse($voucher->start_date)->format('Y-m-d')) : null,
+                'end_date' => $voucher->end_date ? (\Carbon\Carbon::parse($voucher->end_date)->format('Y-m-d')) : null,
+                'max_uses' => (int)($voucher->max_uses ?? 1),
+                'used_count' => (int)($voucher->used_count ?? 0),
+                'errors' => $errors,
+                'discount_amount' => round($discountAmount, 0),
+                'final_amount' => round($finalAmount, 0),
+            ];
+
+            if ($isApplicable) {
+                $canApply[] = $voucherData;
+            } else {
+                $cannotApply[] = $voucherData;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'can_apply' => $canApply,
+                'cannot_apply' => $cannotApply,
+                'total_price' => round($totalPrice, 0),
+                'current_voucher' => $reservation->voucher ? [
+                    'id' => $reservation->voucher->id,
+                    'code' => $reservation->voucher->code,
+                    'discount' => $reservation->voucher_discount ?? 0,
+                ] : null,
+            ],
+        ], 200);
+    }
+
+   
+    public function applyVoucher(\Illuminate\Http\Request $request, $id)
+    {
+        $request->validate([
+            'voucher_id' => 'required|exists:vouchers,id',
+        ]);
+
+        $reservation = Reservation::with(['reservationItems.menu', 'user'])->findOrFail($id);
+        
+        $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
+        $vat = $subtotal * 0.1;
+        $totalPrice = $subtotal + $vat;
+
+        $voucher = Voucher::with('tier')->findOrFail($request->voucher_id);
+        $now = \Carbon\Carbon::now();
+
+        if ($voucher->user_id && $voucher->user_id != $reservation->user_id) {
+            return response()->json(['success' => false, 'message' => 'Voucher không thuộc về khách hàng này'], 400);
+        }
+
+        if ($voucher->status !== 'active') {
+            return response()->json(['success' => false, 'message' => 'Voucher không còn hiệu lực'], 400);
+        }
+
+        if ($voucher->start_date && $now->lt($voucher->start_date)) {
+            return response()->json(['success' => false, 'message' => 'Voucher chưa đến thời gian sử dụng'], 400);
+        }
+
+        if ($voucher->end_date && $now->gt($voucher->end_date)) {
+            return response()->json(['success' => false, 'message' => 'Voucher đã hết hạn'], 400);
+        }
+
+        if ($voucher->used_count >= $voucher->max_uses) {
+            return response()->json(['success' => false, 'message' => 'Voucher đã đạt giới hạn sử dụng'], 400);
+        }
+
+        if ($voucher->min_order_value && $totalPrice < $voucher->min_order_value) {
+            return response()->json(['success' => false, 'message' => 'Đơn hàng chưa đạt giá trị tối thiểu: ' . number_format($voucher->min_order_value, 0, ',', '.') . ' VNĐ'], 400);
+        }
+
+        $discountAmount = 0;
+        if ($voucher->discount_type === 'percent') {
+            $discountAmount = ($voucher->discount_value / 100) * $totalPrice;
+            if ($voucher->order_value_allowed && $discountAmount > $voucher->order_value_allowed) {
+                $discountAmount = $voucher->order_value_allowed;
+            }
+        } else {
+            $discountAmount = $voucher->discount_value;
+        }
+
+        if ($voucher->tier && $voucher->tier->max_discount_value) {
+            if ($discountAmount > $voucher->tier->max_discount_value) {
+                $discountAmount = $voucher->tier->max_discount_value;
+            }
+        }
+
+        if ($discountAmount > $totalPrice) {
+            $discountAmount = $totalPrice;
+        }
+
+        $finalAmount = max(0, $totalPrice - $discountAmount);
+
+        try {
+            DB::beginTransaction();
+
+            $reservation->voucher_id = $voucher->id;
+            $reservation->voucher_discount = round($discountAmount, 0);
+            $reservation->total_amount = round($finalAmount, 0);
+            $reservation->save();
+
+            $voucher->increment('used_count');
+
+            $pivot = DB::table('user_voucher')
+                ->where('user_id', $reservation->user_id)
+                ->where('voucher_id', $voucher->id)
+                ->first();
+
+            if ($pivot) {
+                $newUsedCount = ($pivot->used_count ?? 0) + 1;
+                DB::table('user_voucher')
+                    ->where('user_id', $reservation->user_id)
+                    ->where('voucher_id', $voucher->id)
+                    ->update([
+                        'used_count' => $newUsedCount,
+                        'status' => ($newUsedCount >= $voucher->max_uses) ? 'used' : 'unused',
+                        'used_at' => now(),
+                    ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Áp dụng voucher thành công',
+                'data' => [
+                    'voucher' => [
+                        'id' => $voucher->id,
+                        'code' => $voucher->code,
+                        'discount_type' => $voucher->discount_type,
+                        'discount_value' => $voucher->discount_value,
+                        'discount' => round($discountAmount, 0),
+                    ],
+                    'discount_amount' => round($discountAmount, 0),
+                    'final_amount' => round($finalAmount, 0),
+                    'total_price' => round($totalPrice, 0),
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()], 500);
+        }
+    }
+
+ 
+    public function removeVoucher($id)
+    {
+        $reservation = Reservation::with(['reservationItems.menu'])->findOrFail($id);
+        
+        if (!$reservation->voucher_id) {
+            return response()->json(['success' => false, 'message' => 'Reservation không có voucher được áp dụng'], 400);
+        }
+
+        $voucher = Voucher::find($reservation->voucher_id);
+
+        try {
+            DB::beginTransaction();
+
+            $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
+            $vat = $subtotal * 0.1;
+            $totalPrice = $subtotal + $vat;
+
+            $reservation->voucher_id = null;
+            $reservation->voucher_discount = 0;
+            $reservation->total_amount = round($totalPrice, 0);
+            $reservation->save();
+
+            if ($voucher && $voucher->used_count > 0) {
+                $voucher->decrement('used_count');
+            }
+
+            $pivot = DB::table('user_voucher')
+                ->where('user_id', $reservation->user_id)
+                ->where('voucher_id', $voucher->id)
+                ->first();
+
+            if ($pivot && $pivot->used_count > 0) {
+                $newUsedCount = $pivot->used_count - 1;
+                DB::table('user_voucher')
+                    ->where('user_id', $reservation->user_id)
+                    ->where('voucher_id', $voucher->id)
+                    ->update([
+                        'used_count' => $newUsedCount,
+                        'status' => ($newUsedCount > 0 && $newUsedCount >= $voucher->max_uses) ? 'used' : 'unused',
+                    ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã hủy áp dụng voucher',
+                'data' => [
+                    'total_price' => round($totalPrice, 0),
+                    'discount_amount' => 0,
+                    'final_amount' => round($totalPrice, 0),
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()], 500);
+        }
     }
 }

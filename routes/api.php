@@ -31,7 +31,7 @@ Route::get('/menus', [MenuApiController::class, 'index']);
 
 // Ngày yêu cầu đặt cọc 
 Route::get('/deposit-required-dates', [DepositRequiredDateController::class, 'index']);
-Route::post('/deposit-required-dates/check', [DepositRequiredDateController::class, 'check']);
+Route::get('/deposit-required-dates/check', [DepositRequiredDateController::class, 'check']);
 
 // Không còn sử dụng - VNPay callback được xử lý bởi vnpayReturn
 // Route::get('/payment/confirm/{token}', [DatBanAnController::class, 'confirmPayment']);
@@ -113,6 +113,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);
     Route::get('/vouchers/getAllVouchers', [VoucherController::class, 'getAllVouchers']);
     Route::get('/user/vouchers', [VoucherController::class, 'getUserVouchers']);
+    
+    // Voucher cho reservation (thanh toán hóa đơn)
+    Route::get('/reservations/{reservationId}/applicable-vouchers', [VoucherController::class, 'getApplicableVouchersForReservation']);
+    Route::post('/reservations/{reservationId}/apply-voucher', [VoucherController::class, 'applyVoucherToReservation']);
+    Route::delete('/reservations/{reservationId}/remove-voucher', [VoucherController::class, 'removeVoucherFromReservation']);
 
     //Tích điểm khi thanh toán thành công
     Route::post('/points/add', [PointController::class, 'addPoints']);

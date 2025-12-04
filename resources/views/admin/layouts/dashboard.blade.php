@@ -52,6 +52,9 @@
                         <a class="nav-link" id="voucher-tab" data-toggle="tab" href="#vouchers" role="tabpanel"
                             aria-controls="voucher" aria-selected="false">
                             <i class="fas fa-calendar-check"></i> Thống kê vouchers
+                    <li class="" role="">
+                        <a class="nav-link" id="" data-toggle="tab" href="" role="tab" aria-controls="" aria-selected="">
+                            <i class="fas fa-calendar-check"></i> Thống kê Menu
                         </a>
                     </li>
                 </ul>

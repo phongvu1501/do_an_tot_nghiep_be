@@ -20,6 +20,9 @@ class MenuController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
+        // Sắp xếp món mới nhất lên đầu
+        $query->orderBy('id', 'DESC');
+
         $menus = $query->get();
 
         // Đếm số món đã bị xóa mềm

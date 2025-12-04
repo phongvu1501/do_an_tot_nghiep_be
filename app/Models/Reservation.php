@@ -91,7 +91,9 @@ class Reservation extends Model
 
         // Phòng VIP: Luôn cọc theo cấu hình
         if ($hasVipRoom) {
-            return max(1, (float)Setting::getValue('deposit_vip_rooms', 1000000));
+            $vipDepositPerTable = max(1, (float)Setting::getValue('deposit_vip_rooms', 1000000));
+            $vipTableCount = $tables->where('type', 'vip')->count();
+            return $vipDepositPerTable * $vipTableCount;
         }
 
         // Bàn thường: Chỉ cọc nếu là ngày lễ
@@ -102,8 +104,13 @@ class Reservation extends Model
                 ->first();
 
             if ($holidayDate) {
-                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
-                return max(1, (float)$normalDeposit);
+                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
+                    ?? $holidayDate->deposit_per_table 
+                    ?? Setting::getValue('deposit_normal_tables', 500000);
+                $normalDepositPerTable = max(1, (float)$normalDepositPerTable);
+                $normalTableCount = $tables->where('type', 'normal')->count();
+                return $normalDepositPerTable * $normalTableCount;
             }
         }
 
@@ -144,17 +151,15 @@ class Reservation extends Model
         $vat = $subtotal * 0.1;
         $total = $subtotal + $vat;
 
-        // Kiểm tra điều kiện min/max
         if ($voucher->min_order_value && $total < $voucher->min_order_value) return 0;
-        if ($voucher->order_value_allowed && $total > $voucher->order_value_allowed) return 0;
 
-        // Tính giảm
-        $discount = $voucher->discount_type === 'percent'
-            ? ($total * $voucher->discount_value) / 100
-            : $voucher->discount_value;
-
-        if ($voucher->max_discount_value) {
-            $discount = min($discount, $voucher->max_discount_value);
+        if ($voucher->discount_type === 'percent') {
+            $discount = ($total * $voucher->discount_value) / 100;
+            if ($voucher->order_value_allowed && $discount > $voucher->order_value_allowed) {
+                $discount = $voucher->order_value_allowed;
+            }
+        } else {
+            $discount = $voucher->discount_value;
         }
 
         return $discount;
