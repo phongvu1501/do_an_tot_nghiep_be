@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Reservation;
-use App\Models\User;
 use Carbon\Carbon;
+use App\Models\User;
 use Carbon\CarbonPeriod;
+use App\Models\Reservation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
         $dashboard = "Trang thống kê";
+
 
         // Lấy filter thời gian từ request, nếu không có thì mặc định 30 ngày
         $from = $request->input('from') ? Carbon::parse($request->input('from')) : Carbon::now()->subDays(30);
@@ -92,8 +94,8 @@ class DashboardController extends Controller
 
         //Tỷ lệ hủy= đơn hủy / tổng đơn
         $totalAllReservations = Reservation::count();
-        $cancellationRate = $totalAllReservations > 0 
-            ? round(($totalCancelledAll / $totalAllReservations) * 100, 2) 
+        $cancellationRate = $totalAllReservations > 0
+            ? round(($totalCancelledAll / $totalAllReservations) * 100, 2)
             : 0;
 
         // Số đơn theo từng ca
@@ -102,12 +104,12 @@ class DashboardController extends Controller
             ->get()
             ->pluck('count', 'shift')
             ->toArray();
-        
+
         $morningCount = $reservationsByShift['morning'] ?? 0;
         $afternoonCount = $reservationsByShift['afternoon'] ?? 0;
         $eveningCount = $reservationsByShift['evening'] ?? 0;
 
-        
+
         $dailyStatistics = [];
         foreach ($period as $date) {
             $dailyStatistics[] = [
@@ -146,6 +148,30 @@ class DashboardController extends Controller
         $reservationChartCompleted = collect($dailyStatistics)->pluck('completed')->toArray();
         $reservationChartCancelled = collect($dailyStatistics)->pluck('cancelled')->toArray();
         $reservationChartPending = collect($dailyStatistics)->pluck('pending')->toArray();
+        $totalUsers = User::count();
+        $newUsersThisMonth = User::whereBetween('created_at', [$from, $to])->count();
+        $usersWithReservation = User::whereHas('reservations')->count();
+
+        $topBookingUsers = User::withCount('reservations')
+            ->orderByDesc('reservations_count')
+            ->take(5)
+            ->get();
+
+        $topSpendingUsers = User::select(
+            'users.id',
+            'users.name',
+            DB::raw('SUM(reservations.total_amount) as total_spent')
+        )
+            ->join('reservations', 'reservations.user_id', '=', 'users.id')
+            ->where('reservations.status', 'completed')
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total_spent')
+            ->take(5)
+            ->get();
+
+
+
+
 
         return view('admin.layouts.dashboard', compact(
             'dashboard',
@@ -186,63 +212,71 @@ class DashboardController extends Controller
             'reservationChartData',
             'reservationChartCompleted',
             'reservationChartCancelled',
-            'reservationChartPending'
+            'reservationChartPending',
+
+
+            'totalUsers',
+            'newUsersThisMonth',
+            'usersWithReservation',
+            'topBookingUsers',
+            'topSpendingUsers',
+
         ));
     }
 
-    
+
     public function reservationStatistics(Request $request)
     {
         $today = Carbon::today();
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
-        
+
         $filterType = $request->input('filter', 'this_month'); // today, this_week, this_month, this_year, custom
-        
+
         switch ($filterType) {
             case 'today':
                 $from = Carbon::today();
                 $to = Carbon::today()->endOfDay();
                 $filterLabel = 'Hôm nay';
                 break;
-                
+
             case 'this_week':
                 $from = Carbon::now()->startOfWeek();
                 $to = Carbon::now()->endOfWeek();
                 $filterLabel = 'Tuần này';
                 break;
-                
+
             case 'this_month':
                 $from = Carbon::now()->startOfMonth();
                 $to = Carbon::now()->endOfMonth();
                 $filterLabel = 'Tháng này';
                 break;
-                
+
             case 'this_year':
                 $from = Carbon::now()->startOfYear();
                 $to = Carbon::now()->endOfYear();
                 $filterLabel = 'Năm nay';
                 break;
-                
+
             case 'custom':
                 $from = $request->input('from') ? Carbon::parse($request->input('from'))->startOfDay() : Carbon::now()->startOfMonth();
                 $to = $request->input('to') ? Carbon::parse($request->input('to'))->endOfDay() : Carbon::now()->endOfMonth();
                 $filterLabel = $from->format('d/m/Y') . ' - ' . $to->format('d/m/Y');
                 break;
-                
+
             case 'all':
                 $from = Reservation::min('reservation_date') ? Carbon::parse(Reservation::min('reservation_date')) : Carbon::now()->startOfYear();
                 $to = Reservation::max('reservation_date') ? Carbon::parse(Reservation::max('reservation_date')) : Carbon::now()->endOfYear();
                 $filterLabel = 'Tất cả';
                 break;
-                
+
             default:
                 $from = Carbon::now()->startOfMonth();
                 $to = Carbon::now()->endOfMonth();
                 $filterLabel = 'Tháng này';
         }
 
-        
+
         $totalReservationsInPeriod = Reservation::whereBetween('reservation_date', [$from->toDateString(), $to->toDateString()])
             ->count();
 
@@ -258,8 +292,8 @@ class DashboardController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        $cancellationRate = $totalReservationsInPeriod > 0 
-            ? round(($totalCancelled / $totalReservationsInPeriod) * 100, 2) 
+        $cancellationRate = $totalReservationsInPeriod > 0
+            ? round(($totalCancelled / $totalReservationsInPeriod) * 100, 2)
             : 0;
 
         $reservationsByShift = Reservation::where('status', 'completed')
@@ -273,18 +307,18 @@ class DashboardController extends Controller
                 ]];
             })
             ->toArray();
-        
+
         $morningCount = isset($reservationsByShift['morning']) ? $reservationsByShift['morning']['count'] : 0;
         $afternoonCount = isset($reservationsByShift['afternoon']) ? $reservationsByShift['afternoon']['count'] : 0;
         $eveningCount = isset($reservationsByShift['evening']) ? $reservationsByShift['evening']['count'] : 0;
-        
+
         $morningPeople = isset($reservationsByShift['morning']) ? ($reservationsByShift['morning']['total_people'] ?? 0) : 0;
         $afternoonPeople = isset($reservationsByShift['afternoon']) ? ($reservationsByShift['afternoon']['total_people'] ?? 0) : 0;
         $eveningPeople = isset($reservationsByShift['evening']) ? ($reservationsByShift['evening']['total_people'] ?? 0) : 0;
 
         $period = CarbonPeriod::create($from, '1 day', $to);
         $dailyStatistics = [];
-        
+
         foreach ($period as $date) {
             $dailyStatistics[] = [
                 'date' => $date->format('Y-m-d'),
@@ -349,7 +383,7 @@ class DashboardController extends Controller
         $morningCountPeriod = isset($shiftStatsInPeriod['morning']) ? $shiftStatsInPeriod['morning']['count'] : 0;
         $afternoonCountPeriod = isset($shiftStatsInPeriod['afternoon']) ? $shiftStatsInPeriod['afternoon']['count'] : 0;
         $eveningCountPeriod = isset($shiftStatsInPeriod['evening']) ? $shiftStatsInPeriod['evening']['count'] : 0;
-        
+
         $morningPeoplePeriod = isset($shiftStatsInPeriod['morning']) ? ($shiftStatsInPeriod['morning']['total_people'] ?? 0) : 0;
         $afternoonPeoplePeriod = isset($shiftStatsInPeriod['afternoon']) ? ($shiftStatsInPeriod['afternoon']['total_people'] ?? 0) : 0;
         $eveningPeoplePeriod = isset($shiftStatsInPeriod['evening']) ? ($shiftStatsInPeriod['evening']['total_people'] ?? 0) : 0;

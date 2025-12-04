@@ -5,14 +5,15 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\TierController;
 use App\Http\Controllers\Admin\BanAnController;
 use App\Http\Controllers\Admin\DatBanController;
+use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuCategoryController;
-use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Admin\UserStatisticsController;
 use App\Http\Controllers\Admin\DepositRequiredDateController;
-use App\Http\Controllers\Admin\TierController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -76,6 +77,16 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
 
     Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');
+
+
+    Route::get('/statistics/users', [UserStatisticsController::class, 'index'])
+    ->name('statistics.users');
+
+
+
+Route::get('/admin/user-detail/{id}', [UserController::class, 'detail'])->name('admin.user.detail');
+
+
 });
 
 

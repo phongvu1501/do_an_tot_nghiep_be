@@ -62,6 +62,13 @@ class UserController extends Controller
         return view('admin.accounts.show', compact('user'));
     }
 
+public function detail($id)
+{
+    $user = User::with(['reservations.tables', 'reservations.reservationItems.menu'])->findOrFail($id);
+    return view('admin.user.detail', compact('user')); // trả về HTML
+}
+
+
 }
 
 
