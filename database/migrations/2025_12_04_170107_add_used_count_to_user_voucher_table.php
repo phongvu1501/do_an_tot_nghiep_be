@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            //
+        Schema::table('user_voucher', function (Blueprint $table) {
+            $table->integer('used_count')->default(0)->after('status');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('reservations', function (Blueprint $table) {
-            //
+        Schema::table('user_voucher', function (Blueprint $table) {
+            $table->dropColumn('used_count');
         });
     }
 };

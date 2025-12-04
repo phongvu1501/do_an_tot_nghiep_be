@@ -11,14 +11,14 @@ class BanAnController extends Controller
     public function index(Request $request)
     {
         $currentHour = now()->hour;
-        if ($currentHour >= 6 && $currentHour < 10) {
+        if ($currentHour >= 8 && $currentHour < 13) {
             $currentShift = 'morning';
-        } elseif ($currentHour >= 10 && $currentHour < 14) {
+        } elseif ($currentHour >= 13 && $currentHour < 18) {
             $currentShift = 'afternoon';
-        } elseif ($currentHour >= 14 && $currentHour < 18) {
+        } elseif ($currentHour >= 18 && $currentHour < 23) {
             $currentShift = 'evening';
         } else {
-            $currentShift = 'night';
+            $currentShift = 'morning';
         }
 
         $filterDate = $request->filled('date') ? $request->date : now()->toDateString();
@@ -51,16 +51,25 @@ class BanAnController extends Controller
     {
         $validateData = $request->validate([
             'name' => 'required|string|max:255|unique:tables,name',
-            'limit_number' => 'required|integer|min:1',
+            'type' => 'required|in:normal,vip',
+            'limit_number' => 'nullable|integer|min:1',
         ], [
             'name.required' => 'Tên bàn không được bỏ trống!',
             'name.unique' => 'Tên bàn này đã tồn tại!',
-            'limit_number.required' => 'Số lượng người không được bỏ trống!',
+            'type.required' => 'Vui lòng chọn loại bàn!',
+            'type.in' => 'Loại bàn không hợp lệ!',
             'limit_number.integer' => 'Số lượng người phải là số nguyên!',
             'limit_number.min' => 'Số lượng người phải lớn hơn 0!',
         ]);
 
-        BanAn::create($validateData);
+        
+        $data = [
+            'name' => $validateData['name'],
+            'type' => $validateData['type'],
+            'limit_number' => $validateData['type'] == 'vip' ? 30 : 8,
+        ];
+
+        BanAn::create($data);
 
         return redirect()->route('admin.banAn.index')->with('success', 'Thêm mới bàn ăn thành công!');
     }
@@ -78,19 +87,19 @@ class BanAnController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:tables,name,' . $banAn->id,
-            'limit_number' => 'required|integer|min:1',
+            'type' => 'required|in:normal,vip',
         ], [
             'name.required' => 'Tên bàn không được bỏ trống!',
             'name.unique' => 'Tên bàn này đã tồn tại!',
-            'limit_number.required' => 'Số lượng người không được bỏ trống!',
-            'limit_number.integer' => 'Số lượng người phải là số nguyên!',
-            'limit_number.min' => 'Số lượng người phải lớn hơn 0!',
+            'type.required' => 'Vui lòng chọn loại bàn!',
+            'type.in' => 'Loại bàn không hợp lệ!',
         ]);
 
         try {
             $banAn->update([
                 'name' => $request->name,
-                'limit_number' => $request->limit_number,
+                'type' => $request->type,
+                'limit_number' => $request->type == 'vip' ? 30 : 8,
             ]);
 
             return redirect()->route('admin.banAn.index')

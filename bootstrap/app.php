@@ -11,19 +11,22 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
-        ]);
+  ->withMiddleware(function (Middleware $middleware): void {
+    // Middleware có sẵn của Laravel
+    $middleware->alias([
+        'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+        'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+         'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'sanctum.stateful' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'auth:sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+    ]);
 
-        // Register common middleware aliases used by routes (Kernel.php removed in Laravel 12)
-        // alias() expects an array mapping alias => class
-        $middleware->alias([
-            'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
-            'sanctum.stateful' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            'auth:sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-    })
+    // Middleware custom cho role admin
+    $middleware->alias([
+        'admin' => \App\Http\Middleware\AdminMiddleware::class,
+    ]);
+})
+
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

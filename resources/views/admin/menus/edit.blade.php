@@ -16,12 +16,13 @@
                                 @method('PUT')
                                 <div class="mb-3">
                                     <label class="form-label">Tên món ăn</label>
-                                    <input type="text" name="name" value="{{ $menu->name }}" class="form-control"
-                                        required>
+                                    <input type="text" name="name" id="name"
+                                        value="{{ old('name', $menu->name) }}"
+                                        class="form-control @error('name') is-invalid @enderror" maxlength="100" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Danh mục</label>
-                                    <select name="category_id" class="form-select" required>
+                                    <select name="category_id" class="form-control" required>
                                         @foreach ($categories as $category)
                                             <option value="{{ $category->id }}"
                                                 {{ $menu->category_id == $category->id ? 'selected' : '' }}>
@@ -32,12 +33,15 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Mô tả</label>
-                                    <textarea name="description" class="form-control">{{ $menu->description }}</textarea>
+                                    <textarea name="description" id="description" class="form-control" maxlength="1000">{{ old('description', $menu->description) }}</textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Giá</label>
-                                    <input type="number" name="price" class="form-control" value="{{ $menu->price }}"
-                                        step="1000" required>
+                                    <input type="text" name="price" id="price"
+                                        class="form-control @error('price') is-invalid @enderror"
+                                        value="{{ old('price', $menu->price) }}" maxlength="11" inputmode="decimal"
+                                        required>
+
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Ảnh hiện tại</label><br>
@@ -53,7 +57,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Trạng thái</label>
-                                    <select name="status" class="form-select">
+                                    <select name="status" class="form-control">
                                         <option value="1" {{ $menu->status ? 'selected' : '' }}>Hiển thị</option>
                                         <option value="0" {{ !$menu->status ? 'selected' : '' }}>Ẩn</option>
                                     </select>
@@ -67,4 +71,53 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const priceInput = document.getElementById('price');
+            if (priceInput) {
+                priceInput.addEventListener('input', function() {
+                    let v = this.value;
+
+                    // loại bỏ ký tự không phải số hoặc dấu chấm
+                    v = v.replace(/[^0-9.]/g, '');
+
+                    // giữ chỉ dấu chấm đầu tiên, phần nguyên tối đa 8 chữ số, phần thập phân tối đa 2 chữ số
+                    const firstDot = v.indexOf('.');
+                    if (firstDot !== -1) {
+                        let intPart = v.slice(0, firstDot).slice(0, 8);
+                        let decPart = v.slice(firstDot + 1).replace(/\./g, '').slice(0, 2);
+                        v = intPart + '.' + decPart;
+                    } else {
+                        v = v.slice(0, 8);
+                    }
+
+                    // nếu bắt đầu bằng nhiều số 0, giữ 0 hoặc loại bỏ tiền tố 0 không cần thiết (tuỳ bạn)
+                    // loại bỏ dấu chấm ở cuối nếu vượt maxlength
+                    if (v.length > 11) v = v.slice(0, 11);
+
+                    this.value = v;
+                });
+
+                priceInput.addEventListener('paste', function(e) {
+                    const paste = (e.clipboardData || window.clipboardData).getData('text');
+                    if (!/^\d{1,8}(\.\d{1,2})?$/.test(paste)) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            const nameInput = document.getElementById('name');
+            if (nameInput) {
+                nameInput.addEventListener('input', () => {
+                    nameInput.value = nameInput.value.slice(0, 100);
+                });
+            }
+            const descInput = document.getElementById('description');
+            if (descInput) {
+                descInput.addEventListener('input', () => {
+                    descInput.value = descInput.value.slice(0, 1000);
+                });
+            }
+        });
+    </script>
 @endsection

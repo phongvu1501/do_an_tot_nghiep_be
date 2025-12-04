@@ -40,6 +40,14 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
+Chỉnh sửa lại thông tin thanh toán
+```
+VNP_TMN_CODE=
+VNP_HASH_SECRET=
+VNP_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNP_RETURN_URL=
+```
+
 ### 🔑 Bước 4: Tạo key cho ứng dụng
 ```
 php artisan key:generate
@@ -89,3 +97,13 @@ php artisan db:seed
 ```
 php artisan optimize:clear
 ```
+
+# Thông tin thanh toán
+
+| **Thông tin**       | **Giá trị**                   |
+|---------------------|-------------------------------|
+| **Ngân hàng**       | NCB                           |
+| **Số thẻ**          | 9704198526191432198           |
+| **Tên chủ thẻ**     | NGUYEN VAN A                  |
+| **Ngày phát hành**  | 07/15                         |
+| **Mật khẩu OTP**    | 123456                        |

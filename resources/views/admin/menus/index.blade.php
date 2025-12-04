@@ -20,6 +20,51 @@
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
 
+            {{-- Thông báo khi đang lọc theo danh mục --}}
+            @if($selectedCategoryId)
+                @php
+                    $selectedCategory = $categories->firstWhere('id', $selectedCategoryId);
+                @endphp
+                @if($selectedCategory)
+                    <div class="alert alert-info d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fas fa-filter"></i> Đang hiển thị món ăn của danh mục: <strong>{{ $selectedCategory->name }}</strong>
+                            <span class="badge bg-primary ms-2">{{ $menus->count() }} món</span>
+                        </span>
+                        <a href="{{ route('admin.menus.index') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i> Xóa lọc
+                        </a>
+                    </div>
+                @endif
+            @endif
+
+            {{-- Bộ lọc theo danh mục --}}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" action="{{ route('admin.menus.index') }}" id="filterForm">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="category_id" class="form-label"><strong>Lọc theo danh mục:</strong></label>
+                                <select name="category_id" id="category_id" class="form-control">
+                                    <option value="">Tất cả</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}" {{ $selectedCategoryId == $category->id ? 'selected' : '' }}>
+                                            {{ $category->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                document.getElementById('category_id').addEventListener('change', function() {
+                    document.getElementById('filterForm').submit();
+                });
+            </script>
+
             <div class="card">
                 <div class="card-body table-responsive">
                     <table class="table table-bordered text-center align-middle">
