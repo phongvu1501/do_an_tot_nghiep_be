@@ -144,8 +144,27 @@
                                                 <td>{{ \Carbon\Carbon::parse($v->start_date)->format('d/m/Y') }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($v->end_date)->format('d/m/Y') }}</td>
                                                 <td>
-                                                    <span class="badge badge-success">Đang hoạt động</span>
+                                                    @php
+                                                        $today = \Carbon\Carbon::today();
+                                                        $isActive =
+                                                            $v->status === 'active' &&
+                                                            $today->greaterThanOrEqualTo($v->start_date) &&
+                                                            $today->lessThanOrEqualTo($v->end_date);
+                                                    @endphp
+
+                                                    @if ($isActive)
+                                                        <span class="badge badge-success">Đang hoạt động</span>
+                                                    @elseif ($v->status === 'inactive')
+                                                        <span class="badge badge-warning">Tạm dừng</span>
+                                                    @elseif ($today->lt($v->start_date))
+                                                        <span class="badge badge-secondary">Chưa bắt đầu</span>
+                                                    @elseif ($today->gt($v->end_date))
+                                                        <span class="badge badge-danger">Đã hết hạn</span>
+                                                    @else
+                                                        <span class="badge badge-dark">Không xác định</span>
+                                                    @endif
                                                 </td>
+
                                             </tr>
                                         @empty
                                             <tr>

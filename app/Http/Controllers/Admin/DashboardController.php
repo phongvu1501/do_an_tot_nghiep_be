@@ -56,9 +56,11 @@ class DashboardController extends Controller
             ->whereNotNull('voucher_id')
             ->count();
 
-        $activeVouchers = Voucher::where('status', 'active')
-            ->whereDate('start_date', '<=', $to)
-            ->whereDate('end_date', '>=', $from)
+        $todayVouchers = now()->toDateString();
+
+        $activeVouchers = Voucher::where('status', 'active')   
+            ->whereDate('start_date', '<=', $todayVouchers)           
+            ->whereDate('end_date', '>=', $todayVouchers)             
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -181,6 +183,7 @@ class DashboardController extends Controller
             'chartRevenue',
             'chartNewUsers',
             'totalVouchersUsed',
+            'todayVouchers',
             'activeVouchers',
             'tablesToday',
             'from',
