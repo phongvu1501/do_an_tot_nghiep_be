@@ -7,14 +7,19 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Models\Voucher;
 use Carbon\Carbon;
+use App\Models\User;
 use Carbon\CarbonPeriod;
+use App\Models\Reservation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
         $dashboard = "Trang thống kê";
+
 
         // Lấy filter thời gian từ request, nếu không có thì mặc định 30 ngày
         $from = $request->input('from')
@@ -165,6 +170,30 @@ class DashboardController extends Controller
         $reservationChartCompleted = collect($dailyStatistics)->pluck('completed')->toArray();
         $reservationChartCancelled = collect($dailyStatistics)->pluck('cancelled')->toArray();
         $reservationChartPending = collect($dailyStatistics)->pluck('pending')->toArray();
+        $totalUsers = User::count();
+        $newUsersThisMonth = User::whereBetween('created_at', [$from, $to])->count();
+        $usersWithReservation = User::whereHas('reservations')->count();
+
+        $topBookingUsers = User::withCount('reservations')
+            ->orderByDesc('reservations_count')
+            ->take(5)
+            ->get();
+
+        $topSpendingUsers = User::select(
+            'users.id',
+            'users.name',
+            DB::raw('SUM(reservations.total_amount) as total_spent')
+        )
+            ->join('reservations', 'reservations.user_id', '=', 'users.id')
+            ->where('reservations.status', 'completed')
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total_spent')
+            ->take(5)
+            ->get();
+
+
+
+
 
         return view('admin.layouts.dashboard', compact(
             'dashboard',
@@ -208,7 +237,15 @@ class DashboardController extends Controller
             'reservationChartData',
             'reservationChartCompleted',
             'reservationChartCancelled',
-            'reservationChartPending'
+            'reservationChartPending',
+
+
+            'totalUsers',
+            'newUsersThisMonth',
+            'usersWithReservation',
+            'topBookingUsers',
+            'topSpendingUsers',
+
         ));
     }
 

@@ -60,6 +60,32 @@
                         </a>
                     </li>
                 </ul>
+               <ul class="nav nav-tabs" id="statisticsTabs" role="tablist">
+
+    <li class="nav-item" role="presentation">
+        <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" 
+           role="tab" aria-controls="overview" aria-selected="true">
+            <i class="fas fa-chart-line"></i> Tổng quan
+        </a>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" id="reservation-tab" data-toggle="tab" href="#reservation" 
+           role="tab" aria-controls="reservation" aria-selected="false">
+            <i class="fas fa-calendar-check"></i> Thống kê đặt bàn
+        </a>
+    </li>
+
+    <!-- Trang riêng -->
+   <li class="nav-item">
+    <a class="nav-link" href="{{ route('statistics.users') }}">
+        <i class="fas fa-users"></i> Thống kê user
+    </a>
+</li>
+
+
+</ul>
+
 
                 <!-- TABS CONTENT -->
                 <div class="tab-content" id="statisticsTabsContent">
@@ -853,6 +879,86 @@
                 </div>
 
             </div>
+        </div>
+    </div>
+
+
+
+    <div class="tab-pane fade" id="user" role="tabpanel" aria-labelledby="user-tab">
+
+        <div class="container mt-4">
+
+            <h2 class="mb-4">📊 Thống kê người dùng</h2>
+
+            <div class="row">
+
+                <div class="col-md-3">
+                    <div class="card text-bg-primary mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Tổng User</h5>
+                            <p class="card-text fs-3">{{ $totalUsers }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">User mới tháng này</h5>
+                            <p class="card-text fs-3">{{ $newUsersThisMonth }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-bg-warning mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">User từng đặt bàn</h5>
+                            <p class="card-text fs-3">{{ $usersWithReservation }}</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <hr>
+
+            <h4 class="mt-4">🏆 Top khách đặt bàn nhiều nhất</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Số lần đặt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($topBookingUsers as $u)
+                        <tr>
+                            <td>{{ $u->name }}</td>
+                            <td>{{ $u->reservations_count }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <h4 class="mt-4">💰 Top khách tiêu tiền nhiều nhất</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Tổng tiền đã tiêu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($topSpendingUsers as $u)
+                        <tr>
+                            <td>{{ $u->name }}</td>
+                            <td>{{ number_format($u->total_spent) }} đ</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
         </div>
     </div>
 
