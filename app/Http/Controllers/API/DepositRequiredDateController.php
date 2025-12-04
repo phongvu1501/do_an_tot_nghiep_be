@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\DepositRequiredDate;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -36,13 +37,25 @@ class DepositRequiredDateController extends Controller
             'date' => 'required|date',
         ]);
 
-        $requiresDeposit = DepositRequiredDate::where('is_active', true)
+        $holidayDate = DepositRequiredDate::where('is_active', true)
             ->whereDate('date', $request->date)
-            ->exists();
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $requiresDeposit = $holidayDate !== null;
+        $depositAmount = null;
+
+        if ($holidayDate) {
+            // Lấy số tiền cọc từ ngày lễ: ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
+            $depositAmount = $holidayDate->deposit_normal_tables 
+                ?? $holidayDate->deposit_per_table 
+                ?? \App\Models\Setting::getValue('deposit_normal_tables', 500000);
+        }
 
         return response()->json([
             'success' => true,
             'requires_deposit' => $requiresDeposit,
+            'deposit_amount' => $depositAmount,
             'date' => $request->date,
         ], 200);
     }
