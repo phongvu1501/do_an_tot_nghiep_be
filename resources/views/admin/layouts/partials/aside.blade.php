@@ -65,6 +65,10 @@
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Thống kê Menu</p>
                             </a>
+                            <a href="{{ route('admin.thongkeStatistics') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Thống kê doanh thu</p>
+                            </a>
                         </li>
                     </ul>
                 </li>

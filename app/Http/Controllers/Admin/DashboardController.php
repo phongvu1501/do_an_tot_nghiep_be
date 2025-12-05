@@ -567,4 +567,128 @@ class DashboardController extends Controller
             'chartUsed'
         ));
     }
+    public function revenueStatistics(Request $request)
+    {
+        $filterType = $request->input('filter', 'this_month');
+
+        switch ($filterType) {
+            case 'today':
+                $from = Carbon::today();
+                $to = Carbon::today()->endOfDay();
+                $filterLabel = 'Hôm nay';
+                break;
+
+            case 'this_week':
+                $from = Carbon::now()->startOfWeek();
+                $to = Carbon::now()->endOfWeek();
+                $filterLabel = 'Tuần này';
+                break;
+
+            case 'this_month':
+                $from = Carbon::now()->startOfMonth();
+                $to = Carbon::now()->endOfMonth();
+                $filterLabel = 'Tháng này';
+                break;
+
+            case 'this_year':
+                $from = Carbon::now()->startOfYear();
+                $to = Carbon::now()->endOfYear();
+                $filterLabel = 'Năm nay';
+                break;
+
+            case 'custom':
+                $from = $request->input('from')
+                    ? Carbon::parse($request->input('from'))->startOfDay()
+                    : Carbon::now()->startOfMonth();
+
+                $to = $request->input('to')
+                    ? Carbon::parse($request->input('to'))->endOfDay()
+                    : Carbon::now()->endOfMonth();
+
+                $filterLabel = $from->format('d/m/Y') . ' - ' . $to->format('d/m/Y');
+                break;
+
+            case 'all':
+                $from = Reservation::min('created_at')
+                    ? Carbon::parse(Reservation::min('created_at'))
+                    : Carbon::now()->startOfYear();
+
+                $to = Reservation::max('created_at')
+                    ? Carbon::parse(Reservation::max('created_at'))
+                    : Carbon::now()->endOfYear();
+
+                $filterLabel = 'Tất cả';
+                break;
+
+            default:
+                $from = Carbon::now()->startOfMonth();
+                $to = Carbon::now()->endOfMonth();
+                $filterLabel = 'Tháng này';
+        }
+
+        $totalRevenue = Reservation::where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to])
+            ->sum('total_amount');
+
+        $totalDeposit = Reservation::where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to])
+            ->sum('deposit');
+
+        $totalVoucherDiscount = Reservation::where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to])
+            ->sum('voucher_discount');
+
+        $totalRevenueAfterDiscount = $totalRevenue - $totalVoucherDiscount;
+
+        $avgRevenuePerReservation = Reservation::where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to])
+            ->avg('total_amount');
+        $avgRevenuePerReservation = $avgRevenuePerReservation ? round($avgRevenuePerReservation, 2) : 0;
+
+        $period = CarbonPeriod::create($from, '1 day', $to);
+        $dailyStatistics = [];
+
+        foreach ($period as $date) {
+            $dailyTotal = Reservation::where('status', 'completed')
+                ->whereDate('created_at', $date)
+                ->sum('total_amount');
+
+            $dailyDeposit = Reservation::where('status', 'completed')
+                ->whereDate('created_at', $date)
+                ->sum('deposit');
+
+            $dailyVoucherDiscount = Reservation::where('status', 'completed')
+                ->whereDate('created_at', $date)
+                ->sum('voucher_discount');
+
+            $dailyStatistics[] = [
+                'date' => $date->format('Y-m-d'),
+                'date_display' => $date->format('d/m/Y'),
+                'total_revenue' => $dailyTotal,
+                'deposit' => $dailyDeposit,
+                'voucher_discount' => $dailyVoucherDiscount,
+                'revenue_after_discount' => $dailyTotal - $dailyVoucherDiscount,
+            ];
+        }
+
+        $chartLabels = collect($dailyStatistics)->pluck('date_display')->toArray();
+        $chartRevenue = collect($dailyStatistics)->pluck('total_revenue')->toArray();
+        $chartRevenueAfterDiscount = collect($dailyStatistics)->pluck('revenue_after_discount')->toArray();
+
+        return view('admin.thongkeStatistics.index', compact(
+            'filterType',
+            'filterLabel',
+            'from',
+            'to',
+            'totalRevenue',
+            'totalDeposit',
+            'totalVoucherDiscount',
+            'totalRevenueAfterDiscount',
+            'avgRevenuePerReservation',
+            'dailyStatistics',
+            'chartLabels',
+            'chartRevenue',
+            'chartRevenueAfterDiscount'
+        ));
+    }
 }

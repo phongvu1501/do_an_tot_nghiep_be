@@ -42,9 +42,11 @@ Route::middleware(['auth'])->group(function () {
 //bọc tất cả router admin lại 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+    //Thống kê
     Route::get('/reservation-statistics', [DashboardController::class, 'reservationStatistics'])->name('admin.reservationStatistics');
     Route::get('/voucher-statistics', [DashboardController::class, 'voucherStatistics'])->name('admin.voucherStatistics');
     Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
+    Route::get('/thong-ke-statistics', [DashboardController::class, 'revenueStatistics'])->name('admin.thongkeStatistics');
     Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
     Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
