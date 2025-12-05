@@ -445,9 +445,11 @@
                         @endif
                     </div>
                     <div class="modal-footer">
-                        <a href="{{ route('invoice.pdf', ['code' => $reservation->reservation_code]) }}" class="btn btn-primary">
-                            In hóa đơn
-                        </a>
+                        @if($reservation->reservation_code)
+                            <a href="{{ route('invoice.pdf', $reservation->reservation_code) }}" class="btn btn-primary">
+                                In hóa đơn
+                            </a>
+                        @endif
 
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
                     </div>
