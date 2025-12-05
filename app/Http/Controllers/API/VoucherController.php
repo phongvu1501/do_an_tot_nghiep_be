@@ -96,10 +96,9 @@ class VoucherController extends Controller
                 'message' => 'Người dùng không tồn tại.',
             ], 404);
         }
-        
+
         $vouchers = $user->vouchers()
-            ->where('vouchers.status', 'active')
-            ->wherePivot('status', 'unused') // Chỉ lấy voucher chưa sử dụng
+            ->where('vouchers.status', 'active') 
             ->orderBy('vouchers.created_at', 'desc')
             ->get();
 
@@ -110,6 +109,7 @@ class VoucherController extends Controller
         ]);
     }
 
+
     /**
      * Lấy danh sách voucher có thể áp dụng cho reservation khi thanh toán
      * Kiểm tra đầy đủ các điều kiện: user_id, min_order_value, order_value_allowed, 
@@ -118,7 +118,7 @@ class VoucherController extends Controller
     public function getApplicableVouchersForReservation(Request $request, $reservationId)
     {
         $reservation = Reservation::with(['reservationItems.menu', 'user', 'voucher'])->findOrFail($reservationId);
-        
+
         // Tính tổng tiền của reservation (sau VAT)
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
         $vat = $subtotal * 0.1;
@@ -131,7 +131,7 @@ class VoucherController extends Controller
         $vouchers = Voucher::with('tier')
             ->where(function ($query) use ($userId) {
                 $query->where('user_id', $userId)
-                      ->orWhereNull('user_id');
+                    ->orWhereNull('user_id');
             })
             ->where('status', 'active')
             ->get();
@@ -174,7 +174,7 @@ class VoucherController extends Controller
             // Tính toán discount (chỉ tính khi có thể áp dụng)
             $discountAmount = 0;
             $maxDiscountValue = null;
-            
+
             if ($isApplicable) {
                 if ($voucher->discount_type === 'percent') {
                     $discountAmount = ($voucher->discount_value / 100) * $totalPrice;
@@ -251,7 +251,7 @@ class VoucherController extends Controller
         ]);
 
         $reservation = Reservation::with(['reservationItems.menu', 'user'])->findOrFail($reservationId);
-        
+
         // Tính tổng tiền của reservation (sau VAT)
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
         $vat = $subtotal * 0.1;
@@ -381,7 +381,6 @@ class VoucherController extends Controller
                     'final_amount' => round($finalAmount, 0),
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -397,7 +396,7 @@ class VoucherController extends Controller
     public function removeVoucherFromReservation(Request $request, $reservationId)
     {
         $reservation = Reservation::with(['reservationItems.menu'])->findOrFail($reservationId);
-        
+
         if (!$reservation->voucher_id) {
             return response()->json([
                 'success' => false,
@@ -452,7 +451,6 @@ class VoucherController extends Controller
                     'total_price' => round($totalPrice, 0),
                 ],
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
