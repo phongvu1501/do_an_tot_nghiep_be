@@ -48,7 +48,7 @@
                                 <select name="category_id" id="category_id" class="form-control">
                                     <option value="">Tất cả</option>
                                     @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" {{ $selectedCategoryId == $category->id ? 'selected' : '' }}>
+                                        <option value="{{ $category->id }}" {{ (string)$selectedCategoryId == (string)$category->id ? 'selected' : '' }}>
                                             {{ $category->name }}
                                         </option>
                                     @endforeach

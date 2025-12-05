@@ -95,7 +95,7 @@ class DatBanAnController extends Controller
                 ]),
                 'tables_count' => $reservation->tables->count(),
 
-                'menus' => $reservation->reservationItems->map(fn($item) => [
+                'menus' => $reservation->reservationItems->filter(fn($item) => $item->menu !== null)->map(fn($item) => [
                     'id' => $item->menu->id,
                     'name' => $item->menu->name,
                     'price' => $item->price,
@@ -186,7 +186,9 @@ class DatBanAnController extends Controller
                     ];
                 }),
                 'tables_count' => $reservation->tables->count(),
-                'menus' => $reservation->reservationItems->map(function ($item) {
+                'menus' => $reservation->reservationItems->filter(function ($item) {
+                    return $item->menu !== null;
+                })->map(function ($item) {
                     return [
                         'id' => $item->menu->id,
                         'name' => $item->menu->name,
@@ -676,7 +678,9 @@ class DatBanAnController extends Controller
                         'name' => $table->name,
                     ];
                 }),
-                'menus' => $reservation->reservationItems->map(function ($item) {
+                'menus' => $reservation->reservationItems->filter(function ($item) {
+                    return $item->menu !== null;
+                })->map(function ($item) {
                     return [
                         'id' => $item->menu->id,
                         'name' => $item->menu->name,
