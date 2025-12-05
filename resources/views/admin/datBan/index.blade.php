@@ -86,10 +86,10 @@
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Số điện thoại</label>
                                             <div class="input-group">
-                                                <input type="text" 
-                                                       name="phone" 
-                                                       class="form-control" 
-                                                       value="{{ request('phone') }}" 
+                                                <input type="text"
+                                                       name="phone"
+                                                       class="form-control"
+                                                       value="{{ request('phone') }}"
                                                        placeholder="Nhập số điện thoại"
                                                        onkeypress="if(event.key === 'Enter') { document.getElementById('filterFormDatBan').submit(); }">
                                                 <div class="input-group-append" style="margin-left: 5px;">
@@ -292,7 +292,7 @@
                                     <br>
                                     <strong>Số người:</strong> {{ $reservation->num_people }} người<br>
                                     <strong>Ghi chú :</strong> {{ $reservation->depsection }}<br>
-                                    <strong>Trạng thái:</strong> 
+                                    <strong>Trạng thái:</strong>
                                     @switch($reservation->status)
                                         @case('pending')
                                             <span class="badge badge-secondary">Chờ xác nhận</span>
@@ -321,7 +321,7 @@
                             </div>
                         </div>
 
-                       
+
 
                         <hr>
 
@@ -333,17 +333,17 @@
                                     $foodDeposit = $reservation->getFoodDeposit();
                                 @endphp
                                 <p class="mb-2">
-                                    <strong>Tiền cọc bàn:</strong> 
+                                    <strong>Tiền cọc bàn:</strong>
                                     <span class="text-primary">{{ number_format($tableDeposit, 0, ',', '.') }} VND</span>
                                 </p>
                                 @if($foodDeposit > 0)
                                 <p class="mb-2">
-                                    <strong>Tiền cọc món gọi trước:</strong> 
+                                    <strong>Tiền cọc món gọi trước:</strong>
                                     <span class="text-primary">{{ number_format($foodDeposit, 0, ',', '.') }} VND</span>
                                 </p>
                                 @endif
                                 <p class="mb-0">
-                                    <strong>Tổng tiền cọc:</strong> 
+                                    <strong>Tổng tiền cọc:</strong>
                                     <span class="text-success font-weight-bold">{{ number_format($reservation->deposit ?? 0, 0, ',', '.') }} VND</span>
                                 </p>
                             </div>
@@ -445,6 +445,10 @@
                         @endif
                     </div>
                     <div class="modal-footer">
+                        <a href="{{ route('invoice.pdf', ['code' => $reservation->reservation_code]) }}" class="btn btn-primary">
+                            In hóa đơn
+                        </a>
+
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
                     </div>
                 </div>
@@ -491,7 +495,7 @@
                                     <ul class="mb-0 mt-2">
                                         @foreach(session('conflicting_tables') as $conflict)
                                             <li>
-                                                <strong>Bàn {{ $conflict['table_name'] }}</strong> - 
+                                                <strong>Bàn {{ $conflict['table_name'] }}</strong> -
                                                 Đang phục vụ cho đơn {{ $conflict['conflicting_reservation_code'] }}
                                             </li>
                                         @endforeach
@@ -506,8 +510,8 @@
                                     @php
                                         $currentTableIds = $reservation->tables->pluck('id')->toArray();
                                         $allTables = \App\Models\BanAn::all();
-                                        $conflictingTableIds = session('conflicting_tables') && session('open_edit_modal') == $reservation->id 
-                                            ? collect(session('conflicting_tables'))->pluck('table_id')->toArray() 
+                                        $conflictingTableIds = session('conflicting_tables') && session('open_edit_modal') == $reservation->id
+                                            ? collect(session('conflicting_tables'))->pluck('table_id')->toArray()
                                             : [];
                                     @endphp
 
@@ -520,7 +524,7 @@
                                                 ->whereIn('status', ['deposit_paid', 'serving'])
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
-                                            
+
                                             // Check if this table is conflicting (being served by another reservation)
                                             $isConflicting = in_array($table->id, $conflictingTableIds);
                                         @endphp
@@ -609,11 +613,11 @@
                                         });
                                         $vat = $subtotal * 0.1;
                                         $totalBeforeDiscount = $subtotal + $vat;
-                                        
+
                                         // Tính với voucher nếu có
                                         $voucherDiscount = $reservation->voucher_discount ?? 0;
                                         $totalAfterDiscount = max(0, $totalBeforeDiscount - $voucherDiscount);
-                                        
+
                                         // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
                                         $tableDeposit = $reservation->getTableDeposit();
                                         $foodDeposit = $reservation->getFoodDeposit();
@@ -718,7 +722,7 @@
                                 @if($reservation->voucher)
                                     <div class="alert alert-success">
                                         <strong>Voucher đã áp dụng:</strong> {{ $reservation->voucher->code }}<br>
-                                        <strong>Giảm giá:</strong> 
+                                        <strong>Giảm giá:</strong>
                                         @if($reservation->voucher->discount_type == 'percent')
                                             {{ $reservation->voucher->discount_value }}%
                                         @else
@@ -733,7 +737,7 @@
                                         <i class="fas fa-search"></i> Xem danh sách voucher
                                     </button>
                                 @endif
-                                
+
                                 <div id="voucherList{{ $reservation->id }}" style="display: none; margin-top: 15px;">
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
@@ -776,7 +780,7 @@
                         @csrf
                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                         <input type="hidden" name="status" value="cancelled">
-                        
+
                         <div class="modal-header bg-danger text-white">
                             <h5 class="modal-title">
                                 <i class="fas fa-exclamation-triangle"></i> Xác nhận hủy đơn #{{ $reservation->id }}
@@ -970,7 +974,7 @@
                                     <ul class="mb-0 mt-2">
                                         @foreach(session('conflicting_tables') as $conflict)
                                             <li>
-                                                <strong>Bàn {{ $conflict['table_name'] }}</strong> - 
+                                                <strong>Bàn {{ $conflict['table_name'] }}</strong> -
                                                 Đang phục vụ cho đơn {{ $conflict['conflicting_reservation_code'] }}
                                             </li>
                                         @endforeach
@@ -1290,7 +1294,7 @@
                         <p class="mt-2">Đang tải danh sách voucher...</p>
                     </div>
                 `;
-                
+
                 fetch('{{ url('admin/dat-ban') }}/' + reservationId + '/applicable-vouchers')
                     .then(response => {
                         if (!response.ok) {
@@ -1328,7 +1332,7 @@
                                         </div>
                                         <div class="mt-2">
                                             <div class="mb-1">
-                                                <strong>Giảm giá:</strong> 
+                                                <strong>Giảm giá:</strong>
                                                 ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : number_format(voucher.discount_value) + 'đ'}
                                                 ${voucher.max_discount_value ? ' (Tối đa: ' + number_format(voucher.max_discount_value) + 'đ)' : ''}
                                             </div>
@@ -1365,7 +1369,7 @@
                                     </div>
                                     <div class="mt-2">
                                         <div class="mb-1">
-                                            <strong>Giảm giá:</strong> 
+                                            <strong>Giảm giá:</strong>
                                             ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : number_format(voucher.discount_value) + 'đ'}
                                             ${voucher.max_discount_value ? ' (Tối đa: ' + number_format(voucher.max_discount_value) + 'đ)' : ''}
                                         </div>
@@ -1432,7 +1436,7 @@
             function updateInvoiceWithVoucher(reservationId, data) {
                 // Lấy các giá trị từ bảng hiện tại
                 const tfoot = document.querySelector(`#invoiceModal${reservationId} tfoot`);
-                const totalRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                const totalRow = Array.from(tfoot.querySelectorAll('tr')).find(row =>
                     row.textContent.includes('Tổng tiền')
                 );
                 const totalBeforeDiscountText = totalRow.querySelector('th:last-child').textContent;
@@ -1440,15 +1444,15 @@
 
                 const discountAmount = data.discount_amount || 0;
                 const finalAmount = data.final_amount || (totalBeforeDiscount - discountAmount);
-                
+
                 // Lấy giá trị cọc từ bảng
-                const tableDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                const tableDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row =>
                     row.textContent.includes('Tiền cọc bàn')
                 );
                 const tableDepositText = tableDepositRow ? tableDepositRow.querySelector('th:last-child').textContent : '0';
                 const tableDeposit = parseFloat(tableDepositText.replace(/[^\d]/g, '')) || 0;
-                
-                const foodDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+
+                const foodDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row =>
                     row.textContent.includes('Tiền cọc đồ ăn')
                 );
                 const foodDepositText = foodDepositRow ? foodDepositRow.querySelector('th:last-child').textContent : '0';
@@ -1471,7 +1475,7 @@
                 const voucherDisplay = data.voucher.discount_type === 'percent'
                     ? `Voucher (${data.voucher.discount_value}%)`
                     : `Voucher (${number_format(data.voucher.discount_value)}đ)`;
-                
+
                 voucherRow.innerHTML = `
                     <th colspan="3" class="text-right">${voucherDisplay}:</th>
                     <th class="text-right text-danger">- ${number_format(discountAmount)}đ</th>
@@ -1494,7 +1498,7 @@
 
             function updateRemainingAmount(reservationId, remainingAmount) {
                 let remainingRow = document.querySelector(`#invoiceModal${reservationId} tfoot .bg-warning`);
-                
+
                 if (!remainingRow) {
                     // Tạo dòng mới nếu chưa có
                     const tfoot = document.querySelector(`#invoiceModal${reservationId} tfoot`);
@@ -1536,7 +1540,7 @@
 
                 // Cập nhật body
                 const voucherBody = document.querySelector(`#invoiceModal${reservationId} .card-body`);
-                const discountDisplay = voucher.discount_type === 'percent' 
+                const discountDisplay = voucher.discount_type === 'percent'
                     ? voucher.discount_value + '%'
                     : number_format(voucher.discount_value) + 'đ';
                 voucherBody.innerHTML = `
@@ -1594,28 +1598,28 @@
 
             function removeVoucherFromInvoice(reservationId, data) {
                 const tfoot = document.querySelector(`#invoiceModal${reservationId} tfoot`);
-                
+
                 // Xóa dòng giảm giá và tổng sau giảm giá
                 const voucherRow = document.getElementById(`voucherDiscountRow${reservationId}`);
                 const totalAfterDiscountRow = document.getElementById(`totalAfterDiscountRow${reservationId}`);
-                
+
                 if (voucherRow) voucherRow.remove();
                 if (totalAfterDiscountRow) totalAfterDiscountRow.remove();
 
                 // Tính lại số tiền còn lại
-                const totalRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                const totalRow = Array.from(tfoot.querySelectorAll('tr')).find(row =>
                     row.textContent.includes('Tổng tiền')
                 );
                 const totalBeforeDiscountText = totalRow.querySelector('th:last-child').textContent;
                 const totalBeforeDiscount = parseFloat(totalBeforeDiscountText.replace(/[^\d]/g, '')) || data.total_price;
 
-                const tableDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+                const tableDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row =>
                     row.textContent.includes('Tiền cọc bàn')
                 );
                 const tableDepositText = tableDepositRow ? tableDepositRow.querySelector('th:last-child').textContent : '0';
                 const tableDeposit = parseFloat(tableDepositText.replace(/[^\d]/g, '')) || 0;
-                
-                const foodDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row => 
+
+                const foodDepositRow = Array.from(tfoot.querySelectorAll('tr')).find(row =>
                     row.textContent.includes('Tiền cọc đồ ăn')
                 );
                 const foodDepositText = foodDepositRow ? foodDepositRow.querySelector('th:last-child').textContent : '0';
