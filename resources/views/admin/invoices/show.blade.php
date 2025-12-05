@@ -196,11 +196,5 @@
     @endif
 </div>
 
-{{-- BUTTON --}}
-<div class="print-buttons">
-    <button onclick="window.print()" class="btn btn-primary">In hóa đơn</button>
-    <a href="{{ url()->previous() }}" class="btn btn-secondary">Quay lại</a>
-</div>
-
 </body>
 </html>
