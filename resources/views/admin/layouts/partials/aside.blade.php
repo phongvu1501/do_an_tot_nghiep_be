@@ -30,8 +30,7 @@
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
-                data-accordion="false">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
                 <li class="nav-item">
@@ -61,14 +60,14 @@
                             <a href="{{ route('admin.voucherStatistics') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Thống kê vouchers</p>
-                            <a href="{{ route('admin.menuStatistics') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Thống kê Menu</p>
-                            </a>
-                            <a href="{{ route('admin.thongkeStatistics') }}" class="nav-link">
-                                <i class="far fa-circle nav-icon"></i>
-                                <p>Thống kê doanh thu</p>
-                            </a>
+                                <a href="{{ route('admin.menuStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê Menu</p>
+                                </a>
+                                <a href="{{ route('admin.thongkeStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê doanh thu</p>
+                                </a>
                         </li>
                     </ul>
                 </li>
@@ -132,6 +131,13 @@
                         </p>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="" class="nav-link">
+                        <i class="nav-icon fas fa-comment-dots"></i>
+                        <p>Quản lý bình luận</p>
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-user"></i>
