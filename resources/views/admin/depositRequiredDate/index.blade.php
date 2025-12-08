@@ -44,19 +44,25 @@
                                     <form action="{{ route('admin.depositRequiredDate.updateDepositSettings') }}" method="POST" class="row align-items-end">
                                         @csrf
                                         @method('PUT')
-                                        <!-- <div class="col-md-4">
-                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND)</label>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND) <span class="text-danger">*</span></label>
                                             <input type="number" name="deposit_normal_tables" class="form-control" 
                                                    value="{{ old('deposit_normal_tables', $deposit_normal_tables ?? 500000) }}" 
                                                    min="1" step="1" placeholder="Nhập số tiền cọc" required>
-                                        </div> -->
-                                        <div class="col-md-4">
-                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) <span class="text-danger">*</span></label>
                                             <input type="number" name="deposit_vip_rooms" class="form-control" 
                                                    value="{{ old('deposit_vip_rooms', $deposit_vip_rooms ?? 1000000) }}" 
                                                    min="1" step="1" placeholder="Nhập số tiền cọc" required>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Số bàn tối thiểu cần cọc (ngày thường) <span class="text-danger">*</span></label>
+                                            <input type="number" name="min_tables_for_deposit" class="form-control" 
+                                                   value="{{ old('min_tables_for_deposit', $min_tables_for_deposit ?? 2) }}" 
+                                                   min="1" step="1" placeholder="Ví dụ: 2" required>
+                                        </div>
+                                        <div class="col-md-3">
                                             <button type="submit" class="btn btn-success w-100">
                                                 <i class="fas fa-save"></i> Lưu cấu hình
                                             </button>
@@ -120,7 +126,8 @@
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        <strong class="text-primary">{{ number_format($group['deposit_per_table'] ?? 300000, 0, ',', '.') }} VND</strong>
+                                                        <strong class="text-primary">{{ number_format($deposit_normal_tables ?? 500000, 0, ',', '.') }} VND</strong>
+                                                        <br><small class="text-muted">(Cấu hình chung)</small>
                                                     </td>
                                                     <td class="text-center">
                                                         @if($group['is_active'])
@@ -239,12 +246,8 @@
                             @enderror
                         </div>
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                            <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table') }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                            @error('deposit_per_table')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                         </div>
 
                         <input type="hidden" name="is_active" value="1">
@@ -301,12 +304,8 @@
                             <input type="text" name="description" class="form-control" placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description') }}" maxlength="500">
                         </div>
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                            <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table') }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                            @error('deposit_per_table')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                         </div>
 
                         <div class="form-group">
@@ -368,12 +367,8 @@
                                     @enderror
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                                    <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table', $date->deposit_per_table) }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                                    @error('deposit_per_table')
-                                        <small class="text-danger d-block">{{ $message }}</small>
-                                    @enderror
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                                 </div>
 
                                 <div class="form-group">
@@ -445,9 +440,8 @@
                                     <input type="text" name="description" class="form-control" placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description', $group['description']) }}" maxlength="500">
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                                    <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table', $group['deposit_per_table']) }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                                 </div>
 
                                 <div class="form-group">

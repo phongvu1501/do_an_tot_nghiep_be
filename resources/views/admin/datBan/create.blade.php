@@ -222,7 +222,7 @@
                                                             <strong>Tạm tính:</strong> <span id="subtotal">0</span> VND
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <strong>VAT (10%):</strong> <span id="vat">0</span> VND
+                                                            <strong>VAT (8%):</strong> <span id="vat">0</span> VND
                                                         </div>
                                                         <div class="col-md-12 mt-2">
                                                             <strong>Tổng tiền món:</strong> <span id="totalPrice">0</span> VND
@@ -720,7 +720,9 @@ function checkDepositRequired() {
     
     if (!date) {
         depositInfo.innerHTML = '<span class="text-info">Vui lòng chọn ngày đặt bàn</span>';
-        calculateDeposit(null, hasVip, hasNormalTables, vipTableCount, normalTableCount);
+        const minTablesForDeposit = {{ $minTablesForDeposit ?? 2 }};
+        const holidayData = { min_tables_for_deposit: minTablesForDeposit };
+        calculateDeposit(holidayData, hasVip, hasNormalTables, vipTableCount, normalTableCount);
         return;
     }
     
@@ -730,6 +732,7 @@ function checkDepositRequired() {
         .then(data => {
             let infoText = '';
             const depositNormalTables = {{ $depositNormalTables ?? 500000 }};
+            const minTablesForDeposit = {{ $minTablesForDeposit ?? 2 }};
             
             if (hasVip) {
                 infoText = '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Phòng VIP: Luôn cần cọc bàn</span>';
@@ -739,22 +742,37 @@ function checkDepositRequired() {
                 infoText = `<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Ngày lễ: Cần cọc bàn thường (${new Intl.NumberFormat('vi-VN').format(depositAmount)} VND)</span>`;
             } else if (data.requires_deposit && !hasNormalTables) {
                 infoText = '<span class="text-info"><i class="fas fa-info-circle"></i> Ngày lễ nhưng chưa chọn bàn thường</span>';
+            } else if (!data.requires_deposit && hasNormalTables && normalTableCount >= minTablesForDeposit) {
+                // Ngày thường + số bàn >= số bàn cấu hình: Cần cọc bàn
+                infoText = `<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Ngày thường: Từ ${minTablesForDeposit} bàn trở lên cần cọc bàn (${new Intl.NumberFormat('vi-VN').format(depositNormalTables)} VND/bàn)</span>`;
             } else {
                 infoText = '<span class="text-info"><i class="fas fa-info-circle"></i> Ngày thường: Chỉ cọc món ăn (nếu có)</span>';
             }
             depositInfo.innerHTML = infoText;
             
-            // Truyền data vào calculateDeposit với deposit_amount
+            // Truyền data vào calculateDeposit với deposit_amount và minTablesForDeposit
             const holidayData = {
                 requires_deposit: data.requires_deposit,
-                deposit_amount: data.deposit_amount || (data.requires_deposit ? depositNormalTables : null)
+                deposit_amount: data.deposit_amount || (data.requires_deposit ? depositNormalTables : null),
+                min_tables_for_deposit: minTablesForDeposit
             };
             calculateDeposit(holidayData, hasVip, hasNormalTables, vipTableCount, normalTableCount);
         })
         .catch(error => {
             console.error('Error:', error);
-            depositInfo.innerHTML = '<span class="text-info">Nếu tích: Cọc món ăn (nếu có) + Cọc bàn (nếu ngày lễ hoặc VIP)</span>';
-            calculateDeposit(null, hasVip, hasNormalTables, vipTableCount, normalTableCount);
+            const minTablesForDeposit = {{ $minTablesForDeposit ?? 2 }};
+            const depositNormalTables = {{ $depositNormalTables ?? 500000 }};
+            let infoText = '';
+            if (hasVip) {
+                infoText = '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Phòng VIP: Luôn cần cọc bàn</span>';
+            } else if (hasNormalTables && normalTableCount >= minTablesForDeposit) {
+                infoText = `<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Ngày thường: Từ ${minTablesForDeposit} bàn trở lên cần cọc bàn (${new Intl.NumberFormat('vi-VN').format(depositNormalTables)} VND/bàn)</span>`;
+            } else {
+                infoText = '<span class="text-info">Nếu tích: Cọc món ăn (nếu có) + Cọc bàn (nếu ngày lễ hoặc VIP hoặc từ ' + minTablesForDeposit + ' bàn trở lên)</span>';
+            }
+            depositInfo.innerHTML = infoText;
+            const holidayData = { min_tables_for_deposit: minTablesForDeposit };
+            calculateDeposit(holidayData, hasVip, hasNormalTables, vipTableCount, normalTableCount);
         });
 }
 
@@ -783,6 +801,7 @@ function calculateDeposit(holidayData = null, hasVip = false, hasNormalTables = 
     let tableDeposit = 0;
     const depositVipRooms = {{ $depositVipRooms ?? 1000000 }};
     const depositNormalTables = {{ $depositNormalTables ?? 500000 }};
+    const minTablesForDeposit = holidayData?.min_tables_for_deposit || {{ $minTablesForDeposit ?? 2 }};
     
     if (hasVip && vipTableCount > 0) {
         // VIP: Luôn cần cọc, nhân với số lượng bàn VIP
@@ -792,8 +811,11 @@ function calculateDeposit(holidayData = null, hasVip = false, hasNormalTables = 
         const holidayDepositAmount = holidayData.deposit_amount ? parseFloat(holidayData.deposit_amount) : null;
         const depositPerTable = holidayDepositAmount || depositNormalTables;
         tableDeposit = depositPerTable * normalTableCount;
+    } else if (!holidayData?.requires_deposit && hasNormalTables && normalTableCount >= minTablesForDeposit) {
+        // Ngày thường + số bàn >= số bàn cấu hình: Cần cọc bàn thường, nhân với số lượng bàn thường
+        tableDeposit = depositNormalTables * normalTableCount;
     }
-    // Ngày thường + bàn thường: Không cần cọc bàn (chỉ cọc món nếu có)
+    // Ngày thường + số bàn < số bàn cấu hình: Không cần cọc bàn (chỉ cọc món nếu có)
     
     const totalDeposit = menuDeposit + tableDeposit;
     
@@ -1061,7 +1083,7 @@ function calculateTotal() {
         subtotal += menu.price * menu.quantity;
     });
     
-    const vat = subtotal * 0.1;
+    const vat = subtotal * 0.08;
     const totalPrice = subtotal + vat;
     
     document.getElementById('subtotal').textContent = new Intl.NumberFormat('vi-VN').format(subtotal);

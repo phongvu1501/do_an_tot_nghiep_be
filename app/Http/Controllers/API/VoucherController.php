@@ -121,7 +121,7 @@ class VoucherController extends Controller
 
         // Tính tổng tiền của reservation (sau VAT)
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $totalPrice = $subtotal + $vat;
 
         $userId = $reservation->user_id;
@@ -254,7 +254,7 @@ class VoucherController extends Controller
 
         // Tính tổng tiền của reservation (sau VAT)
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $totalPrice = $subtotal + $vat;
 
         $voucher = Voucher::with('tier')->findOrFail($request->voucher_id);
@@ -411,7 +411,7 @@ class VoucherController extends Controller
 
             // Tính lại total_amount không có voucher
             $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-            $vat = $subtotal * 0.1;
+            $vat = $subtotal * 0.08;
             $totalPrice = $subtotal + $vat;
 
             // Cập nhật reservation

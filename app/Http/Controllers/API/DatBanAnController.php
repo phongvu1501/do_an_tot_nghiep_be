@@ -52,7 +52,7 @@ class DatBanAnController extends Controller
                 $item->price * $item->quantity
             );
 
-            $vat = $subtotal * 0.1;
+            $vat = $subtotal * 0.08;
             $total_price = $subtotal + $vat;
 
             // Ưu tiên dùng voucher_discount đã lưu, nếu không có thì tính lại
@@ -202,10 +202,10 @@ class DatBanAnController extends Controller
                 }),
                 'vat' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
-                }) * 0.1,
+                }) * 0.08,
                 'total_price' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
-                }) * 1.1,
+                }) * 1.08,
                 'voucher' => $reservation->voucher ? [
                     'id' => $reservation->voucher->id,
                     'code' => $reservation->voucher->code,
@@ -219,7 +219,7 @@ class DatBanAnController extends Controller
                 'voucher_discount' => $reservation->voucher_discount ?? 0,
                 'final_amount' => ($reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
-                }) * 1.1) - ($reservation->voucher_discount ?? 0),
+                }) * 1.08) - ($reservation->voucher_discount ?? 0),
                 'deposit' => $reservation->deposit,
                 'table_deposit' => $reservation->getTableDeposit(),
                 'food_deposit' => $reservation->getFoodDeposit(),
@@ -458,8 +458,8 @@ class DatBanAnController extends Controller
                 }
             }
 
-            // Tính VAT 10% và tổng tiền cuối cùng
-            $vat = $subtotal * 0.1;
+            // Tính VAT 8% và tổng tiền cuối cùng
+            $vat = $subtotal * 0.08;
             $totalPrice = $subtotal + $vat;
 
             // Kiểm tra ngày có yêu cầu đặt cọc hay không (ngày lễ)
@@ -483,17 +483,26 @@ class DatBanAnController extends Controller
                 $vipDepositPerTable = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000)); // Đảm bảo >= 1
                 $vipTableCount = $availableTables->where('type', 'vip')->count();
                 $tableDeposit = $vipDepositPerTable * $vipTableCount;
-            } elseif ($isHoliday && $hasNormalTables) {
-                // Bàn thường: Chỉ tính cọc nếu là ngày lễ, đảm bảo > 0
-                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
-                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
-                    ?? $holidayDate->deposit_per_table 
-                    ?? Setting::getValue('deposit_normal_tables', 500000);
-                $normalDepositPerTable = max(1, (int)$normalDepositPerTable); // Đảm bảo >= 1
+            } elseif ($hasNormalTables) {
+                // Bàn thường: Cọc nếu >= số bàn cấu hình hoặc là ngày lễ
                 $normalTableCount = $availableTables->where('type', 'normal')->count();
-                $tableDeposit = $normalDepositPerTable * $normalTableCount;
+                
+                // Ngày lễ: Luôn bắt buộc cọc dù chỉ 1 bàn
+                if ($isHoliday) {
+                    $normalDepositPerTable = Setting::getValue('deposit_normal_tables', 500000);
+                    $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+                    $tableDeposit = $normalDepositPerTable * $normalTableCount;
+                } else {
+                    // Ngày thường: Chỉ cọc nếu >= số bàn cấu hình
+                    $minTablesForDeposit = Setting::getValue('min_tables_for_deposit', 2);
+                    if ($normalTableCount >= $minTablesForDeposit) {
+                        $normalDepositPerTable = Setting::getValue('deposit_normal_tables', 500000);
+                        $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+                        $tableDeposit = $normalDepositPerTable * $normalTableCount;
+                    }
+                }
             }
-            // Ngày thường + bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
+            // Ngày thường + 1 bàn thường: không cần cọc bàn (chỉ cọc món ăn nếu có)
 
             // Cọc món ăn (luôn cọc toàn bộ tiền món ăn nếu có)
             if ($totalPrice > 0) {
@@ -694,10 +703,10 @@ class DatBanAnController extends Controller
                 }),
                 'vat' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
-                }) * 0.1,
+                }) * 0.08,
                 'total_price' => $reservation->reservationItems->sum(function ($item) {
                     return $item->price * $item->quantity;
-                }) * 1.1,
+                }) * 1.08,
             ];
         });
 

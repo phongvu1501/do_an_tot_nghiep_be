@@ -56,7 +56,7 @@
                     <h5 class="fw-bold text-primary mb-3">Thông tin hóa đơn</h5>
                     @php
                         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-                        $tax = $subtotal * 0.1;
+                        $tax = $subtotal * 0.08;
                         $totalBeforeDiscount = $subtotal + $tax;
                         $voucherDiscount = $reservation->voucher_discount ?? 0;
                         $total = $totalBeforeDiscount - $voucherDiscount;

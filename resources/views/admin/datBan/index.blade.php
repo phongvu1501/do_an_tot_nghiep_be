@@ -394,7 +394,7 @@
                                         $subtotal = $reservation->reservationItems->sum(function($m) {
                                             return $m->price * $m->quantity;
                                         });
-                                        $vat = $subtotal * 0.1;
+                                        $vat = $subtotal * 0.08;
                                         $totalBeforeDiscount = $subtotal + $vat;
                                         $voucherDiscount = $reservation->voucher_discount ?? 0;
                                         $total = $totalBeforeDiscount - $voucherDiscount;
@@ -407,7 +407,7 @@
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th colspan="3" class="text-right">VAT 8%:</th>
                                         <th class="text-right">
                                             {{ number_format($vat, 0, ',', '.') }}đ
                                         </th>
@@ -469,7 +469,7 @@
                             <h5 class="modal-title">
                                 <i class="fas fa-edit"></i> Chỉnh sửa bàn cho đơn #{{ $reservation->reservation_code }}
                             </h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <button type="button" class="close" onclick="closeEditTableModal({{ $reservation->id }})" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
@@ -520,10 +520,18 @@
                                     @foreach($allTables as $table)
                                         @php
                                             // Check if table is busy in this shift/date (excluding current reservation)
+                                            // Kiểm tra các trạng thái: confirmed (đã xác nhận), deposit_paid (đã đặt cọc), serving (đang phục vụ)
                                             $isBusy = $table->reservations()
                                                 ->where('reservation_date', $reservation->reservation_date)
                                                 ->where('shift', $reservation->shift)
-                                                ->whereIn('status', ['deposit_paid', 'serving'])
+                                                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
+                                                ->where('reservations.id', '!=', $reservation->id)
+                                                ->exists();
+
+                                            // Kiểm tra bàn đang được phục vụ bởi đơn khác (bất kỳ ngày/ca nào)
+                                            // Vì đang phục vụ nghĩa là đang sử dụng bàn ngay bây giờ
+                                            $isBeingServed = $table->reservations()
+                                                ->where('status', 'serving')
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
 
@@ -539,14 +547,13 @@
                                                 name="table_ids[]"
                                                 value="{{ $table->id }}"
                                                 {{ in_array($table->id, $currentTableIds) ? 'checked' : '' }}
-                                                {{ ($isBusy || $isConflicting) ? 'disabled' : '' }}
+                                                {{ ($isBusy || $isBeingServed || $isConflicting) ? 'disabled' : '' }}
                                             >
-                                            <label class="custom-control-label {{ $isConflicting ? 'text-danger font-weight-bold' : '' }}" for="table{{ $table->id }}_{{ $reservation->id }}">
+                                            <label class="custom-control-label {{ ($isConflicting || $isBeingServed) ? 'text-danger font-weight-bold' : '' }}" for="table{{ $table->id }}_{{ $reservation->id }}">
                                                 {{ $table->name }}
-                                                @if($isConflicting)
+                                                @if($isConflicting || $isBeingServed)
                                                     <span class="badge badge-danger ml-2">Đang phục vụ</span>
-                                                @endif
-                                                @if($isBusy)
+                                                @elseif($isBusy)
                                                     <span class="badge badge-danger badge-sm">Đang bận</span>
                                                 @elseif(in_array($table->id, $currentTableIds))
                                                     <span class="badge badge-success badge-sm">Đang chọn</span>
@@ -563,7 +570,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeEditTableModal({{ $reservation->id }})">Hủy</button>
                             <button type="submit" class="btn btn-warning">
                                 <i class="fas fa-save"></i> Lưu thay đổi
                             </button>
@@ -613,7 +620,7 @@
                                         $subtotal = $reservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
-                                        $vat = $subtotal * 0.1;
+                                        $vat = $subtotal * 0.08;
                                         $totalBeforeDiscount = $subtotal + $vat;
 
                                         // Tính với voucher nếu có
@@ -632,7 +639,7 @@
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th colspan="3" class="text-right">VAT 8%:</th>
                                         <th class="text-right">
                                             {{ number_format($vat, 0, ',', '.') }}đ
                                         </th>
@@ -901,7 +908,7 @@
                                             $subtotal = $reservation->reservationItems->sum(function ($m) {
                                                 return $m->price * $m->quantity;
                                             });
-                                            $vat = $subtotal * 0.1;
+                                            $vat = $subtotal * 0.08;
                                             $total = $subtotal + $vat;
                                         @endphp
                                         <tr>
@@ -911,7 +918,7 @@
                                             </th>
                                         </tr>
                                         <tr>
-                                            <th colspan="3" class="text-right">VAT 10%:</th>
+                                            <th colspan="3" class="text-right">VAT 8%:</th>
                                             <th class="text-right">
                                                 {{ number_format($vat, 0, ',', '.') }}đ
                                             </th>
@@ -948,7 +955,7 @@
                             <h5 class="modal-title">
                                 <i class="fas fa-edit"></i> Chỉnh sửa bàn cho đơn #{{ $reservation->reservation_code }}
                             </h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <button type="button" class="close" onclick="closeEditTableModal({{ $reservation->id }})" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
@@ -1003,11 +1010,20 @@
                                     @foreach ($allTables as $table)
                                         @php
                                             // Check if table is busy in this shift/date (excluding current reservation)
+                                            // Kiểm tra các trạng thái: confirmed (đã xác nhận), deposit_paid (đã đặt cọc), serving (đang phục vụ)
                                             $isBusy = $table
                                                 ->reservations()
                                                 ->where('reservation_date', $reservation->reservation_date)
                                                 ->where('shift', $reservation->shift)
-                                                ->whereIn('status', ['deposit_paid', 'serving'])
+                                                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
+                                                ->where('reservations.id', '!=', $reservation->id)
+                                                ->exists();
+
+                                            // Kiểm tra bàn đang được phục vụ bởi đơn khác (bất kỳ ngày/ca nào)
+                                            // Vì đang phục vụ nghĩa là đang sử dụng bàn ngay bây giờ
+                                            $isBeingServed = $table
+                                                ->reservations()
+                                                ->where('status', 'serving')
                                                 ->where('reservations.id', '!=', $reservation->id)
                                                 ->exists();
 
@@ -1016,21 +1032,20 @@
                                         @endphp
 
                                         <div
-                                            class="custom-control custom-checkbox mb-2 {{ $isConflicting ? 'border border-danger p-2 rounded bg-light' : '' }}">
+                                            class="custom-control custom-checkbox mb-2 {{ ($isConflicting || $isBeingServed) ? 'border border-danger p-2 rounded bg-light' : '' }}">
                                             <input type="checkbox"
                                                 class="custom-control-input table-checkbox-{{ $reservation->id }}"
                                                 id="table{{ $table->id }}_{{ $reservation->id }}"
                                                 name="table_ids[]" value="{{ $table->id }}"
                                                 {{ in_array($table->id, $currentTableIds) ? 'checked' : '' }}
-                                                {{ $isBusy || $isConflicting ? 'disabled' : '' }}>
+                                                {{ ($isBusy || $isBeingServed || $isConflicting) ? 'disabled' : '' }}>
                                             <label
-                                                class="custom-control-label {{ $isConflicting ? 'text-danger font-weight-bold' : '' }}"
+                                                class="custom-control-label {{ ($isConflicting || $isBeingServed) ? 'text-danger font-weight-bold' : '' }}"
                                                 for="table{{ $table->id }}_{{ $reservation->id }}">
                                                 {{ $table->name }}
-                                                @if ($isConflicting)
+                                                @if ($isConflicting || $isBeingServed)
                                                     <span class="badge badge-danger ml-2">Đang phục vụ</span>
-                                                @endif
-                                                @if ($isBusy)
+                                                @elseif ($isBusy)
                                                     <span class="badge badge-danger badge-sm">Đang bận</span>
                                                 @elseif(in_array($table->id, $currentTableIds))
                                                     <span class="badge badge-success badge-sm">Đang chọn</span>
@@ -1048,7 +1063,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeEditTableModal({{ $reservation->id }})">Hủy</button>
                             <button type="submit" class="btn btn-warning">
                                 <i class="fas fa-save"></i> Lưu thay đổi
                             </button>
@@ -1101,7 +1116,7 @@
                                                 $subtotal = $reservation->reservationItems->sum(function ($item) {
                                                     return $item->price * $item->quantity;
                                                 });
-                                                $vat = $subtotal * 0.1;
+                                                $vat = $subtotal * 0.08;
                                                 $totalMenuPrice = $subtotal + $vat; // Tổng tiền đã có VAT
                                                 $depositPaid = $reservation->deposit ?? 0;
                                                 $remainingAmount = $totalMenuPrice - $depositPaid;
@@ -1113,7 +1128,7 @@
                                                 </th>
                                             </tr>
                                             <tr>
-                                                <th colspan="3" class="text-right">VAT 10%:</th>
+                                                <th colspan="3" class="text-right">VAT 8%:</th>
                                                 <th class="text-right">
                                                     {{ number_format($vat, 0, ',', '.') }}đ
                                                 </th>
@@ -1224,6 +1239,15 @@
 
     @push('scripts')
         <script>
+            // Hàm đóng modal chỉnh sửa bàn
+            function closeEditTableModal(reservationId) {
+                $('#editTablesModal' + reservationId).modal('hide');
+                // Xóa backdrop nếu còn sót lại
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open');
+                $('body').css('padding-right', '');
+            }
+
             // Tự động mở modal chỉnh sửa bàn nếu có bàn trùng
             @if (session('open_edit_modal'))
                 $(document).ready(function() {

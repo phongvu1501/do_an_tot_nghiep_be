@@ -160,7 +160,7 @@
         <tfoot>
             @php
                 $subtotal = $reservation->reservationItems->sum(fn($m) => $m->price * $m->quantity);
-                $vat = $subtotal * 0.1;
+                $vat = $subtotal * 0.08;
                 $beforeDiscount = $subtotal + $vat;
                 $voucherDiscount = $reservation->voucher_discount ?? 0;
                 $total = max(0, $beforeDiscount - $voucherDiscount);
@@ -169,7 +169,7 @@
             <tr><th colspan="3" style="text-align:right">Tạm tính:</th>
                 <th style="text-align:right">{{ number_format($subtotal,0,',','.') }}đ</th></tr>
 
-            <tr><th colspan="3" style="text-align:right">VAT 10%:</th>
+            <tr><th colspan="3" style="text-align:right">VAT 8%:</th>
                 <th style="text-align:right">{{ number_format($vat,0,',','.') }}đ</th></tr>
 
             <tr><th colspan="3" style="text-align:right">Tổng tiền:</th>

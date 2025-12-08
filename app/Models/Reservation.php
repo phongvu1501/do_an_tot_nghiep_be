@@ -94,20 +94,30 @@ class Reservation extends Model
             return max(1, (float)Setting::getValue('deposit_vip_rooms', 1000000));
         }
 
-        // Bàn thường: Chỉ cọc nếu là ngày lễ
+        // Bàn thường: Cọc nếu >= số bàn cấu hình hoặc là ngày lễ
         if ($hasNormalTables) {
+            $tableCount = $tables->where('type', 'normal')->count();
+            
             $holidayDate = DepositRequiredDate::where('is_active', true)
                 ->whereDate('date', $this->reservation_date)
                 ->orderBy('created_at', 'desc')
                 ->first();
-
+            
+            // Ngày lễ: Luôn bắt buộc cọc dù chỉ 1 bàn
             if ($holidayDate) {
-                $normalDeposit = $holidayDate->deposit_normal_tables ?? Setting::getValue('deposit_normal_tables', 500000);
-                return max(1, (float)$normalDeposit);
+                $normalDepositPerTable = Setting::getValue('deposit_normal_tables', 500000);
+                return max(1, (float)$normalDepositPerTable * $tableCount);
+            }
+            
+            // Ngày thường: Chỉ cọc nếu >= số bàn cấu hình
+            $minTablesForDeposit = Setting::getValue('min_tables_for_deposit', 2);
+            if ($tableCount >= $minTablesForDeposit) {
+                $normalDepositPerTable = Setting::getValue('deposit_normal_tables', 500000);
+                return max(1, (float)$normalDepositPerTable * $tableCount);
             }
         }
 
-        // Ngày thường + bàn thường: không cần cọc bàn
+        // Ngày thường + 1 bàn thường: không cần cọc bàn
         return 0;
     }
 
@@ -141,7 +151,7 @@ class Reservation extends Model
         if (!$voucher || $voucher->status !== 'active') return 0;
 
         $subtotal = $this->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $total = $subtotal + $vat;
 
         // Kiểm tra điều kiện giá trị đơn hàng tối thiểu
@@ -170,7 +180,7 @@ class Reservation extends Model
     public function calculateTotalAmount(): float
     {
         $subtotal = $this->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $voucherDiscount = $this->calculateVoucherDiscount();
 
         return $subtotal + $vat - $voucherDiscount;

@@ -67,6 +67,7 @@ class DatBanController extends Controller
             'categories' => \App\Models\MenuCategory::all(),
             'depositVipRooms' => Setting::getValue('deposit_vip_rooms', 1000000),
             'depositNormalTables' => Setting::getValue('deposit_normal_tables', 500000),
+            'minTablesForDeposit' => Setting::getValue('min_tables_for_deposit', 2),
         ]);
     }
 
@@ -121,10 +122,11 @@ class DatBanController extends Controller
         foreach ($request->table_ids as $tableId) {
             $ban = BanAn::findOrFail($tableId);
 
+            // Kiểm tra các trạng thái: confirmed (đã xác nhận), deposit_paid (đã đặt cọc), serving (đang phục vụ)
             $isBusy = $ban->reservations()
                 ->where('reservation_date', $request->reservation_date)
                 ->where('shift', $request->shift)
-                ->whereIn('status', ['deposit_paid', 'serving'])
+                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
                 ->exists();
 
             if ($isBusy) {
@@ -172,7 +174,7 @@ class DatBanController extends Controller
                 }
             }
         }
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $totalPrice = $subtotal + $vat;
         
         // Tính tiền cọc (chỉ tính nếu require_deposit = true)
@@ -197,19 +199,28 @@ class DatBanController extends Controller
             
             // Cọc bàn:
             // - VIP: Luôn cần cọc
-            // - Bàn thường: Chỉ cần cọc nếu ngày lễ
+            // - Bàn thường: Cọc nếu >= 2 bàn hoặc là ngày lễ
             if ($hasVipRoom) {
                 $vipDepositPerTable = max(1, (int)Setting::getValue('deposit_vip_rooms', 1000000));
                 $vipTableCount = $selectedTables->where('type', 'vip')->count();
                 $tableDeposit = $vipDepositPerTable * $vipTableCount;
-            } elseif ($isHoliday && $hasNormalTables) {
-                // Ưu tiên deposit_normal_tables, nếu không có thì dùng deposit_per_table, cuối cùng mới dùng settings
-                $normalDepositPerTable = $holidayDate->deposit_normal_tables 
-                    ?? $holidayDate->deposit_per_table 
-                    ?? Setting::getValue('deposit_normal_tables', 500000);
-                $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+            } elseif ($hasNormalTables) {
                 $normalTableCount = $selectedTables->where('type', 'normal')->count();
-                $tableDeposit = $normalDepositPerTable * $normalTableCount;
+                
+                // Ngày lễ: Luôn bắt buộc cọc dù chỉ 1 bàn
+                if ($isHoliday) {
+                    $normalDepositPerTable = Setting::getValue('deposit_normal_tables', 500000);
+                    $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+                    $tableDeposit = $normalDepositPerTable * $normalTableCount;
+                } else {
+                    // Ngày thường: Chỉ cọc nếu >= số bàn cấu hình
+                    $minTablesForDeposit = Setting::getValue('min_tables_for_deposit', 2);
+                    if ($normalTableCount >= $minTablesForDeposit) {
+                        $normalDepositPerTable = Setting::getValue('deposit_normal_tables', 500000);
+                        $normalDepositPerTable = max(1, (int)$normalDepositPerTable);
+                        $tableDeposit = $normalDepositPerTable * $normalTableCount;
+                    }
+                }
             }
             
             // Cọc món ăn: Luôn cọc 100% tiền món nếu có món
@@ -441,11 +452,10 @@ class DatBanController extends Controller
                     if ($reservation->status === 'serving') {
                         $query->where('reservations.status', 'serving');
                     } else {
+                        // Kiểm tra các trạng thái: confirmed (đã xác nhận), deposit_paid (đã đặt cọc), serving (đang phục vụ)
                         $query->where('reservations.reservation_date', $reservation->reservation_date)
                             ->where('reservations.shift', $reservation->shift)
-                            ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving'])
-                            ->where('reservations.shift', $reservation->shift)
-                            ->whereIn('reservations.status', ['deposit_paid', 'serving']);
+                            ->whereIn('reservations.status', ['confirmed', 'deposit_paid', 'serving']);
                     }
                 })
                 ->first();
@@ -496,12 +506,11 @@ class DatBanController extends Controller
 
         $allTables = BanAn::all();
 
+        // Kiểm tra các trạng thái: confirmed (đã xác nhận), deposit_paid (đã đặt cọc), serving (đang phục vụ)
         $busyTableIds = BanAn::whereHas('reservations', function ($q) use ($date, $shift) {
             $q->where('reservation_date', $date)
                 ->where('shift', $shift)
-                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving'])
-                ->where('shift', $shift)
-                ->whereIn('status', ['deposit_paid', 'serving']);
+                ->whereIn('status', ['confirmed', 'deposit_paid', 'serving']);
         })->pluck('id');
 
         return response()->json([
@@ -628,7 +637,7 @@ class DatBanController extends Controller
         $reservation = Reservation::with(['reservationItems.menu', 'user', 'voucher'])->findOrFail($id);
         
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $totalPrice = $subtotal + $vat;
 
         $userId = $reservation->user_id;
@@ -790,7 +799,7 @@ class DatBanController extends Controller
         $reservation = Reservation::with(['reservationItems.menu', 'user'])->findOrFail($id);
         
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $totalPrice = $subtotal + $vat;
 
         $voucher = Voucher::with('tier')->findOrFail($request->voucher_id);
@@ -909,7 +918,7 @@ class DatBanController extends Controller
             DB::beginTransaction();
 
             $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
-            $vat = $subtotal * 0.1;
+            $vat = $subtotal * 0.08;
             $totalPrice = $subtotal + $vat;
 
             $reservation->voucher_id = null;

@@ -126,12 +126,12 @@ class OrderController extends Controller
             $subtotalReservation = $reservation->reservationItems->sum(function ($item) {
                 return $item->price * $item->quantity;
             });
-            $vatReservation = $subtotalReservation * 0.1;
+            $vatReservation = $subtotalReservation * 0.08;
             $reservation->total_amount = $subtotalReservation + $vatReservation;
             $reservation->save();
 
             // Tính VAT cho order mới
-            $vatOrderAmount = $subtotalOrderAmount * 0.1;
+            $vatOrderAmount = $subtotalOrderAmount * 0.08;
             $totalOrderAmount = $subtotalOrderAmount + $vatOrderAmount;
 
             // Tạo bản ghi order mới
@@ -259,7 +259,7 @@ class OrderController extends Controller
             $newSubtotal = $reservation->reservationItems->sum(function ($item) {
                 return $item->price * $item->quantity;
             });
-            $newVat = $newSubtotal * 0.1;
+            $newVat = $newSubtotal * 0.08;
             $newTotalAmount = $newSubtotal + $newVat;
 
             $reservation->total_amount = $newTotalAmount;
