@@ -12,28 +12,24 @@ class MenuStatisticsController extends Controller
 {
     public function index(Request $request)
     {
-        // Keep Carbon instances for view and string values for bindings
         $fromCarbon = $request->input('from') ? Carbon::parse($request->input('from'))->startOfDay() : null;
         $toCarbon   = $request->input('to')   ? Carbon::parse($request->input('to'))->endOfDay()   : null;
 
-        // Strings for bindings
         $from = $fromCarbon ? $fromCarbon->toDateTimeString() : null;
         $to   = $toCarbon   ? $toCarbon->toDateTimeString()   : null;
 
-        // Prepare WHERE fragments (use distinct fragments for r and r2 aliases)
         $orderDateWhere = ($from && $to) ? " AND o.created_at BETWEEN ? AND ? " : "";
-        $resDateWhere   = ($from && $to) ? " AND r.created_at BETWEEN ? AND ? " : "";   // for reservation_items (alias r)
-        $res2DateWhere  = ($from && $to) ? " AND r2.created_at BETWEEN ? AND ? " : "";  // for reservation_menu (alias r2)
+        $resDateWhere   = ($from && $to) ? " AND r.created_at BETWEEN ? AND ? " : "";
+        $res2DateWhere  = ($from && $to) ? " AND r2.created_at BETWEEN ? AND ? " : "";
 
-        // Bindings array (strings) — will be repeated according to number of placeholders
         $bindings = ($from && $to) ? [$from, $to] : [];
 
         // 1) Total active menus
         $totalMenus = Menu::where('status', 1)->count();
 
-        // 2) Best selling (quantity) across order_items, reservation_items, reservation_menu
+        // 2) Best selling
         $bestSellingSql = "
-            SELECT m.id, m.name, COALESCE(s.total_sold,0) AS total_sold
+            SELECT m.id, m.name, m.image, COALESCE(s.total_sold,0) AS total_sold
             FROM menus m
             LEFT JOIN (
                 SELECT menu_id, SUM(qty) AS total_sold FROM (
@@ -61,18 +57,13 @@ class MenuStatisticsController extends Controller
             LIMIT 1
         ";
 
-        $bestSellingBindings = [];
-        if ($from && $to) {
-            // orderDateWhere, resDateWhere, res2DateWhere — each expects [from,to]
-            $bestSellingBindings = array_merge($bindings, $bindings, $bindings);
-        }
-
+        $bestSellingBindings = ($from && $to) ? array_merge($bindings, $bindings, $bindings) : [];
         $bestSellingRow = DB::selectOne($bestSellingSql, $bestSellingBindings);
         $bestSelling = $bestSellingRow ? (array) $bestSellingRow : null;
 
-        // 3) Revenue per item (include reservation_menu revenue using menus.price)
+        // 3) Revenue per item
         $revenueSql = "
-            SELECT m.id, m.name,
+            SELECT m.id, m.name, m.image,
                    COALESCE(ois.rev,0) + COALESCE(ris.rev,0) + COALESCE(rms.rev,0) AS revenue,
                    COALESCE(ois.qty,0) + COALESCE(ris.qty,0) + COALESCE(rms.qty,0) AS total_qty
             FROM menus m
@@ -91,7 +82,6 @@ class MenuStatisticsController extends Controller
                 GROUP BY ri.menu_id
             ) ris ON ris.menu_id = m.id
             LEFT JOIN (
-                -- reservation_menu has no price; use current menus.price as approximation
                 SELECT rm.menu_id, SUM(rm.quantity * m2.price) AS rev, SUM(rm.quantity) AS qty
                 FROM reservation_menu rm
                 JOIN reservations r2 ON r2.id = rm.reservation_id
@@ -103,16 +93,11 @@ class MenuStatisticsController extends Controller
             LIMIT 50
         ";
 
-        $revenueBindings = [];
-        if ($from && $to) {
-            // placeholders in ois (orderDateWhere), ris (resDateWhere), rms (res2DateWhere)
-            $revenueBindings = array_merge($bindings, $bindings, $bindings);
-        }
-
+        $revenueBindings = ($from && $to) ? array_merge($bindings, $bindings, $bindings) : [];
         $revenueRows = DB::select($revenueSql, $revenueBindings);
         $revenuePerItem = array_map(fn($r) => (array)$r, $revenueRows);
 
-        // 4) Top category by selected qty
+        // 4) Top category
         $topCategorySql = "
             SELECT c.id, c.name, COALESCE(s.sum_qty,0) AS total_qty
             FROM menu_categories c
@@ -143,15 +128,13 @@ class MenuStatisticsController extends Controller
             LIMIT 1
         ";
 
-        $topCategoryBindings = [];
-        if ($from && $to) {
-            $topCategoryBindings = array_merge($bindings, $bindings, $bindings);
-        }
-
+        $topCategoryBindings = ($from && $to) ? array_merge($bindings, $bindings, $bindings) : [];
         $topCategoryRow = DB::selectOne($topCategorySql, $topCategoryBindings);
         $topCategory = $topCategoryRow ? (array) $topCategoryRow : null;
 
-        // Pass Carbon objects to view for consistent formatting there
+        // 5) All menus
+        $menu = Menu::all(); // giữ nguyên Eloquent collection, có trường image
+
         return view('admin.menuStatistics.index', [
             'from' => $fromCarbon,
             'to' => $toCarbon,
@@ -160,7 +143,8 @@ class MenuStatisticsController extends Controller
             'revenuePerItem' => $revenuePerItem,
             'topCategory' => $topCategory,
             'filterType' => $request->input('filter', 'this_month'),
-            'filterLabel' => null, // optional: you can compute label if you want
+            'filterLabel' => null,
+            'menu' => $menu,
         ]);
     }
 }

@@ -106,8 +106,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reservations/{reservation}/review', [ReviewApiController::class, 'show']);
 
     // Cập nhật / xóa đánh giá
-    Route::put('/reviews/{review}', [ReviewApiController::class, 'update']);
-    Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
+    Route::post('/reviews/{review}', [ReviewApiController::class, 'update']);
+    Route::post('/reviews/{review}/hide', [ReviewApiController::class, 'hide']);
 
     // // Áp dụng voucher 
     Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);

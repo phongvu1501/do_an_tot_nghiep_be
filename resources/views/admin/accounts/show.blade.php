@@ -57,7 +57,7 @@
                                 @endif
                             </div>
 
-                            <h6 class="font-weight-bold">Món ăn đã đặt:</h6>
+                            {{-- <h6 class="font-weight-bold">Món ăn đã đặt:</h6> --}}
 
                             @if ($reservation->reservationItems->count() > 0)
                                 <div class="table-responsive mt-2">

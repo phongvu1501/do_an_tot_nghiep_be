@@ -132,7 +132,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="" class="nav-link">
+                    <a href="{{ route('admin.comments.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-comment-dots"></i>
                         <p>Quản lý bình luận</p>
                     </a>

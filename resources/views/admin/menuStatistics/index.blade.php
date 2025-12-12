@@ -131,7 +131,7 @@
                     </div>
                 </div>
 
-                
+
 
                 <!-- (Optional) Full table of revenue (paginated) -->
                 <div class="row">
@@ -147,6 +147,7 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Món</th>
+                                                <th>Ảnh</th>
                                                 <th>Doanh thu (VND)</th>
                                                 <th>Số lượng</th>
                                             </tr>
@@ -156,6 +157,14 @@
                                                 <tr>
                                                     <td>{{ $i + 1 }}</td>
                                                     <td>{{ $row['name'] }}</td>
+                                                    <td>
+                                                        @if ($row['image'])
+                                                            <img src="{{ asset('storage/' . $row['image']) }}"
+                                                                width="150" class="rounded shadow-sm" alt="Ảnh món ăn">
+                                                        @else
+                                                            <span class="text-muted">Không có ảnh</span>
+                                                        @endif
+                                                    </td>
                                                     <td>{{ number_format($row['revenue'] ?? 0, 0, ',', '.') }}</td>
                                                     <td>{{ $row['total_qty'] ?? 0 }}</td>
                                                 </tr>
