@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DepositRequiredDate;
+use App\Models\Reservation;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -55,6 +56,14 @@ class DepositRequiredDateController extends Controller
         $depositNormalTables = Setting::getValue('deposit_normal_tables', 500000);
         $depositVipRooms = Setting::getValue('deposit_vip_rooms', 1000000);
         $minTablesForDeposit = Setting::getValue('min_tables_for_deposit', 2);
+        $refundDays = max(1, (int)Setting::getValue('refund_days', 1));
+
+        // Lấy lịch sử hoàn tiền 
+        $refundHistory = Reservation::whereNotNull('refunded_at')
+            ->where('deposit', '>', 0)
+            ->with('user')
+            ->orderBy('refunded_at', 'desc')
+            ->paginate(10, ['*'], 'refund_page');
 
         return view('admin.depositRequiredDate.index', [
             'title' => 'Quản lý ngày yêu cầu đặt cọc',
@@ -62,6 +71,8 @@ class DepositRequiredDateController extends Controller
             'deposit_normal_tables' => $depositNormalTables,
             'deposit_vip_rooms' => $depositVipRooms,
             'min_tables_for_deposit' => $minTablesForDeposit,
+            'refund_days' => $refundDays,
+            'refundHistory' => $refundHistory,
         ]);
     }
 
@@ -314,6 +325,7 @@ class DepositRequiredDateController extends Controller
                         'dates' => collect([$date]),
                         'description' => $date->description,
                         'is_active' => $date->is_active,
+                        'refund_days' => $date->refund_days,
                         'is_range' => false,
                     ];
                 }
@@ -333,6 +345,7 @@ class DepositRequiredDateController extends Controller
             'deposit_normal_tables' => 'required|numeric|min:1',
             'deposit_vip_rooms' => 'required|numeric|min:1',
             'min_tables_for_deposit' => 'required|integer|min:1',
+            'refund_days' => 'required|integer|min:1',
         ], [
             'deposit_normal_tables.required' => 'Vui lòng nhập tiền cọc cho bàn thường!',
             'deposit_normal_tables.numeric' => 'Tiền cọc bàn thường phải là số!',
@@ -343,12 +356,16 @@ class DepositRequiredDateController extends Controller
             'min_tables_for_deposit.required' => 'Vui lòng nhập số bàn tối thiểu cần cọc!',
             'min_tables_for_deposit.integer' => 'Số bàn tối thiểu phải là số nguyên!',
             'min_tables_for_deposit.min' => 'Số bàn tối thiểu phải lớn hơn 0!',
+            'refund_days.required' => 'Vui lòng nhập số ngày hoàn tiền!',
+            'refund_days.integer' => 'Số ngày hoàn tiền phải là số nguyên!',
+            'refund_days.min' => 'Số ngày hoàn tiền phải lớn hơn hoặc bằng 1!',
         ]);
 
         // Lưu vào database (settings table) để không bị mất khi xóa session hoặc clone code mới
         Setting::setValue('deposit_normal_tables', $validated['deposit_normal_tables']);
         Setting::setValue('deposit_vip_rooms', $validated['deposit_vip_rooms']);
         Setting::setValue('min_tables_for_deposit', $validated['min_tables_for_deposit']);
+        Setting::setValue('refund_days', $validated['refund_days']);
 
         return redirect()->route('admin.depositRequiredDate.index')
             ->with('success', 'Đã cập nhật cấu hình tiền cọc thành công!');

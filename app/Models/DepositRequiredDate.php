@@ -14,6 +14,7 @@ class DepositRequiredDate extends Model
         'deposit_normal_tables',
         'deposit_vip_rooms',
         'min_tables_for_deposit',
+        'refund_days',
     ];
 
     protected $casts = [

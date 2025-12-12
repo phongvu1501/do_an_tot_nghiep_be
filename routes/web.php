@@ -61,6 +61,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
     Route::get('dat-ban/check-user-by-phone', [DatBanController::class, 'checkUserByPhone'])->name('admin.datBan.checkUserByPhone');
     Route::get('dat-ban/check-existing-reservation', [DatBanController::class, 'checkExistingReservation'])->name('admin.datBan.checkExistingReservation');
+    Route::get('dat-ban/pending-refunds', [DatBanController::class, 'getPendingRefunds'])->name('admin.datBan.getPendingRefunds');
+    Route::post('dat-ban/{id}/process-refund', [DatBanController::class, 'processRefund'])->name('admin.datBan.processRefund');
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');

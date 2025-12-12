@@ -9,9 +9,19 @@
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h3 class="mb-0">Trang quản lý đặt bàn</h3>
-                                <a href="{{ route('admin.datBan.create') }}" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Tạo đơn mới
-                                </a>
+                                <div>
+                                    <button type="button" class="btn btn-warning mr-2" id="btnPendingRefund" data-toggle="modal" data-target="#pendingRefundModal">
+                                        <i class="fas fa-money-bill-wave"></i> Đơn cần hoàn tiền 
+                                        @if(isset($pendingRefundCount) && $pendingRefundCount > 0)
+                                            <span class="badge badge-danger">{{ $pendingRefundCount }}</span>
+                                        @else
+                                            <span class="badge badge-secondary">0</span>
+                                        @endif
+                                    </button>
+                                    <a href="{{ route('admin.datBan.create') }}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Tạo đơn mới
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -36,14 +46,9 @@
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
                                     <form action="{{ route('admin.datBan.index') }}" method="GET" class="row g-3" id="filterFormDatBan">
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label class="font-weight-bold">Ngày đặt</label>
                                             <input type="date" name="date" class="form-control" value="{{ request('date') }}" onchange="document.getElementById('filterFormDatBan').submit()">
-                                            <div class="mt-2">
-                                                <a href="{{ route('admin.datBan.index') }}" class="btn btn-secondary btn-sm">
-                                                    <i class="fas fa-redo"></i> Đặt lại
-                                                </a>
-                                            </div>
                                         </div>
                                         <div class="col-md-2">
                                             <label class="font-weight-bold">Ca</label>
@@ -63,9 +68,6 @@
                                             <select name="status" class="form-control"
                                                 onchange="document.getElementById('filterFormDatBan').submit()">
                                                 <option value="">Tất cả trạng thái</option>
-                                                <option value="pending"
-                                                    {{ request('status') == 'pending' ? 'selected' : '' }}>Chờ xác nhận
-                                                </option>
                                                 <option value="deposit_pending"
                                                     {{ request('status') == 'deposit_pending' ? 'selected' : '' }}>Chờ đặt
                                                     cọc</option>
@@ -83,20 +85,37 @@
                                                 </option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label class="font-weight-bold">Số điện thoại</label>
+                                            <input type="text"
+                                                   name="phone"
+                                                   class="form-control"
+                                                   value="{{ request('phone') }}"
+                                                   placeholder="Nhập số điện thoại"
+                                                   onkeypress="if(event.key === 'Enter') { document.getElementById('filterFormDatBan').submit(); }">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">Mã đơn</label>
                                             <div class="input-group">
                                                 <input type="text"
-                                                       name="phone"
+                                                       name="reservation_code"
                                                        class="form-control"
-                                                       value="{{ request('phone') }}"
-                                                       placeholder="Nhập số điện thoại"
+                                                       value="{{ request('reservation_code') }}"
+                                                       placeholder="Nhập mã đơn"
                                                        onkeypress="if(event.key === 'Enter') { document.getElementById('filterFormDatBan').submit(); }">
-                                                <div class="input-group-append" style="margin-left: 5px;">
+                                                <div class="input-group-append">
                                                     <button type="submit" class="btn btn-primary">
                                                         <i class="fas fa-search"></i>
                                                     </button>
                                                 </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">&nbsp;</label>
+                                            <div>
+                                                <a href="{{ route('admin.datBan.index') }}" class="btn btn-secondary btn-block">
+                                                    <i class="fas fa-redo"></i> Đặt lại
+                                                </a>
                                             </div>
                                         </div>
                                     </form>
@@ -107,6 +126,7 @@
                                 <thead>
                                     <tr>
                                         <th>STT</th>
+                                        <th>Mã đơn</th>
                                         <th>Khách hàng</th>
                                         <th>Số điện thoại</th>
                                         <th>Ngày đặt</th>
@@ -120,6 +140,9 @@
                                     @forelse ($tables as $index => $reservation)
                                         <tr>
                                             <td>{{ $tables->firstItem() + $index }}</td>
+                                            <td>
+                                                <strong class="text-primary">{{ $reservation->reservation_code ?? '#' . $reservation->id }}</strong>
+                                            </td>
                                             <td>
                                                 <strong>{{ $reservation->user->name }}</strong>
                                             </td>
@@ -315,7 +338,39 @@
                                     @endswitch
                                     <br>
                                     @if($reservation->status == 'cancelled' && $reservation->cancellation_reason)
-                                        <strong>Lý do hủy đơn:</strong> {{ $reservation->cancellation_reason }}<br>
+                                        @php
+                                            $reasonParts = explode("\n\nSố tài khoản hoàn tiền: ", $reservation->cancellation_reason);
+                                            $reason = $reasonParts[0];
+                                            $accountNumber = isset($reasonParts[1]) ? trim($reasonParts[1]) : null;
+                                            
+                                            // Kiểm tra xem đơn có đủ điều kiện hoàn tiền không
+                                            $isEligibleForRefund = false;
+                                            if ($reservation->deposit && $reservation->deposit > 0 && !$reservation->refunded_at) {
+                                                $now = \Carbon\Carbon::now();
+                                                if (!$reservation->reservation_date->isPast()) {
+                                                    // Lấy refund_days từ cấu hình chung (Settings), đảm bảo tối thiểu là 1
+                                                    $refundDays = max(1, (int)\App\Models\Setting::getValue('refund_days', 1));
+                                                    $daysUntilReservation = $now->diffInDays($reservation->reservation_date, false);
+                                                    $isEligibleForRefund = $daysUntilReservation >= $refundDays;
+                                                }
+                                            }
+                                        @endphp
+                                        <strong>Lý do hủy đơn:</strong> {{ $reason }}<br>
+                                        @if($accountNumber && $isEligibleForRefund)
+                                            <strong>Số tài khoản hoàn tiền:</strong> 
+                                            <span class="badge badge-info">{{ $accountNumber }}</span><br>
+                                        @endif
+                                    @endif
+                                    @if($reservation->refunded_at)
+                                        <br>
+                                        <strong>Trạng thái hoàn tiền:</strong>
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check-circle"></i> Đã hoàn tiền
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            <strong>Ngày hoàn:</strong> {{ \Carbon\Carbon::parse($reservation->refunded_at)->format('d/m/Y H:i') }}
+                                        </small>
                                     @endif
                                 </p>
                             </div>
@@ -346,6 +401,44 @@
                                     <strong>Tổng tiền cọc:</strong>
                                     <span class="text-success font-weight-bold">{{ number_format($reservation->deposit ?? 0, 0, ',', '.') }} VND</span>
                                 </p>
+                                @if($reservation->status == 'cancelled' && $reservation->cancellation_reason)
+                                    @php
+                                        $reasonParts = explode("\n\nSố tài khoản hoàn tiền: ", $reservation->cancellation_reason);
+                                        $accountNumber = isset($reasonParts[1]) ? trim($reasonParts[1]) : null;
+                                        
+                                        // Kiểm tra xem đơn có đủ điều kiện hoàn tiền không
+                                        $isEligibleForRefund = false;
+                                        if ($reservation->deposit && $reservation->deposit > 0 && !$reservation->refunded_at) {
+                                            $now = \Carbon\Carbon::now();
+                                            if (!$reservation->reservation_date->isPast()) {
+                                                // Lấy refund_days từ cấu hình chung (Settings)
+                                                $refundDays = (int)\App\Models\Setting::getValue('refund_days', 1);
+                                                $daysUntilReservation = $now->diffInDays($reservation->reservation_date, false);
+                                                $isEligibleForRefund = $daysUntilReservation >= $refundDays;
+                                            }
+                                        }
+                                    @endphp
+                                    @if($accountNumber && $isEligibleForRefund)
+                                        <hr>
+                                        <p class="mb-2">
+                                            <strong>Số tài khoản hoàn tiền:</strong>
+                                            <span class="badge badge-info badge-lg">{{ $accountNumber }}</span>
+                                        </p>
+                                    @endif
+                                @endif
+                                @if($reservation->refunded_at)
+                                    <hr>
+                                    <p class="mb-0">
+                                        <strong>Trạng thái hoàn tiền:</strong>
+                                        <span class="badge badge-success badge-lg">
+                                            <i class="fas fa-check-circle"></i> Đã hoàn tiền
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            <strong>Ngày hoàn:</strong> {{ \Carbon\Carbon::parse($reservation->refunded_at)->format('d/m/Y H:i') }}
+                                        </small>
+                                    </p>
+                                @endif
                             </div>
                         </div>
 
@@ -792,7 +885,7 @@
 
                         <div class="modal-header bg-danger text-white">
                             <h5 class="modal-title">
-                                <i class="fas fa-exclamation-triangle"></i> Xác nhận hủy đơn #{{ $reservation->id }}
+                                <i class="fas fa-exclamation-triangle"></i> Xác nhận hủy đơn {{ $reservation->reservation_code ?? '#' . $reservation->id }}
                             </h5>
                             <button type="button" class="close text-white" data-dismiss="modal">
                                 <span>&times;</span>
@@ -934,13 +1027,73 @@
                             @else
                                 <p class="text-muted">Chưa đặt món.</p>
                             @endif
+
+                            <hr>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold">Lý do hủy <span class="text-danger">*</span></label>
+                                <textarea name="cancellation_reason" class="form-control" rows="4"
+                                    placeholder="Vui lòng nhập lý do hủy đơn..." required></textarea>
+                            </div>
+
+                            @php
+                                // Kiểm tra xem đơn có thể được hoàn tiền không (có tiền cọc và ngày đặt trong tương lai)
+                                $canBeRefunded = ($reservation->deposit && $reservation->deposit > 0) && 
+                                                 !$reservation->reservation_date->isPast();
+                            @endphp
+                            
+                            @if($canBeRefunded)
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Ngân hàng <span class="text-danger">*</span></label>
+                                    <select name="refund_bank" class="form-control" required>
+                                        <option value="">-- Chọn ngân hàng --</option>
+                                        <option value="mbank" {{ old('refund_bank') == 'mbank' ? 'selected' : '' }}>MBank</option>
+                                        <option value="techcombank" {{ old('refund_bank') == 'techcombank' ? 'selected' : '' }}>Techcombank</option>
+                                        <option value="vietcombank" {{ old('refund_bank') == 'vietcombank' ? 'selected' : '' }}>Vietcombank</option>
+                                        <option value="bidv" {{ old('refund_bank') == 'bidv' ? 'selected' : '' }}>BIDV</option>
+                                        <option value="agribank" {{ old('refund_bank') == 'agribank' ? 'selected' : '' }}>Agribank</option>
+                                        <option value="vietinbank" {{ old('refund_bank') == 'vietinbank' ? 'selected' : '' }}>VietinBank</option>
+                                        <option value="acb" {{ old('refund_bank') == 'acb' ? 'selected' : '' }}>ACB</option>
+                                        <option value="vpbank" {{ old('refund_bank') == 'vpbank' ? 'selected' : '' }}>VPBank</option>
+                                        <option value="tpbank" {{ old('refund_bank') == 'tpbank' ? 'selected' : '' }}>TPBank</option>
+                                        <option value="shb" {{ old('refund_bank') == 'shb' ? 'selected' : '' }}>SHB</option>
+                                        <option value="hdbank" {{ old('refund_bank') == 'hdbank' ? 'selected' : '' }}>HDBank</option>
+                                        <option value="msb" {{ old('refund_bank') == 'msb' ? 'selected' : '' }}>MSB</option>
+                                        <option value="ocb" {{ old('refund_bank') == 'ocb' ? 'selected' : '' }}>OCB</option>
+                                        <option value="vib" {{ old('refund_bank') == 'vib' ? 'selected' : '' }}>VIB</option>
+                                        <option value="seabank" {{ old('refund_bank') == 'seabank' ? 'selected' : '' }}>SeABank</option>
+                                        <option value="eximbank" {{ old('refund_bank') == 'eximbank' ? 'selected' : '' }}>Eximbank</option>
+                                        <option value="scb" {{ old('refund_bank') == 'scb' ? 'selected' : '' }}>SCB</option>
+                                        <option value="vietabank" {{ old('refund_bank') == 'vietabank' ? 'selected' : '' }}>VietABank</option>
+                                        <option value="lienvietpostbank" {{ old('refund_bank') == 'lienvietpostbank' ? 'selected' : '' }}>LienVietPostBank</option>
+                                        <option value="pvcombank" {{ old('refund_bank') == 'pvcombank' ? 'selected' : '' }}>PVcomBank</option>
+                                        <option value="publicbank" {{ old('refund_bank') == 'publicbank' ? 'selected' : '' }}>PublicBank</option>
+                                        <option value="saigonbank" {{ old('refund_bank') == 'saigonbank' ? 'selected' : '' }}>SaigonBank</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Số tài khoản <span class="text-danger">*</span></label>
+                                    <input type="text" name="refund_account_number" class="form-control" 
+                                        placeholder="Nhập số tài khoản" 
+                                        value="{{ old('refund_account_number') }}" 
+                                        maxlength="20"
+                                        required>
+                                    <small class="form-text text-muted">Vui lòng nhập số tài khoản của khách hàng để thực hiện hoàn tiền</small>
+                                </div>
+                            @endif
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-ban"></i> Xác nhận hủy
+                            </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
+        </div>
         @endif
 
         <!-- Modal Chỉnh sửa bàn -->
@@ -1187,7 +1340,7 @@
 
                                 <div class="modal-header bg-danger text-white">
                                     <h5 class="modal-title">
-                                        <i class="fas fa-exclamation-triangle"></i> Xác nhận hủy đơn #{{ $reservation->id }}
+                                        <i class="fas fa-exclamation-triangle"></i> Xác nhận hủy đơn {{ $reservation->reservation_code ?? '#' . $reservation->id }}
                                     </h5>
                                     <button type="button" class="close text-white" data-dismiss="modal">
                                         <span>&times;</span>
@@ -1219,6 +1372,33 @@
                                         <textarea name="cancellation_reason" class="form-control" rows="4"
                                             placeholder="Vui lòng nhập lý do hủy đơn..." required></textarea>
                                     </div>
+
+                                    @php
+                                        // Kiểm tra xem đơn có thể được hoàn tiền không (có tiền cọc và ngày đặt trong tương lai)
+                                        $canBeRefunded = ($reservation->deposit && $reservation->deposit > 0) && 
+                                                         !$reservation->reservation_date->isPast();
+                                    @endphp
+                                    
+                                    @if($canBeRefunded)
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Ngân hàng <span class="text-danger">*</span></label>
+                                            <select name="refund_bank" class="form-control" required>
+                                                <option value="">-- Chọn ngân hàng --</option>
+                                                <option value="mbank" {{ old('refund_bank') == 'mbank' ? 'selected' : '' }}>MBank</option>
+                                                <option value="techcombank" {{ old('refund_bank') == 'techcombank' ? 'selected' : '' }}>Techcombank</option>
+                                                <option value="vietcombank" {{ old('refund_bank') == 'vietcombank' ? 'selected' : '' }}>Vietcombank</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="font-weight-bold">Số tài khoản <span class="text-danger">*</span></label>
+                                            <input type="text" name="refund_account_number" class="form-control" 
+                                                placeholder="Nhập số tài khoản" 
+                                                value="{{ old('refund_account_number') }}" 
+                                                maxlength="20"
+                                                required>
+                                            <small class="form-text text-muted">Vui lòng nhập số tài khoản của khách hàng để thực hiện hoàn tiền (nếu đủ điều kiện)</small>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="modal-footer">
@@ -1235,10 +1415,383 @@
                 </div>
             @endif
         @endforeach
+
+    <!-- Modal Đơn cần hoàn tiền -->
+    <div class="modal fade" id="pendingRefundModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fas fa-money-bill-wave"></i> Danh sách đơn cần hoàn tiền
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="pendingRefundList">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xác nhận hoàn tiền -->
+    <div class="modal fade" id="confirmRefundModal" tabindex="-1" role="dialog" aria-labelledby="confirmRefundModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="confirmRefundModalLabel">
+                        <i class="fas fa-exclamation-triangle"></i> Xác nhận hoàn tiền
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeConfirmRefundModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmRefundMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeConfirmRefundModal()">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                    <form id="confirmRefundForm" method="POST" style="display:inline;" onsubmit="closeConfirmRefundModal()">
+                        @csrf
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Xác nhận
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Code độc lập để load danh sách đơn cần hoàn tiền
+        // Đặt ở đây để chạy ngay cả khi có lỗi từ các file khác
+        (function() {
+            'use strict';
+            
+            var isLoaded = false;
+            
+            // Đợi DOM sẵn sàng
+            function initPendingRefundModal() {
+                var modal = document.getElementById('pendingRefundModal');
+                if (!modal) {
+                    console.error('Modal pendingRefundModal not found');
+                    return;
+                }
+                
+                // Thử nhiều cách để detect khi modal mở
+                // Cách 1: Bootstrap 4 event với jQuery (nếu có)
+                if (typeof jQuery !== 'undefined' && typeof jQuery.fn.modal !== 'undefined') {
+                    try {
+                        jQuery('#pendingRefundModal').on('show.bs.modal', function() {
+                            console.log('Modal opening detected via jQuery');
+                            loadPendingRefundsList();
+                        });
+                    } catch(e) {
+                        console.error('jQuery event failed:', e);
+                    }
+                }
+                
+                // Cách 2: MutationObserver để detect khi modal hiển thị
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            var target = mutation.target;
+                            if (target.id === 'pendingRefundModal' && target.classList.contains('show') && !target.classList.contains('hide')) {
+                                if (!isLoaded) {
+                                    console.log('Modal opening detected via MutationObserver');
+                                    isLoaded = true;
+                                    loadPendingRefundsList();
+                                }
+                            } else if (target.id === 'pendingRefundModal' && !target.classList.contains('show')) {
+                                isLoaded = false;
+                            }
+                        }
+                    });
+                });
+                
+                observer.observe(modal, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+                
+                // Cách 3: Click event trên button mở modal
+                var openButton = document.querySelector('[data-target="#pendingRefundModal"]');
+                if (openButton) {
+                    openButton.addEventListener('click', function() {
+                        setTimeout(function() {
+                            console.log('Modal opening detected via button click');
+                            loadPendingRefundsList();
+                        }, 300);
+                    });
+                }
+            }
+            
+            function loadPendingRefundsList() {
+                console.log('Loading pending refunds list...');
+                var listDiv = document.getElementById('pendingRefundList');
+                if (!listDiv) {
+                    console.error('Element pendingRefundList not found');
+                    return;
+                }
+                
+                listDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+                
+                var url = '{{ route("admin.datBan.getPendingRefunds") }}';
+                console.log('Fetching URL:', url);
+                
+                // Sử dụng fetch API thay vì jQuery để tránh conflict
+                fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(function(response) {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    console.log('Response data:', data);
+                    renderPendingRefundsList(data, listDiv);
+                })
+                .catch(function(error) {
+                    console.error('Error loading pending refunds:', error);
+                    listDiv.innerHTML = '<div class="alert alert-danger">Có lỗi xảy ra khi tải danh sách: ' + error.message + '<br><small>Vui lòng mở Console (F12) để xem chi tiết.</small></div>';
+                });
+            }
+            
+            function renderPendingRefundsList(response, container) {
+                var html = '';
+                
+                if (!response || !response.success) {
+                    html = '<div class="alert alert-warning">Không thể tải dữ liệu. Vui lòng thử lại.</div>';
+                } else if (!response.data || response.data.length === 0) {
+                    html = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Không có đơn nào cần hoàn tiền.</div>';
+                } else {
+                    html = '<div class="table-responsive"><table class="table table-bordered table-hover">';
+                    html += '<thead><tr>';
+                    html += '<th>STT</th>';
+                    html += '<th>Mã đơn</th>';
+                    html += '<th>Khách hàng</th>';
+                    html += '<th>Số điện thoại</th>';
+                    html += '<th>Ngày đặt</th>';
+                    html += '<th>Ca</th>';
+                    html += '<th>Tiền cọc</th>';
+                    html += '<th>Tài Khoản</th>';
+                    html += '<th>Thao tác</th>';
+                    html += '</tr></thead><tbody>';
+                    
+                    response.data.forEach(function(item, index) {
+                        html += '<tr>';
+                        html += '<td>' + (index + 1) + '</td>';
+                        html += '<td><strong>' + (item.reservation_code || 'N/A') + '</strong></td>';
+                        html += '<td>' + (item.user_name || 'N/A') + '</td>';
+                        html += '<td>' + (item.user_phone || 'N/A') + '</td>';
+                        html += '<td>' + (item.reservation_date || 'N/A') + '</td>';
+                        html += '<td>';
+                        if (item.shift === 'morning') {
+                            html += '<span class="badge badge-info">Sáng</span>';
+                        } else if (item.shift === 'afternoon') {
+                            html += '<span class="badge badge-warning">Trưa</span>';
+                        } else if (item.shift === 'evening') {
+                            html += '<span class="badge badge-dark">Tối</span>';
+                        } else {
+                            html += '<span class="badge badge-secondary">' + (item.shift || 'N/A') + '</span>';
+                        }
+                        html += '</td>';
+                        html += '<td><strong class="text-primary">' + formatNumber(item.deposit || 0) + ' VND</strong></td>';
+                        html += '<td>';
+                        if (item.refund_account_number && item.refund_account_number !== 'Chưa có') {
+                            html += '<span class="badge badge-info">' + item.refund_account_number + '</span>';
+                        } else {
+                            html += '<span class="text-muted">Chưa có</span>';
+                        }
+                        html += '</td>';
+                        html += '<td>';
+                        var reservationCode = item.reservation_code || '#' + item.id;
+                        html += '<button type="button" class="btn btn-sm btn-success" onclick="showConfirmRefundModal(' + item.id + ', \'' + reservationCode + '\')">';
+                        html += '<i class="fas fa-check"></i> Đã hoàn tiền';
+                        html += '</button>';
+                        html += '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div>';
+                }
+                
+                container.innerHTML = html;
+            }
+            
+            function formatNumber(number) {
+                if (typeof number === 'undefined' || number === null) {
+                    return '0';
+                }
+                return new Intl.NumberFormat('vi-VN').format(Math.round(number));
+            }
+            
+            // Khởi tạo khi DOM sẵn sàng
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initPendingRefundModal);
+            } else {
+                initPendingRefundModal();
+            }
+        })();
+        
+        // Hàm hiển thị modal xác nhận hoàn tiền
+        function showConfirmRefundModal(reservationId, reservationCode) {
+            var message = 'Bạn có chắc muốn đánh dấu đã hoàn tiền cho đơn <strong>' + reservationCode + '</strong>?';
+            document.getElementById('confirmRefundMessage').innerHTML = message;
+            document.getElementById('confirmRefundForm').action = '/admin/dat-ban/' + reservationId + '/process-refund';
+            
+            // Sử dụng jQuery nếu có, nếu không dùng vanilla JS
+            if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                jQuery('#confirmRefundModal').modal('show');
+            } else {
+                var modal = document.getElementById('confirmRefundModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                    var backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    backdrop.id = 'confirmRefundModalBackdrop';
+                    document.body.appendChild(backdrop);
+                }
+            }
+        }
+        
+        // Hàm đóng modal xác nhận hoàn tiền
+        function closeConfirmRefundModal() {
+            // Sử dụng jQuery nếu có, nếu không dùng vanilla JS
+            if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                jQuery('#confirmRefundModal').modal('hide');
+            } else {
+                var modal = document.getElementById('confirmRefundModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    var backdrop = document.getElementById('confirmRefundModalBackdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                }
+            }
+        }
+        
+        // Đóng modal khi click vào backdrop
+        document.addEventListener('DOMContentLoaded', function() {
+            var modal = document.getElementById('confirmRefundModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeConfirmRefundModal();
+                    }
+                });
+            }
+        });
+    </script>
     @endsection
 
     @push('scripts')
         <script>
+            // Code load danh sách đơn cần hoàn tiền đã được chuyển sang script tag inline
+            // để tránh conflict với các lỗi JavaScript khác
+                        let html = '';
+                        
+                        if (!response || !response.success) {
+                            html = '<div class="alert alert-warning">Không thể tải dữ liệu. Vui lòng thử lại.</div>';
+                        } else if (!response.data || response.data.length === 0) {
+                            html = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Không có đơn nào cần hoàn tiền.</div>';
+                        } else {
+                            html = '<div class="table-responsive"><table class="table table-bordered table-hover">';
+                            html += '<thead><tr>';
+                            html += '<th>STT</th>';
+                            html += '<th>Mã đơn</th>';
+                            html += '<th>Khách hàng</th>';
+                            html += '<th>Số điện thoại</th>';
+                            html += '<th>Ngày đặt</th>';
+                            html += '<th>Ca</th>';
+                            html += '<th>Tiền cọc</th>';
+                            html += '<th>Thao tác</th>';
+                            html += '</tr></thead><tbody>';
+                            
+                            response.data.forEach(function(item, index) {
+                                html += '<tr>';
+                                html += '<td>' + (index + 1) + '</td>';
+                                html += '<td><strong>#' + (item.id || 'N/A') + '</strong></td>';
+                                html += '<td>' + (item.user_name || 'N/A') + '</td>';
+                                html += '<td>' + (item.user_phone || 'N/A') + '</td>';
+                                html += '<td>' + (item.reservation_date || 'N/A') + '</td>';
+                                html += '<td>';
+                                if (item.shift === 'morning') {
+                                    html += '<span class="badge badge-info">Sáng</span>';
+                                } else if (item.shift === 'afternoon') {
+                                    html += '<span class="badge badge-warning">Trưa</span>';
+                                } else if (item.shift === 'evening') {
+                                    html += '<span class="badge badge-dark">Tối</span>';
+                                } else {
+                                    html += '<span class="badge badge-secondary">' + (item.shift || 'N/A') + '</span>';
+                                }
+                                html += '</td>';
+                                html += '<td><strong class="text-primary">' + number_format(item.deposit || 0) + ' VND</strong></td>';
+                                html += '<td>';
+                                var reservationCode = item.reservation_code || '#' + item.id;
+                                html += '<button type="button" class="btn btn-sm btn-success" onclick="showConfirmRefundModal(' + item.id + ', \'' + reservationCode + '\')">';
+                                html += '<i class="fas fa-check"></i> Đã hoàn tiền';
+                                html += '</button>';
+                                html += '</td>';
+                                html += '</tr>';
+                            });
+                            
+                            html += '</tbody></table></div>';
+                        }
+                        
+                        $list.html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading pending refunds:', error);
+                        console.error('Status:', status);
+                        console.error('Response:', xhr.responseText);
+                        console.error('XHR:', xhr);
+                        
+                        let errorMsg = 'Có lỗi xảy ra khi tải danh sách.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg += '<br><strong>Chi tiết:</strong> ' + xhr.responseJSON.message;
+                        } else if (xhr.responseText) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                if (response.message) {
+                                    errorMsg += '<br><strong>Chi tiết:</strong> ' + response.message;
+                                }
+                            } catch (e) {
+                                errorMsg += '<br><strong>Response:</strong> ' + xhr.responseText.substring(0, 200);
+                            }
+                        }
+                        errorMsg += '<br><small>Vui lòng mở Console (F12) để xem chi tiết lỗi.</small>';
+                        $list.html('<div class="alert alert-danger">' + errorMsg + '</div>');
+                    }
+                });
+            };
+            
+            })(jQuery);
+
             // Hàm đóng modal chỉnh sửa bàn
             function closeEditTableModal(reservationId) {
                 $('#editTablesModal' + reservationId).modal('hide');

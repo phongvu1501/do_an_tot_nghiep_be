@@ -45,7 +45,10 @@ class DatBanAnController extends Controller
 
         $reservations = $query->orderBy('id', 'desc')->paginate(10);
 
-        $data = $reservations->map(function ($reservation) {
+        $refundDays = max(1, (int)Setting::getValue('refund_days', 1));
+        $now = Carbon::now();
+
+        $data = $reservations->map(function ($reservation) use ($refundDays, $now) {
 
             $subtotal = $reservation->reservationItems->sum(
                 fn($item) =>
@@ -54,6 +57,18 @@ class DatBanAnController extends Controller
 
             $vat = $subtotal * 0.08;
             $total_price = $subtotal + $vat;
+
+            // Kiểm tra khả năng hoàn tiền
+            $canBeRefunded = false;
+            $daysUntilReservation = 0;
+            // Chỉ kiểm tra hoàn tiền nếu có tiền cọc thực sự (deposit > 0)
+            $hasDeposit = ($reservation->deposit && (float)$reservation->deposit > 0);
+            if ($hasDeposit && !$reservation->refunded_at) {
+                if (!$reservation->reservation_date->isPast()) {
+                    $daysUntilReservation = (int)ceil($now->diffInDays($reservation->reservation_date, false));
+                    $canBeRefunded = $daysUntilReservation >= $refundDays;
+                }
+            }
 
             // Ưu tiên dùng voucher_discount đã lưu, nếu không có thì tính lại
             $voucher = $reservation->voucher;
@@ -129,12 +144,16 @@ class DatBanAnController extends Controller
                 'cancellation_reason' => $reservation->cancellation_reason,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
+                'refund_days' => $refundDays,
+                'can_be_refunded' => $canBeRefunded,
+                'days_until_reservation' => $daysUntilReservation,
             ];
         });
 
         return response()->json([
             'success' => true,
             'data' => $data,
+            'refund_days' => $refundDays,
             'pagination' => [
                 'total' => $reservations->total(),
                 'per_page' => $reservations->perPage(),
@@ -252,18 +271,83 @@ class DatBanAnController extends Controller
             ], 404);
         }
 
-        if (!in_array($reservation->status, ['pending', 'deposit_pending', 'deposit_paid'])) {
+        // Chỉ cho phép hủy các đơn chưa hoàn tất hoặc đã hủy
+        if (in_array($reservation->status, ['completed', 'cancelled'])) {
             return response()->json([
                 'error' => 'Không thể hủy',
                 'message' => 'Không thể hủy đơn đặt bàn đã hoàn tất hoặc đã bị hủy trước đó.'
             ], 400);
         }
 
-        $reservation->update(['status' => 'cancelled']);
+        // Kiểm tra xem có thể hoàn tiền không
+        $now = Carbon::now();
+        $refundDays = max(1, (int)Setting::getValue('refund_days', 1));
+        $canBeRefunded = false;
+        $refundAccountNumber = null;
+
+        // Chỉ kiểm tra hoàn tiền nếu có tiền cọc thực sự (deposit > 0)
+        $hasDeposit = ($reservation->deposit && (float)$reservation->deposit > 0);
+        if ($hasDeposit && !$reservation->refunded_at) {
+            if (!$reservation->reservation_date->isPast()) {
+                $daysUntilReservation = (int)ceil($now->diffInDays($reservation->reservation_date, false));
+                $canBeRefunded = $daysUntilReservation >= $refundDays;
+            }
+        }
+
+        // Nếu có thể hoàn tiền, yêu cầu ngân hàng và số tài khoản
+        if ($canBeRefunded) {
+            $validated = $request->validate([
+                'refund_bank' => 'required|string|in:mbank,techcombank,vietcombank,bidv,agribank,vietinbank,acb,vpbank,tpbank,shb,hdbank,msb,ocb,vib,seabank,eximbank,scb,vietabank,lienvietpostbank,pvcombank,publicbank,saigonbank',
+                'refund_account_number' => 'required|string|max:20',
+            ], [
+                'refund_bank.required' => 'Vui lòng chọn ngân hàng!',
+                'refund_bank.in' => 'Ngân hàng không hợp lệ!',
+                'refund_account_number.required' => 'Vui lòng nhập số tài khoản để hoàn tiền!',
+                'refund_account_number.max' => 'Số tài khoản không được quá 20 ký tự!',
+            ]);
+
+            $bankNames = [
+                'mbank' => 'MBank',
+                'techcombank' => 'Techcombank',
+                'vietcombank' => 'Vietcombank',
+                'bidv' => 'BIDV',
+                'agribank' => 'Agribank',
+                'vietinbank' => 'VietinBank',
+                'acb' => 'ACB',
+                'vpbank' => 'VPBank',
+                'tpbank' => 'TPBank',
+                'shb' => 'SHB',
+                'hdbank' => 'HDBank',
+                'msb' => 'MSB',
+                'ocb' => 'OCB',
+                'vib' => 'VIB',
+                'seabank' => 'SeABank',
+                'eximbank' => 'Eximbank',
+                'scb' => 'SCB',
+                'vietabank' => 'VietABank',
+                'lienvietpostbank' => 'LienVietPostBank',
+                'pvcombank' => 'PVcomBank',
+                'publicbank' => 'PublicBank',
+                'saigonbank' => 'SaigonBank',
+            ];
+            $bankName = $bankNames[$validated['refund_bank']] ?? $validated['refund_bank'];
+            $accountNumber = $validated['refund_account_number'];
+            $refundAccountNumber = $bankName . ' - ' . $accountNumber;
+            
+            $cancellationReason = $request->cancellation_reason ?? 'Khách hàng hủy đơn';
+            $cancellationReason .= "\n\nSố tài khoản hoàn tiền: " . $refundAccountNumber;
+        } else {
+            $cancellationReason = $request->cancellation_reason ?? 'Khách hàng hủy đơn';
+        }
+
+        $reservation->update([
+            'status' => 'cancelled',
+            'cancellation_reason' => $cancellationReason,
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã hủy đơn đặt bàn thành công.',
+            'message' => 'Đã hủy đơn đặt bàn thành công.' . ($canBeRefunded ? ' Tiền cọc sẽ được hoàn về tài khoản bạn đã cung cấp.' : ''),
             'reservation' => [
                 'id' => $reservation->id,
                 'status' => $reservation->status,

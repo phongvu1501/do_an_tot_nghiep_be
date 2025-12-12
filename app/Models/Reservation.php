@@ -25,11 +25,13 @@ class Reservation extends Model
         'payment_url',
         'cancellation_reason',
         'phone_confirmed',
+        'refunded_at',
     ];
 
     protected $casts = [
         'reservation_date' => 'date',
         'phone_confirmed' => 'boolean',
+        'refunded_at' => 'datetime',
     ];
 
     // Quan hệ với User
