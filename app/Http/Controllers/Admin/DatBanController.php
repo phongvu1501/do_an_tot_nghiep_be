@@ -12,6 +12,7 @@ use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class DatBanController extends Controller
 {
@@ -44,20 +45,29 @@ class DatBanController extends Controller
             });
         }
 
+        if ($request->filled('reservation_code')) {
+            $reservationCode = $request->reservation_code;
+            $query->where(function ($q) use ($reservationCode) {
+                $q->where('reservation_code', 'like', '%' . $reservationCode . '%')
+                  ->orWhere('id', $reservationCode);
+            });
+        }
+
         $reservations = $query->orderByDesc('id')
             ->paginate(10)
             ->appends($request->except('page'));
+
+        $pendingRefundCount = $this->getPendingRefundCount();
 
         return view('admin.datBan.index', [
             'title' => 'Trang quản lý đặt bàn',
             'tables' => $reservations,
             'availableTables' => BanAn::all(),
+            'pendingRefundCount' => $pendingRefundCount,
         ]);
     }
 
-    /**
-     * Hiển thị form tạo đơn đặt bàn
-     */
+    //  Hiển thị form tạo đơn đặt bàn
     public function create()
     {
         return view('admin.datBan.create', [
@@ -71,9 +81,7 @@ class DatBanController extends Controller
         ]);
     }
 
-    /**
-     * Xử lý tạo đơn đặt bàn mới
-     */
+    //  Xử lý tạo đơn đặt bàn mới
     public function store(Request $request)
     {
         $request->validate([
@@ -161,6 +169,16 @@ class DatBanController extends Controller
                     'points' => 0,
                 ]);
                 $userId = $user->id;
+                
+                // Gửi email thông báo tài khoản và mật khẩu cho user mới
+                try {
+                    Mail::raw("Xin chào {$user->name},\n\nTài khoản của bạn đã được tạo thành công tại nhà hàng của chúng tôi.\n\nThông tin đăng nhập:\n- Tài khoản: {$user->phone}\n- Mật khẩu: 123456\n\nVui lòng đăng nhập và đổi mật khẩu để bảo mật tài khoản của bạn.\n\nCảm ơn bạn!", function ($m) use ($user) {
+                        $m->to($user->email)->subject('Thông tin tài khoản đăng nhập');
+                    });
+                } catch (\Exception $e) {
+                    // Không làm gián đoạn flow nếu gửi email thất bại
+                    \Log::error('Failed to send account info email: ' . $e->getMessage());
+                }
             }
         }
 
@@ -265,7 +283,21 @@ class DatBanController extends Controller
             }
         }
 
-        $message = "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}";
+        // Gửi email xác nhận đặt bàn thành công
+        try {
+            $reservation->load('user');
+            
+            // Gửi email giống như cách gửi OTP
+            Mail::send('emails.reservation_success', ['reservation' => $reservation], function ($message) use ($reservation) {
+                $message->to($reservation->user->email)
+                        ->subject('Xác nhận đặt bàn thành công');
+            });
+        } catch (\Exception $e) {
+            // Không làm gián đoạn flow nếu gửi email thất bại
+            \Log::error('Failed to send reservation success email: ' . $e->getMessage());
+        }
+
+        $message = "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->reservation_code}";
         if ($totalDeposit > 0) {
             $message .= " (Cần đặt cọc: " . number_format($totalDeposit, 0, ',', '.') . " VND)";
         }
@@ -322,13 +354,25 @@ class DatBanController extends Controller
      */
     public function updateStatus(Request $request)
     {
+        $reservation = Reservation::findOrFail($request->reservation_id);
+        
+        // Kiểm tra xem đơn có thể được hoàn tiền không
+        $canBeRefunded = ($reservation->deposit && $reservation->deposit > 0) && 
+                         !$reservation->reservation_date->isPast();
+        
         $request->validate([
             'reservation_id'       => 'required|exists:reservations,id',
             'status'               => 'required|in:pending,deposit_pending,deposit_paid,serving,completed,cancelled',
             'cancellation_reason'  => 'required_if:status,cancelled',
+            'refund_bank' => ($canBeRefunded && $request->status === 'cancelled') ? 'required|string|in:mbank,techcombank,vietcombank,bidv,agribank,vietinbank,acb,vpbank,tpbank,shb,hdbank,msb,ocb,vib,seabank,eximbank,scb,vietabank,lienvietpostbank,pvcombank,publicbank,saigonbank' : 'nullable|string|in:mbank,techcombank,vietcombank,bidv,agribank,vietinbank,acb,vpbank,tpbank,shb,hdbank,msb,ocb,vib,seabank,eximbank,scb,vietabank,lienvietpostbank,pvcombank,publicbank,saigonbank',
+            'refund_account_number' => ($canBeRefunded && $request->status === 'cancelled') ? 'required|string|max:20' : 'nullable|string|max:20',
+        ], [
+            'cancellation_reason.required_if' => 'Vui lòng nhập lý do hủy đơn!',
+            'refund_bank.required' => 'Vui lòng chọn ngân hàng!',
+            'refund_bank.in' => 'Ngân hàng không hợp lệ!',
+            'refund_account_number.required' => 'Vui lòng nhập số tài khoản để hoàn tiền!',
+            'refund_account_number.max' => 'Số tài khoản không được quá 20 ký tự!',
         ]);
-
-        $reservation = Reservation::findOrFail($request->reservation_id);
 
         $oldStatus = $reservation->getOriginal('status');
 
@@ -377,8 +421,43 @@ class DatBanController extends Controller
 
         $reservation->status = $request->status;
 
-        if ($request->status === 'cancelled' && $request->filled('cancellation_reason')) {
-            $reservation->cancellation_reason = $request->cancellation_reason;
+        if ($request->status === 'cancelled') {
+            $cancellationReason = $request->cancellation_reason ?? '';
+            $refundBank = $request->refund_bank ?? '';
+            $refundAccount = $request->refund_account_number ?? '';
+            
+            // Gộp ngân hàng và số tài khoản vào cancellation_reason
+            if ($refundBank && $refundAccount) {
+                $bankNames = [
+                    'mbank' => 'MBank',
+                    'techcombank' => 'Techcombank',
+                    'vietcombank' => 'Vietcombank',
+                    'bidv' => 'BIDV',
+                    'agribank' => 'Agribank',
+                    'vietinbank' => 'VietinBank',
+                    'acb' => 'ACB',
+                    'vpbank' => 'VPBank',
+                    'tpbank' => 'TPBank',
+                    'shb' => 'SHB',
+                    'hdbank' => 'HDBank',
+                    'msb' => 'MSB',
+                    'ocb' => 'OCB',
+                    'vib' => 'VIB',
+                    'seabank' => 'SeABank',
+                    'eximbank' => 'Eximbank',
+                    'scb' => 'SCB',
+                    'vietabank' => 'VietABank',
+                    'lienvietpostbank' => 'LienVietPostBank',
+                    'pvcombank' => 'PVcomBank',
+                    'publicbank' => 'PublicBank',
+                    'saigonbank' => 'SaigonBank',
+                ];
+                $bankName = $bankNames[$refundBank] ?? $refundBank;
+                $refundAccountFull = $bankName . ' - ' . $refundAccount;
+                $cancellationReason .= "\n\nSố tài khoản hoàn tiền: " . $refundAccountFull;
+            }
+            
+            $reservation->cancellation_reason = trim($cancellationReason);
         }
 
         $reservation->save();
@@ -493,7 +572,7 @@ class DatBanController extends Controller
         $reservation->tables()->sync($request->table_ids);
 
         return redirect()->route('admin.datBan.index')
-            ->with('success', "Đã cập nhật bàn cho đơn #{$reservation->id} thành công! (Tổng số bàn: " . count($request->table_ids) . ")");
+            ->with('success', "Đã cập nhật bàn cho đơn {$reservation->reservation_code} thành công! (Tổng số bàn: " . count($request->table_ids) . ")");
     }
 
     /**
@@ -962,5 +1041,175 @@ class DatBanController extends Controller
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Tính số đơn cần hoàn tiền
+     */
+    private function getPendingRefundCount()
+    {
+        $now = Carbon::now();
+        
+        return Reservation::where('status', 'cancelled')
+            ->whereNotNull('deposit')
+            ->where('deposit', '>', 0)
+            ->whereNull('refunded_at')
+            ->whereHas('tables', function($q) {
+                // Đảm bảo có bàn
+            })
+            ->get()
+            ->filter(function($reservation) use ($now) {
+                // Kiểm tra xem có đủ điều kiện hoàn tiền không
+                return $this->isEligibleForRefund($reservation, $now);
+            })
+            ->count();
+    }
+
+    /**
+     * Kiểm tra đơn có đủ điều kiện hoàn tiền không
+     */
+    private function isEligibleForRefund($reservation, $now = null)
+    {
+        if ($now === null) {
+            $now = Carbon::now();
+        }
+
+        // Phải là đơn đã hủy
+        if ($reservation->status !== 'cancelled') {
+            return false;
+        }
+
+        // Phải có tiền cọc
+        if (!$reservation->deposit || $reservation->deposit <= 0) {
+            return false;
+        }
+
+        // Chưa được hoàn tiền
+        if ($reservation->refunded_at) {
+            return false;
+        }
+
+        // Kiểm tra ngày đặt có phải ngày lễ không
+        // Lấy refund_days từ cấu hình chung (Settings), đảm bảo tối thiểu là 1
+        $refundDays = max(1, (int)Setting::getValue('refund_days', 1));
+
+        // Tính số ngày từ bây giờ đến ngày đặt
+        // diffInDays với false sẽ trả về số ngày tuyệt đối (luôn dương)
+        // Nhưng chúng ta cần số ngày còn lại đến ngày đặt (chỉ tính khi ngày đặt trong tương lai)
+        
+        // Nếu ngày đặt đã qua rồi, không được hoàn tiền
+        if ($reservation->reservation_date->isPast()) {
+            return false;
+        }
+
+        // Tính số ngày còn lại đến ngày đặt (chỉ khi ngày đặt trong tương lai)
+        $daysUntilReservation = $now->diffInDays($reservation->reservation_date, false);
+        
+        // Nếu hủy trước >= số ngày quy định thì được hoàn
+        // Ví dụ: refund_days = 1, nghĩa là hủy trước 1 ngày được hoàn
+        // Nếu ngày đặt là ngày mai (1 ngày nữa), thì được hoàn
+        // Nếu ngày đặt là 2 ngày nữa, thì được hoàn
+        return $daysUntilReservation >= $refundDays;
+    }
+
+    /**
+     * Lấy danh sách đơn cần hoàn tiền
+     */
+    public function getPendingRefunds()
+    {
+        try {
+            $now = Carbon::now();
+            
+            $reservations = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher'])
+                ->where('status', 'cancelled')
+                ->whereNotNull('deposit')
+                ->where('deposit', '>', 0)
+                ->whereNull('refunded_at')
+                ->get()
+                ->filter(function($reservation) use ($now) {
+                    try {
+                        return $this->isEligibleForRefund($reservation, $now);
+                    } catch (\Exception $e) {
+                        \Log::error('Error checking refund eligibility for reservation ' . $reservation->id . ': ' . $e->getMessage());
+                        return false;
+                    }
+                })
+                ->map(function($reservation) {
+                    try {
+                        // Lấy refund_days
+                        $holidayDate = DepositRequiredDate::where('is_active', true)
+                            ->whereDate('date', $reservation->reservation_date)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+                        
+                        // Lấy refund_days từ cấu hình chung (Settings)
+                        $refundDays = (int)Setting::getValue('refund_days', 1);
+                        
+                        // Tách số tài khoản từ cancellation_reason
+                        $accountNumber = null;
+                        if ($reservation->cancellation_reason) {
+                            $reasonParts = explode("\n\nSố tài khoản hoàn tiền: ", $reservation->cancellation_reason);
+                            if (isset($reasonParts[1])) {
+                                $accountNumber = trim($reasonParts[1]);
+                            }
+                        }
+                        
+                        return [
+                            'id' => $reservation->id,
+                            'reservation_code' => $reservation->reservation_code ?? '#' . $reservation->id,
+                            'user_name' => $reservation->user->name ?? 'N/A',
+                            'user_phone' => $reservation->user->phone ?? 'N/A',
+                            'reservation_date' => $reservation->reservation_date->format('d/m/Y'),
+                            'shift' => $reservation->shift,
+                            'deposit' => (float)$reservation->deposit,
+                            'refund_days' => $refundDays,
+                            'refund_account_number' => $accountNumber ?? 'Chưa có',
+                            'created_at' => $reservation->created_at->format('d/m/Y H:i'),
+                        ];
+                    } catch (\Exception $e) {
+                        \Log::error('Error mapping reservation ' . $reservation->id . ': ' . $e->getMessage());
+                        return null;
+                    }
+                })
+                ->filter(function($item) {
+                    return $item !== null;
+                })
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $reservations,
+                'count' => $reservations->count(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getPendingRefunds: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi lấy danh sách đơn cần hoàn tiền: ' . $e->getMessage(),
+                'data' => [],
+                'count' => 0,
+            ], 500);
+        }
+    }
+
+    /**
+     * Xử lý hoàn tiền
+     */
+    public function processRefund(Request $request, $id)
+    {
+        $reservation = Reservation::findOrFail($id);
+
+        // Kiểm tra điều kiện hoàn tiền
+        if (!$this->isEligibleForRefund($reservation)) {
+            return back()->with('error', 'Đơn này không đủ điều kiện để hoàn tiền!');
+        }
+
+        // Cập nhật refunded_at
+        $reservation->refunded_at = Carbon::now();
+        $reservation->save();
+
+        $reservationCode = $reservation->reservation_code ?? '#' . $reservation->id;
+        return redirect()->route('admin.datBan.index')
+            ->with('success', "Đã đánh dấu hoàn tiền cho đơn {$reservationCode} thành công!");
     }
 }

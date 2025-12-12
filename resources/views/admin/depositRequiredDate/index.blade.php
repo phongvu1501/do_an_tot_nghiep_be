@@ -56,13 +56,19 @@
                                                    value="{{ old('deposit_vip_rooms', $deposit_vip_rooms ?? 1000000) }}" 
                                                    min="1" step="1" placeholder="Nhập số tiền cọc" required>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label class="font-weight-bold">Số bàn tối thiểu cần cọc (ngày thường) <span class="text-danger">*</span></label>
                                             <input type="number" name="min_tables_for_deposit" class="form-control" 
                                                    value="{{ old('min_tables_for_deposit', $min_tables_for_deposit ?? 2) }}" 
                                                    min="1" step="1" placeholder="Ví dụ: 2" required>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">Số ngày hoàn tiền <span class="text-danger">*</span></label>
+                                            <input type="number" name="refund_days" class="form-control" 
+                                                   value="{{ old('refund_days', $refund_days ?? 1) }}" 
+                                                   min="1" step="1" placeholder="Ví dụ: 1" required>
+                                        </div>
+                                        <div class="col-md-2">
                                             <button type="submit" class="btn btn-success w-100">
                                                 <i class="fas fa-save"></i> Lưu cấu hình
                                             </button>
@@ -103,6 +109,7 @@
                                                 <th width="150">Ngày</th>
                                                 <th>Mô tả</th>
                                                 <th width="150" class="text-center">Số tiền cọc/bàn</th>
+                                                <th width="120" class="text-center">Số ngày hoàn</th>
                                                 <th width="120" class="text-center">Trạng thái</th>
                                                 <th width="180" class="text-center">Thao tác</th>
                                             </tr>
@@ -127,7 +134,9 @@
                                                     </td>
                                                     <td class="text-center">
                                                         <strong class="text-primary">{{ number_format($deposit_normal_tables ?? 500000, 0, ',', '.') }} VND</strong>
-                                                        <br><small class="text-muted">(Cấu hình chung)</small>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <strong class="text-info">{{ $refund_days ?? 1 }} ngày</strong>
                                                     </td>
                                                     <td class="text-center">
                                                         @if($group['is_active'])
@@ -206,6 +215,74 @@
                             @else
                                 <div class="alert alert-warning mb-0">
                                     <i class="fas fa-info-circle"></i> Chưa có ngày nào yêu cầu đặt cọc.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Lịch sử hoàn tiền -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="mb-0">
+                                <i class="fas fa-history"></i> Lịch sử hoàn tiền
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            @if($refundHistory->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th width="150">Mã đơn</th>
+                                                <th width="200">Khách hàng</th>
+                                                <th width="150" class="text-right">Số tiền hoàn (VND)</th>
+                                                <th width="150" class="text-center">Ngày đặt</th>
+                                                <th width="150" class="text-center">Ngày hoàn</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($refundHistory as $reservation)
+                                                <tr>
+                                                    <td>
+                                                        <strong class="text-primary">{{ $reservation->reservation_code ?? '#' . $reservation->id }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        {{ $reservation->user->name ?? 'N/A' }}
+                                                        <br><small class="text-muted">{{ $reservation->user->phone ?? '' }}</small>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        <strong class="text-success">{{ number_format($reservation->deposit ?? 0, 0, ',', '.') }}</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {{ $reservation->reservation_date ? $reservation->reservation_date->format('d/m/Y') : 'N/A' }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge badge-info">
+                                                            {{ $reservation->refunded_at ? $reservation->refunded_at->format('d/m/Y H:i') : 'N/A' }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div>
+                                        Hiển thị {{ $refundHistory->firstItem() ?? 0 }} đến {{ $refundHistory->lastItem() ?? 0 }} 
+                                        trong tổng số {{ $refundHistory->total() }} kết quả
+                                    </div>
+                                    <div>
+                                        {{ $refundHistory->links('pagination::bootstrap-4') }}
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle"></i> Chưa có lịch sử hoàn tiền nào.
                                 </div>
                             @endif
                         </div>
