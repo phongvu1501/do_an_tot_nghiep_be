@@ -12,6 +12,7 @@ use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class DatBanController extends Controller
 {
@@ -168,6 +169,16 @@ class DatBanController extends Controller
                     'points' => 0,
                 ]);
                 $userId = $user->id;
+                
+                // Gửi email thông báo tài khoản và mật khẩu cho user mới
+                try {
+                    Mail::raw("Xin chào {$user->name},\n\nTài khoản của bạn đã được tạo thành công tại nhà hàng của chúng tôi.\n\nThông tin đăng nhập:\n- Tài khoản: {$user->phone}\n- Mật khẩu: 123456\n\nVui lòng đăng nhập và đổi mật khẩu để bảo mật tài khoản của bạn.\n\nCảm ơn bạn!", function ($m) use ($user) {
+                        $m->to($user->email)->subject('Thông tin tài khoản đăng nhập');
+                    });
+                } catch (\Exception $e) {
+                    // Không làm gián đoạn flow nếu gửi email thất bại
+                    \Log::error('Failed to send account info email: ' . $e->getMessage());
+                }
             }
         }
 
@@ -272,7 +283,21 @@ class DatBanController extends Controller
             }
         }
 
-        $message = "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->id}";
+        // Gửi email xác nhận đặt bàn thành công
+        try {
+            $reservation->load('user');
+            
+            // Gửi email giống như cách gửi OTP
+            Mail::send('emails.reservation_success', ['reservation' => $reservation], function ($message) use ($reservation) {
+                $message->to($reservation->user->email)
+                        ->subject('Xác nhận đặt bàn thành công');
+            });
+        } catch (\Exception $e) {
+            // Không làm gián đoạn flow nếu gửi email thất bại
+            \Log::error('Failed to send reservation success email: ' . $e->getMessage());
+        }
+
+        $message = "Tạo đơn đặt bàn thành công! Mã đơn: #{$reservation->reservation_code}";
         if ($totalDeposit > 0) {
             $message .= " (Cần đặt cọc: " . number_format($totalDeposit, 0, ',', '.') . " VND)";
         }

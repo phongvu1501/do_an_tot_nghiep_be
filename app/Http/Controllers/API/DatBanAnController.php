@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\Controller;
+use App\Mail\ReservationSuccessMail;
 use App\Models\DepositRequiredDate;
 use App\Models\Order;
 use App\Models\Reservation;
@@ -12,6 +13,7 @@ use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -662,6 +664,20 @@ class DatBanAnController extends Controller
             }
 
             DB::commit();
+
+            // Gửi email xác nhận đặt bàn thành công
+            try {
+                $reservation->load('user');
+                
+                // Gửi email giống như cách gửi OTP
+                Mail::send('emails.reservation_success', ['reservation' => $reservation], function ($message) use ($reservation) {
+                    $message->to($reservation->user->email)
+                            ->subject('Xác nhận đặt bàn thành công');
+                });
+            } catch (\Exception $e) {
+                // Không làm gián đoạn flow nếu gửi email thất bại
+                \Log::error('Failed to send reservation success email: ' . $e->getMessage());
+            }
 
             $message = $totalDeposit > 0
                 ? 'Đặt bàn thành công! Vui lòng thanh toán tiền cọc trong 15 phút.'
