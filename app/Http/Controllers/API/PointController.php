@@ -47,7 +47,7 @@ class PointController extends Controller
         }
 
         $subtotal = $reservation->reservationItems->sum(fn($i) => $i->price * $i->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $total_price = $subtotal + $vat;
 
         $discount_value = 0;
@@ -62,12 +62,11 @@ class PointController extends Controller
 
                     if ($voucher->discount_type === 'percent') {
                         $discount_value = ($total_price * $voucher->discount_value) / 100;
+                        if ($voucher->order_value_allowed && $discount_value > $voucher->order_value_allowed) {
+                            $discount_value = $voucher->order_value_allowed;
+                        }
                     } else {
                         $discount_value = $voucher->discount_value;
-                    }
-
-                    if ($voucher->order_value_allowed && $total_price > $voucher->order_value_allowed) {
-                        $discount_value = 0;
                     }
                 }
             }

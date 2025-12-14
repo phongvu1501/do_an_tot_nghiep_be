@@ -294,7 +294,7 @@
                                         $subtotal = $activeReservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
-                                        $vat = $subtotal * 0.1;
+                                        $vat = $subtotal * 0.08;
                                         $totalMenuPrice = $subtotal + $vat; // Tổng tiền menu hiện tại (có VAT)
                                         // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
                                         $tableDeposit = $activeReservation->getTableDeposit();
@@ -302,7 +302,7 @@
                                         $remainingAmount = $totalMenuPrice - $tableDeposit - $foodDeposit;
                                     @endphp
                                     <tr>
-                                        <th colspan="3" class="text-right">Tổng tiền món ăn (đã có VAT 10%):</th>
+                                        <th colspan="3" class="text-right">Tổng tiền món ăn (đã có VAT 8%):</th>
                                         <th class="text-right">{{ number_format($totalMenuPrice, 0, ',', '.') }}đ</th>
                                     </tr>
                                     <tr>
@@ -400,7 +400,7 @@
                                         $subtotal = $servingReservation->reservationItems->sum(function($item) {
                                             return $item->price * $item->quantity;
                                         });
-                                        $vat = $subtotal * 0.1;
+                                        $vat = $subtotal * 0.08;
                                         $totalMenuPrice = $subtotal + $vat; // Tổng tiền menu hiện tại (có VAT)
                                         // Trừ cả cọc bàn và cọc đồ ăn ban đầu (nếu đã cọc)
                                         $tableDeposit = $servingReservation->getTableDeposit();
@@ -414,7 +414,7 @@
                                         </th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="text-right">VAT 10%:</th>
+                                        <th colspan="3" class="text-right">VAT 8%:</th>
                                         <th class="text-right">
                                             {{ number_format($vat, 0, ',', '.') }}đ
                                         </th>

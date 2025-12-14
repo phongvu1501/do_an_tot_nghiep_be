@@ -73,6 +73,7 @@ class UserController extends Controller
         $query->where('name', 'like', '%' . $request->name . '%');
     }
 
+
     // Lọc theo email
     if ($request->email) {
         $query->where('email', 'like', '%' . $request->email . '%');
@@ -91,6 +92,15 @@ class UserController extends Controller
     $users = $query->orderBy('created_at', 'desc')->get();
 
     return view('admin.accounts.users', compact('users'));
+
+
+}
+public function detail($id)
+{
+    $user = User::with(['reservations.tables', 'reservations.reservationItems.menu'])->findOrFail($id);
+    return view('admin.user.detail', compact('user')); // trả về HTML
+
+
 }
 
 

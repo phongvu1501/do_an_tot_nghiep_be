@@ -45,10 +45,10 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-4">
                                 <label for="category_id" class="form-label"><strong>Lọc theo danh mục:</strong></label>
-                                <select name="category_id" id="category_id" class="form-select">
+                                <select name="category_id" id="category_id" class="form-control">
                                     <option value="">Tất cả</option>
                                     @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" {{ $selectedCategoryId == $category->id ? 'selected' : '' }}>
+                                        <option value="{{ $category->id }}" {{ (string)$selectedCategoryId == (string)$category->id ? 'selected' : '' }}>
                                             {{ $category->name }}
                                         </option>
                                     @endforeach

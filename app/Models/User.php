@@ -85,7 +85,7 @@ class User extends Authenticatable
         $this->points -= $amount;
         $this->save();
 
-        
+
 
         return true;
     }
@@ -100,6 +100,12 @@ class User extends Authenticatable
     {
         $this->points += $amount;
         $this->save();
+    }
 
+    public function vouchers()
+    {
+        return $this->belongsToMany(Voucher::class, 'user_voucher')
+            ->withPivot(['status', 'used_at', 'used_count'])
+            ->withTimestamps();
     }
 }

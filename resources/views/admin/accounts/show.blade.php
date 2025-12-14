@@ -57,6 +57,7 @@
                                 @endif
                             </div>
 
+
                           <h6 class="font-weight-bold">Món ăn đã đặt:</h6>
 
 @if ($reservation->reservationItems->count() > 0)
@@ -106,6 +107,91 @@
 @else
     <p class="text-muted">Người dùng chưa đặt món ăn nào.</p>
 @endif
+
+                            <h6 class="font-weight-bold">Món ăn đã đặt:</h6>
+
+                            @if ($reservation->reservationItems->count() > 0)
+                                <div class="table-responsive mt-2">
+                                    <table class="table table-bordered table-striped table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Món</th>
+                                                <th width="80">SL</th>
+                                                <th width="120">Đơn giá</th>
+                                                <th width="120">Thành tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @php
+                                                $total = 0;
+                                            @endphp
+                                            @foreach ($reservation->reservationItems as $index => $item)
+                                                @php
+                                                    $subtotal = $item->price * $item->quantity;
+                                                    $total += $subtotal;
+                                                @endphp
+                                                <tr>
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td>{{ $item->menu->name ?? 'N/A' }}</td>
+                                                    <td class="text-center">{{ $item->quantity }}</td>
+                                                    <td class="text-right">{{ number_format($item->price, 0, ',', '.') }}đ
+                                                    </td>
+                                                    <td class="text-right">{{ number_format($subtotal, 0, ',', '.') }}đ
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        <tfoot class="bg-light">
+                                            @php
+                                                $subtotal = $reservation->reservationItems->sum(
+                                                    fn($m) => $m->price * $m->quantity,
+                                                );
+                                                $vat = $subtotal * 0.08;
+                                                $totalBeforeDiscount = $subtotal + $vat;
+                                                $voucherDiscount = $reservation->voucher_discount ?? 0;
+                                                $total = max($totalBeforeDiscount - $voucherDiscount, 0);
+                                            @endphp
+                                            <tr>
+                                                <th colspan="4" class="text-end">Tạm tính:</th>
+                                                <th class="text-end">{{ number_format($subtotal, 0, ',', '.') }}đ</th>
+                                            </tr>
+                                            <tr>
+                                                <th colspan="4" class="text-end">VAT 8%:</th>
+                                                <th class="text-end">{{ number_format($vat, 0, ',', '.') }}đ</th>
+                                            </tr>
+                                            <tr>
+                                                <th colspan="4" class="text-end">Tổng tiền trước voucher:</th>
+                                                <th class="text-end">
+                                                    {{ number_format($totalBeforeDiscount, 0, ',', '.') }}đ</th>
+                                            </tr>
+                                            @if ($reservation->voucher_id && $voucherDiscount > 0)
+                                                <tr class="bg-success text-white">
+                                                    <th colspan="4" class="text-end">
+                                                        <i class="fas fa-ticket-alt"></i> Giảm giá voucher
+                                                        @if ($reservation->voucher)
+                                                            ({{ $reservation->voucher->code }})
+                                                        @endif
+                                                        :
+                                                    </th>
+                                                    <th class="text-end">
+                                                        -{{ number_format($voucherDiscount, 0, ',', '.') }}đ</th>
+                                                </tr>
+                                            @endif
+                                            <tr>
+                                                <th colspan="4" class="text-end">Thành tiền:</th>
+                                                <th class="text-end text-danger fw-bold">
+                                                    {{ number_format($total, 0, ',', '.') }}đ</th>
+                                            </tr>
+                                        </tfoot>
+
+
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <p class="text-muted">Người dùng chưa đặt món ăn nào.</p>
+                            @endif
+>>>>>>> origin/develop-2
 
 
 

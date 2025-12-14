@@ -17,8 +17,11 @@ class MenuController extends Controller
 
         // Lọc theo danh mục nếu có
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $query->where('category_id', (int)$request->category_id);
         }
+
+        // Sắp xếp món mới nhất lên đầu
+        $query->orderBy('id', 'DESC');
 
         $menus = $query->get();
 
@@ -29,7 +32,7 @@ class MenuController extends Controller
         $categories = MenuCategory::all();
 
         // Danh mục đang được chọn
-        $selectedCategoryId = $request->category_id;
+        $selectedCategoryId = $request->category_id ? (int)$request->category_id : null;
 
         return view('admin.menus.index', compact('menus', 'trashedCount', 'categories', 'selectedCategoryId'));
     }

@@ -18,15 +18,14 @@
 
         <!-- SidebarSearch Form -->
         <div class="form-inline">
-            <div class="input-group" data-widget="sidebar-search">
-                <input class="form-control form-control-sidebar" type="search" placeholder="Search"
-                    aria-label="Search">
+            {{-- <div class="input-group" data-widget="sidebar-search">
+                <input class="form-control form-control-sidebar" type="search" placeholder="Search" aria-label="Search">
                 <div class="input-group-append">
                     <button class="btn btn-sidebar">
                         <i class="fas fa-search fa-fw"></i>
                     </button>
                 </div>
-            </div>
+            </div> --}}
         </div>
 
         <!-- Sidebar Menu -->
@@ -54,6 +53,21 @@
                             <a href="{{ route('admin.reservationStatistics') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Thống kê đặt bàn</p>
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('admin.voucherStatistics') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Thống kê vouchers</p>
+                            <a href="{{ route('admin.menuStatistics') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Thống kê Menu</p>
+                            </a>
+                            <a href="{{ route('admin.thongkeStatistics') }}" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Thống kê doanh thu</p>
                             </a>
                         </li>
                     </ul>
@@ -103,6 +117,14 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.tiers.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-layer-group"></i>
+                        <p>
+                            Quản lý tiers
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.vouchers.voucher.index') }}" class="nav-link">
                         <i class="nav-icon fas fa-ticket-alt"></i>
                         <p>
@@ -110,37 +132,6 @@
                         </p>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.tiers.index') }}" class="nav-link"> 
-                        <i class="nav-icon fas fa-layer-group"></i>
-                        <p>
-                            Quản lý tiers
-                        </p>
-                    </a>
-                </li>
-                {{-- <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon fas fa-tag"></i>
-                        <p>Quản lý vouchers</p>
-                        <i class="right fas fa-angle-left"></i>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('admin.vouchers.voucher.index') }}" class="nav-link">
-                                <i class="far fa-credit-card nav-icon"></i>
-                                <p>Vouchers</p>
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="" class="nav-link">
-                                <i class="far fa-credit-card nav-icon"></i>
-                                <p>Tích điểm</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li> --}}
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-user"></i>

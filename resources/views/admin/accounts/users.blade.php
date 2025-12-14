@@ -77,7 +77,7 @@
                                     <td>
                                         <a href="{{ route('admin.accounts.show', $user->id) }}"
                                             class="btn btn-sm btn-primary">
-                                            <i class="fas fa-eye"></i> Xem chi tiết
+                                            <i class="fas fa-eye"></i> 
                                         </a>
                                     </td>
                                 </tr>

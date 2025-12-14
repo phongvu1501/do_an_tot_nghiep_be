@@ -44,19 +44,31 @@
                                     <form action="{{ route('admin.depositRequiredDate.updateDepositSettings') }}" method="POST" class="row align-items-end">
                                         @csrf
                                         @method('PUT')
-                                        <!-- <div class="col-md-4">
-                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND)</label>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND) <span class="text-danger">*</span></label>
                                             <input type="number" name="deposit_normal_tables" class="form-control" 
                                                    value="{{ old('deposit_normal_tables', $deposit_normal_tables ?? 500000) }}" 
                                                    min="1" step="1" placeholder="Nhập số tiền cọc" required>
-                                        </div> -->
-                                        <div class="col-md-4">
-                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) <span class="text-danger">*</span></label>
                                             <input type="number" name="deposit_vip_rooms" class="form-control" 
                                                    value="{{ old('deposit_vip_rooms', $deposit_vip_rooms ?? 1000000) }}" 
                                                    min="1" step="1" placeholder="Nhập số tiền cọc" required>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">Số bàn tối thiểu cần cọc (ngày thường) <span class="text-danger">*</span></label>
+                                            <input type="number" name="min_tables_for_deposit" class="form-control" 
+                                                   value="{{ old('min_tables_for_deposit', $min_tables_for_deposit ?? 2) }}" 
+                                                   min="1" step="1" placeholder="Ví dụ: 2" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">Số ngày hoàn tiền <span class="text-danger">*</span></label>
+                                            <input type="number" name="refund_days" class="form-control" 
+                                                   value="{{ old('refund_days', $refund_days ?? 1) }}" 
+                                                   min="1" step="1" placeholder="Ví dụ: 1" required>
+                                        </div>
+                                        <div class="col-md-2">
                                             <button type="submit" class="btn btn-success w-100">
                                                 <i class="fas fa-save"></i> Lưu cấu hình
                                             </button>
@@ -97,6 +109,7 @@
                                                 <th width="150">Ngày</th>
                                                 <th>Mô tả</th>
                                                 <th width="150" class="text-center">Số tiền cọc/bàn</th>
+                                                <th width="120" class="text-center">Số ngày hoàn</th>
                                                 <th width="120" class="text-center">Trạng thái</th>
                                                 <th width="180" class="text-center">Thao tác</th>
                                             </tr>
@@ -120,7 +133,10 @@
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        <strong class="text-primary">{{ number_format($group['deposit_per_table'] ?? 300000, 0, ',', '.') }} VND</strong>
+                                                        <strong class="text-primary">{{ number_format($deposit_normal_tables ?? 500000, 0, ',', '.') }} VND</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <strong class="text-info">{{ $refund_days ?? 1 }} ngày</strong>
                                                     </td>
                                                     <td class="text-center">
                                                         @if($group['is_active'])
@@ -205,6 +221,124 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Card Lịch sử hoàn tiền -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="mb-0">
+                                <i class="fas fa-history"></i> Lịch sử hoàn tiền
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            @if($refundHistory->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th width="150">Mã đơn</th>
+                                                <th width="200">Khách hàng</th>
+                                                <th width="150" class="text-right">Số tiền hoàn (VND)</th>
+                                                <th width="150" class="text-center">Ngày đặt</th>
+                                                <th width="150" class="text-center">Ngày hoàn</th>
+                                                <th width="120" class="text-center">Ảnh hoàn tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($refundHistory as $reservation)
+                                                <tr>
+                                                    <td>
+                                                        <strong class="text-primary">{{ $reservation->reservation_code ?? '#' . $reservation->id }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        {{ $reservation->user->name ?? 'N/A' }}
+                                                        <br><small class="text-muted">{{ $reservation->user->phone ?? '' }}</small>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        <strong class="text-success">{{ number_format($reservation->deposit ?? 0, 0, ',', '.') }}</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {{ $reservation->reservation_date ? $reservation->reservation_date->format('d/m/Y') : 'N/A' }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge badge-info">
+                                                            {{ $reservation->refunded_at ? $reservation->refunded_at->format('d/m/Y H:i') : 'N/A' }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($reservation->refund_bill_image)
+                                                            @php
+                                                                $imagePath = \Illuminate\Support\Facades\Storage::url($reservation->refund_bill_image);
+                                                                $fileExtension = strtolower(pathinfo($reservation->refund_bill_image, PATHINFO_EXTENSION));
+                                                                $isPdf = $fileExtension === 'pdf';
+                                                            @endphp
+                                                            @if($isPdf)
+                                                                <a href="{{ $imagePath }}" target="_blank" class="btn btn-sm btn-danger" title="Xem PDF">
+                                                                    <i class="fas fa-file-pdf"></i> PDF
+                                                                </a>
+                                                            @else
+                                                                <img src="{{ $imagePath }}" 
+                                                                     alt="Ảnh bill hoàn tiền" 
+                                                                     class="img-thumbnail" 
+                                                                     style="max-width: 80px; max-height: 80px; cursor: pointer; object-fit: cover;"
+                                                                     onclick="showRefundBillImage('{{ $imagePath }}')"
+                                                                     title="Click để xem ảnh lớn"
+                                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                                                <span style="display: none; color: red;" title="Không thể tải ảnh">
+                                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                                </span>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div>
+                                        Hiển thị {{ $refundHistory->firstItem() ?? 0 }} đến {{ $refundHistory->lastItem() ?? 0 }} 
+                                        trong tổng số {{ $refundHistory->total() }} kết quả
+                                    </div>
+                                    <div>
+                                        {{ $refundHistory->links('pagination::bootstrap-4') }}
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle"></i> Chưa có lịch sử hoàn tiền nào.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal xem ảnh bill hoàn tiền -->
+    <div class="modal fade" id="refundBillImageModal" tabindex="-1" role="dialog" aria-labelledby="refundBillImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refundBillImageModalLabel">
+                        <i class="fas fa-image"></i> Ảnh bill hoàn tiền
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeRefundBillImageModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="refundBillImageDisplay" src="" alt="Ảnh bill hoàn tiền" class="img-fluid" style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeRefundBillImageModal()">Đóng</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -239,12 +373,8 @@
                             @enderror
                         </div>
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                            <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table') }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                            @error('deposit_per_table')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                         </div>
 
                         <input type="hidden" name="is_active" value="1">
@@ -301,12 +431,8 @@
                             <input type="text" name="description" class="form-control" placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description') }}" maxlength="500">
                         </div>
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                            <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table') }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                            @error('deposit_per_table')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                         </div>
 
                         <div class="form-group">
@@ -368,12 +494,8 @@
                                     @enderror
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                                    <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table', $date->deposit_per_table) }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                                    @error('deposit_per_table')
-                                        <small class="text-danger d-block">{{ $message }}</small>
-                                    @enderror
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                                 </div>
 
                                 <div class="form-group">
@@ -445,9 +567,8 @@
                                     <input type="text" name="description" class="form-control" placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description', $group['description']) }}" maxlength="500">
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                                    <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table', $group['deposit_per_table']) }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1 bàn.
                                 </div>
 
                                 <div class="form-group">
@@ -475,7 +596,91 @@
     @endforeach
 @endsection
 
-@push('scripts')
-@endpush
+    @push('scripts')
+        <script>
+            function showRefundBillImage(imagePath) {
+                var modal = document.getElementById('refundBillImageModal');
+                var imgDisplay = document.getElementById('refundBillImageDisplay');
+                
+                if (modal && imgDisplay) {
+                    imgDisplay.src = imagePath;
+                    
+                    if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                        jQuery('#refundBillImageModal').modal('show');
+                    } else {
+                        modal.style.display = 'block';
+                        modal.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        var backdrop = document.createElement('div');
+                        backdrop.className = 'modal-backdrop fade show';
+                        backdrop.id = 'refundBillImageModalBackdrop';
+                        backdrop.onclick = function() {
+                            closeRefundBillImageModal();
+                        };
+                        document.body.appendChild(backdrop);
+                    }
+                }
+            }
+            
+            // Hàm đóng modal
+            function closeRefundBillImageModal() {
+                var modal = document.getElementById('refundBillImageModal');
+                if (modal) {
+                    if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                        jQuery('#refundBillImageModal').modal('hide');
+                    } else {
+                        modal.style.display = 'none';
+                        modal.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        var backdrop = document.getElementById('refundBillImageModalBackdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                        // Xóa tất cả backdrop còn sót lại
+                        var allBackdrops = document.querySelectorAll('.modal-backdrop');
+                        allBackdrops.forEach(function(bd) {
+                            bd.remove();
+                        });
+                    }
+                }
+            }
+            
+            // Đóng modal khi click vào backdrop hoặc nút X
+            document.addEventListener('DOMContentLoaded', function() {
+                var modal = document.getElementById('refundBillImageModal');
+                if (modal) {
+                    // Click vào backdrop để đóng
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            closeRefundBillImageModal();
+                        }
+                    });
+                    
+                    // Đảm bảo các nút đóng hoạt động
+                    var closeButtons = modal.querySelectorAll('[data-dismiss="modal"], .close');
+                    closeButtons.forEach(function(btn) {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            closeRefundBillImageModal();
+                        });
+                    });
+                }
+            });
+            
+            // Xử lý sự kiện khi modal được ẩn (Bootstrap event)
+            if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                jQuery(document).ready(function() {
+                    jQuery('#refundBillImageModal').on('hidden.bs.modal', function() {
+                        document.body.classList.remove('modal-open');
+                        var backdrops = document.querySelectorAll('.modal-backdrop');
+                        backdrops.forEach(function(bd) {
+                            bd.remove();
+                        });
+                    });
+                });
+            }
+        </script>
+    @endpush
 
 

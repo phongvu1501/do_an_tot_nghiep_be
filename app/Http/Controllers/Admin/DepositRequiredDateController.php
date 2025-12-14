@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DepositRequiredDate;
+use App\Models\Reservation;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -54,12 +55,24 @@ class DepositRequiredDateController extends Controller
         // Lấy giá trị từ database (settings table), nếu không có thì lấy mặc định
         $depositNormalTables = Setting::getValue('deposit_normal_tables', 500000);
         $depositVipRooms = Setting::getValue('deposit_vip_rooms', 1000000);
+        $minTablesForDeposit = Setting::getValue('min_tables_for_deposit', 2);
+        $refundDays = max(1, (int)Setting::getValue('refund_days', 1));
+
+        // Lấy lịch sử hoàn tiền 
+        $refundHistory = Reservation::whereNotNull('refunded_at')
+            ->where('deposit', '>', 0)
+            ->with('user')
+            ->orderBy('refunded_at', 'desc')
+            ->paginate(10, ['*'], 'refund_page');
 
         return view('admin.depositRequiredDate.index', [
             'title' => 'Quản lý ngày yêu cầu đặt cọc',
             'dates' => $paginator,
             'deposit_normal_tables' => $depositNormalTables,
             'deposit_vip_rooms' => $depositVipRooms,
+            'min_tables_for_deposit' => $minTablesForDeposit,
+            'refund_days' => $refundDays,
+            'refundHistory' => $refundHistory,
         ]);
     }
 
@@ -82,33 +95,19 @@ class DepositRequiredDateController extends Controller
             'date' => 'required|date|after_or_equal:today|unique:deposit_required_dates,date',
             'description' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
-            'deposit_per_table' => 'nullable|numeric|min:0',
-            'deposit_normal_tables' => 'nullable|numeric|min:1',
-            'deposit_vip_rooms' => 'nullable|numeric|min:1',
         ], [
             'date.required' => 'Vui lòng chọn ngày!',
             'date.date' => 'Ngày không hợp lệ!',
             'date.after_or_equal' => 'Ngày phải từ hôm nay trở đi!',
             'date.unique' => 'Ngày này đã được thêm vào danh sách!',
             'description.max' => 'Mô tả không được quá 500 ký tự!',
-            'deposit_per_table.numeric' => 'Số tiền cọc phải là số!',
-            'deposit_per_table.min' => 'Số tiền cọc phải lớn hơn hoặc bằng 0!',
-            'deposit_normal_tables.numeric' => 'Tiền cọc bàn thường phải là số!',
-            'deposit_normal_tables.min' => 'Tiền cọc bàn thường phải lớn hơn 0!',
-            'deposit_vip_rooms.numeric' => 'Tiền cọc phòng VIP phải là số!',
-            'deposit_vip_rooms.min' => 'Tiền cọc phòng VIP phải lớn hơn 0!',
         ]);
-
-        $depositNormalTables = $validated['deposit_normal_tables'] ?? session('deposit_normal_tables', 500000);
-        $depositVipRooms = $validated['deposit_vip_rooms'] ?? session('deposit_vip_rooms', 1000000);
 
         DepositRequiredDate::create([
             'date' => $validated['date'],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
-            'deposit_per_table' => $validated['deposit_per_table'] ?? 300000,
-            'deposit_normal_tables' => $depositNormalTables,
-            'deposit_vip_rooms' => $depositVipRooms,
+            // Ngày lễ không cần min_tables_for_deposit vì luôn bắt buộc cọc dù 1 bàn
         ]);
 
         return redirect()->route('admin.depositRequiredDate.index')
@@ -138,23 +137,19 @@ class DepositRequiredDateController extends Controller
             'date' => 'required|date|after_or_equal:today|unique:deposit_required_dates,date,' . $id,
             'description' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
-            'deposit_per_table' => 'required|numeric|min:0',
         ], [
             'date.required' => 'Vui lòng chọn ngày!',
             'date.date' => 'Ngày không hợp lệ!',
             'date.after_or_equal' => 'Ngày phải từ hôm nay trở đi!',
             'date.unique' => 'Ngày này đã được thêm vào danh sách!',
             'description.max' => 'Mô tả không được quá 500 ký tự!',
-            'deposit_per_table.required' => 'Vui lòng nhập số tiền cọc!',
-            'deposit_per_table.numeric' => 'Số tiền cọc phải là số!',
-            'deposit_per_table.min' => 'Số tiền cọc phải lớn hơn hoặc bằng 0!',
         ]);
 
         $depositDate->update([
             'date' => $validated['date'],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
-            'deposit_per_table' => $validated['deposit_per_table'],
+            // Ngày lễ không cần min_tables_for_deposit vì luôn bắt buộc cọc dù 1 bàn
         ]);
 
         return redirect()->route('admin.depositRequiredDate.index')
@@ -171,11 +166,6 @@ class DepositRequiredDateController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'description' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
-            'deposit_per_table' => 'required|numeric|min:0',
-        ], [
-            'deposit_per_table.required' => 'Vui lòng nhập số tiền cọc!',
-            'deposit_per_table.numeric' => 'Số tiền cọc phải là số!',
-            'deposit_per_table.min' => 'Số tiền cọc phải lớn hơn hoặc bằng 0!',
         ]);
 
         $dateIds = $validated['date_ids'];
@@ -183,7 +173,6 @@ class DepositRequiredDateController extends Controller
         $endDate = Carbon::parse($validated['end_date']);
         $description = $validated['description'] ?? null;
         $isActive = $validated['is_active'] ?? true;
-        $depositPerTable = $validated['deposit_per_table'];
 
         DepositRequiredDate::whereIn('id', $dateIds)->delete();
 
@@ -193,7 +182,7 @@ class DepositRequiredDateController extends Controller
                 'date' => $currentDate->toDateString(),
                 'description' => $description,
                 'is_active' => $isActive,
-                'deposit_per_table' => $depositPerTable,
+                // Ngày lễ không cần min_tables_for_deposit vì luôn bắt buộc cọc dù 1 bàn
             ]);
             $currentDate->addDay();
         }
@@ -257,14 +246,10 @@ class DepositRequiredDateController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'description' => 'nullable|string|max:500',
             'is_active' => 'nullable|boolean',
-            'deposit_per_table' => 'required|numeric|min:0',
         ], [
             'start_date.required' => 'Vui lòng chọn ngày bắt đầu!',
             'end_date.required' => 'Vui lòng chọn ngày kết thúc!',
             'end_date.after_or_equal' => 'Ngày kết thúc phải sau ngày bắt đầu!',
-            'deposit_per_table.required' => 'Vui lòng nhập số tiền cọc!',
-            'deposit_per_table.numeric' => 'Số tiền cọc phải là số!',
-            'deposit_per_table.min' => 'Số tiền cọc phải lớn hơn hoặc bằng 0!',
         ]);
 
         $startDate = Carbon::parse($validated['start_date']);
@@ -280,7 +265,7 @@ class DepositRequiredDateController extends Controller
                     'date' => $startDate->toDateString(),
                     'description' => $validated['description'] ?? null,
                     'is_active' => $validated['is_active'] ?? true,
-                    'deposit_per_table' => $validated['deposit_per_table'],
+                    // Ngày lễ không cần min_tables_for_deposit vì luôn bắt buộc cọc dù 1 bàn
                 ]);
                 $added++;
             } else {
@@ -320,7 +305,6 @@ class DepositRequiredDateController extends Controller
                     'dates' => collect([$date]),
                     'description' => $date->description,
                     'is_active' => $date->is_active,
-                    'deposit_per_table' => $date->deposit_per_table,
                     'is_range' => false,
                 ];
             } else {
@@ -329,8 +313,7 @@ class DepositRequiredDateController extends Controller
 
                 if ($daysDiff == 1 && 
                     $currentGroup['description'] === $date->description &&
-                    $currentGroup['is_active'] === $date->is_active &&
-                    $currentGroup['deposit_per_table'] == $date->deposit_per_table) {
+                    $currentGroup['is_active'] === $date->is_active) {
                     $currentGroup['end_date'] = $dateCarbon;
                     $currentGroup['dates']->push($date);
                     $currentGroup['is_range'] = true;
@@ -342,7 +325,7 @@ class DepositRequiredDateController extends Controller
                         'dates' => collect([$date]),
                         'description' => $date->description,
                         'is_active' => $date->is_active,
-                        'deposit_per_table' => $date->deposit_per_table,
+                        'refund_days' => $date->refund_days,
                         'is_range' => false,
                     ];
                 }
@@ -361,6 +344,8 @@ class DepositRequiredDateController extends Controller
         $validated = $request->validate([
             'deposit_normal_tables' => 'required|numeric|min:1',
             'deposit_vip_rooms' => 'required|numeric|min:1',
+            'min_tables_for_deposit' => 'required|integer|min:1',
+            'refund_days' => 'required|integer|min:1',
         ], [
             'deposit_normal_tables.required' => 'Vui lòng nhập tiền cọc cho bàn thường!',
             'deposit_normal_tables.numeric' => 'Tiền cọc bàn thường phải là số!',
@@ -368,11 +353,19 @@ class DepositRequiredDateController extends Controller
             'deposit_vip_rooms.required' => 'Vui lòng nhập tiền cọc cho phòng VIP!',
             'deposit_vip_rooms.numeric' => 'Tiền cọc phòng VIP phải là số!',
             'deposit_vip_rooms.min' => 'Tiền cọc phòng VIP phải lớn hơn 0!',
+            'min_tables_for_deposit.required' => 'Vui lòng nhập số bàn tối thiểu cần cọc!',
+            'min_tables_for_deposit.integer' => 'Số bàn tối thiểu phải là số nguyên!',
+            'min_tables_for_deposit.min' => 'Số bàn tối thiểu phải lớn hơn 0!',
+            'refund_days.required' => 'Vui lòng nhập số ngày hoàn tiền!',
+            'refund_days.integer' => 'Số ngày hoàn tiền phải là số nguyên!',
+            'refund_days.min' => 'Số ngày hoàn tiền phải lớn hơn hoặc bằng 1!',
         ]);
 
         // Lưu vào database (settings table) để không bị mất khi xóa session hoặc clone code mới
         Setting::setValue('deposit_normal_tables', $validated['deposit_normal_tables']);
         Setting::setValue('deposit_vip_rooms', $validated['deposit_vip_rooms']);
+        Setting::setValue('min_tables_for_deposit', $validated['min_tables_for_deposit']);
+        Setting::setValue('refund_days', $validated['refund_days']);
 
         return redirect()->route('admin.depositRequiredDate.index')
             ->with('success', 'Đã cập nhật cấu hình tiền cọc thành công!');

@@ -5,14 +5,17 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\TierController;
 use App\Http\Controllers\Admin\BanAnController;
 use App\Http\Controllers\Admin\DatBanController;
+use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuCategoryController;
-use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Admin\MenuStatisticsController;
+use App\Http\Controllers\Admin\UserStatisticsController;
 use App\Http\Controllers\Admin\DepositRequiredDateController;
-use App\Http\Controllers\Admin\TierController;
+use App\Http\Controllers\Admin\InvoiceController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -37,10 +40,14 @@ Route::middleware(['auth'])->group(function () {
 
 
 // --- Admin routes
-//bọc tất cả router admin lại 
+//bọc tất cả router admin lại
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+    //Thống kê
     Route::get('/reservation-statistics', [DashboardController::class, 'reservationStatistics'])->name('admin.reservationStatistics');
+    Route::get('/voucher-statistics', [DashboardController::class, 'voucherStatistics'])->name('admin.voucherStatistics');
+    Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
+    Route::get('/thong-ke-statistics', [DashboardController::class, 'revenueStatistics'])->name('admin.thongkeStatistics');
     Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
     Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
@@ -54,10 +61,17 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
     Route::get('dat-ban/check-user-by-phone', [DatBanController::class, 'checkUserByPhone'])->name('admin.datBan.checkUserByPhone');
     Route::get('dat-ban/check-existing-reservation', [DatBanController::class, 'checkExistingReservation'])->name('admin.datBan.checkExistingReservation');
+    Route::get('dat-ban/pending-refunds', [DatBanController::class, 'getPendingRefunds'])->name('admin.datBan.getPendingRefunds');
+    Route::post('dat-ban/{id}/process-refund', [DatBanController::class, 'processRefund'])->name('admin.datBan.processRefund');
     Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
     Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
     Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
     Route::post('dat-ban/{id}/confirm-phone', [DatBanController::class, 'confirmPhone'])->name('admin.datBan.confirmPhone');
+
+    // Voucher routes for admin
+    Route::get('dat-ban/{id}/applicable-vouchers', [DatBanController::class, 'getApplicableVouchers'])->name('admin.datBan.getApplicableVouchers');
+    Route::post('dat-ban/{id}/apply-voucher', [DatBanController::class, 'applyVoucher'])->name('admin.datBan.applyVoucher');
+    Route::delete('dat-ban/{id}/remove-voucher', [DatBanController::class, 'removeVoucher'])->name('admin.datBan.removeVoucher');
 
     Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
@@ -69,7 +83,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
 
     Route::resource('/tiers', TierController::class)->names('admin.tiers');
-     Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
+    Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
 
     // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
     // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
@@ -78,8 +92,23 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');
 
 
+
     Route::get('/admin/accounts', [UserController::class, 'loc'])
     ->name('admin.accounts.users');
+
+
+     Route::get('/admin/accounts', [UserController::class, 'loc'])
+    ->name('admin.accounts.users');
+
+    Route::get('/statistics/users', [UserStatisticsController::class, 'index'])
+    ->name('statistics.users');
+
+
+
+Route::get('/admin/user-detail/{id}', [UserController::class, 'detail'])->name('admin.user.detail');
+
+    Route::get('/invoice/{code}/pdf', [InvoiceController::class, 'pdf'])->name('invoice.pdf');
+
 
 });
 
@@ -115,3 +144,25 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name(
 
 Route::get('/change-password', [PasswordResetController::class, 'showChangeForm'])->name('password.change.form');
 Route::post('/change-password', [PasswordResetController::class, 'change'])->name('password.change');
+
+// web.php
+Route::get('/test-pdf', function () {
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('
+        <!DOCTYPE html>
+        <html><head>
+          <meta charset="utf-8">
+          <style>
+            @font-face {
+              font-family: "DejaVuSans";
+              src: url("' . public_path('fonts/DejaVuSans.ttf') . '") format("truetype");
+            }
+            body { font-family: "DejaVuSans", sans-serif; }
+          </style>
+        </head>
+        <body>
+          <p>Tiếng Việt có dấu: ă â đ ê ô ư ơ</p>
+        </body>
+        </html>
+    ');
+    return $pdf->download('test.pdf');
+});

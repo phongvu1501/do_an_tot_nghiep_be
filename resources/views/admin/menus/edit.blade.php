@@ -22,7 +22,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Danh mục</label>
-                                    <select name="category_id" class="form-select" required>
+                                    <select name="category_id" class="form-control" required>
                                         @foreach ($categories as $category)
                                             <option value="{{ $category->id }}"
                                                 {{ $menu->category_id == $category->id ? 'selected' : '' }}>
@@ -57,7 +57,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Trạng thái</label>
-                                    <select name="status" class="form-select">
+                                    <select name="status" class="form-control">
                                         <option value="1" {{ $menu->status ? 'selected' : '' }}>Hiển thị</option>
                                         <option value="0" {{ !$menu->status ? 'selected' : '' }}>Ẩn</option>
                                     </select>
