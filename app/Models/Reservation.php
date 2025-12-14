@@ -26,6 +26,7 @@ class Reservation extends Model
         'cancellation_reason',
         'phone_confirmed',
         'refunded_at',
+        'refund_bill_image',
     ];
 
     protected $casts = [

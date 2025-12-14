@@ -32,6 +32,34 @@
                                         <span>&times;</span>
                                     </button>
                                 </div>
+                                @if(str_contains(session('success'), 'hoàn tiền'))
+                                <script>
+                                    (function() {
+                                        if (document.readyState === 'loading') {
+                                            document.addEventListener('DOMContentLoaded', refreshPendingRefunds);
+                                        } else {
+                                            refreshPendingRefunds();
+                                        }
+                                        
+                                        function refreshPendingRefunds() {
+                                            var modal = document.getElementById('pendingRefundModal');
+                                            if (modal && (modal.classList.contains('show') || modal.style.display === 'block')) {
+                                                console.log('Modal is open, refreshing list...');
+                                                setTimeout(function() {
+                                                    if (typeof loadPendingRefundsList === 'function') {
+                                                        if (typeof isLoaded !== 'undefined') {
+                                                            isLoaded = false;
+                                                        }
+                                                        loadPendingRefundsList();
+                                                    }
+                                                }, 300);
+                                            } else {
+                                                console.log('Modal is closed');
+                                            }
+                                        }
+                                    })();
+                                </script>
+                                @endif
                             @endif
 
                             @if (session('error'))
@@ -835,9 +863,15 @@
                                         </button>
                                     </div>
                                 @else
-                                    <button type="button" class="btn btn-primary btn-sm" onclick="loadVouchers({{ $reservation->id }})">
-                                        <i class="fas fa-search"></i> Xem danh sách voucher
-                                    </button>
+                                    @if($reservation->reservationItems->count() > 0)
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="loadVouchers({{ $reservation->id }})">
+                                            <i class="fas fa-search"></i> Xem danh sách voucher
+                                        </button>
+                                    @else
+                                        <div class="alert alert-warning mb-0">
+                                            <i class="fas fa-info-circle"></i> Vui lòng thêm món ăn trước khi áp dụng voucher.
+                                        </div>
+                                    @endif
                                 @endif
 
                                 <div id="voucherList{{ $reservation->id }}" style="display: none; margin-top: 15px;">
@@ -1456,16 +1490,31 @@
                 </div>
                 <div class="modal-body">
                     <p id="confirmRefundMessage"></p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeConfirmRefundModal()">
-                        <i class="fas fa-times"></i> Hủy
-                    </button>
-                    <form id="confirmRefundForm" method="POST" style="display:inline;" onsubmit="closeConfirmRefundModal()">
+                    <hr>
+                    <form id="confirmRefundForm" method="POST" enctype="multipart/form-data" onsubmit="return validateRefundForm(event)">
                         @csrf
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-check"></i> Xác nhận
-                        </button>
+                        <div class="form-group">
+                            <label for="refundBillImage" class="font-weight-bold">
+                                <i class="fas fa-file-upload"></i> Upload bill hoàn tiền <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" class="form-control-file" id="refundBillImage" name="refund_bill_image" accept="image/*,application/pdf" required>
+                            <small class="form-text text-muted">Vui lòng upload ảnh bill để xác nhận hoàn tiền (JPG, PNG, GIF, PDF)</small>
+                            <div id="refundBillImagePreview" class="mt-2" style="display: none;">
+                                <img id="refundBillImagePreviewImg" src="" alt="Preview" class="img-thumbnail" style="max-width: 300px; max-height: 300px; display: none;">
+                                <div id="refundBillPdfPreview" style="display: none;">
+                                    <i class="fas fa-file-pdf fa-3x text-danger"></i>
+                                    <p class="mt-2"><strong id="refundBillFileName"></strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="border-top: none; padding-top: 0; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeConfirmRefundModal()">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                            <button type="submit" class="btn btn-success" id="confirmRefundSubmitBtn" disabled>
+                                <i class="fas fa-check"></i> Xác nhận
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -1494,7 +1543,11 @@
                     try {
                         jQuery('#pendingRefundModal').on('show.bs.modal', function() {
                             console.log('Modal opening detected via jQuery');
+                            isLoaded = false; // Reset flag để load lại
                             loadPendingRefundsList();
+                        });
+                        jQuery('#pendingRefundModal').on('hidden.bs.modal', function() {
+                            isLoaded = false; // Reset flag khi đóng modal
                         });
                     } catch(e) {
                         console.error('jQuery event failed:', e);
@@ -1543,6 +1596,9 @@
                     console.error('Element pendingRefundList not found');
                     return;
                 }
+                
+                // Reset flag để force reload
+                isLoaded = false;
                 
                 listDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
                 
@@ -1678,6 +1734,28 @@
         
         // Hàm đóng modal xác nhận hoàn tiền
         function closeConfirmRefundModal() {
+            // Reset form
+            var form = document.getElementById('confirmRefundForm');
+            if (form) {
+                form.reset();
+            }
+            var preview = document.getElementById('refundBillImagePreview');
+            if (preview) {
+                preview.style.display = 'none';
+            }
+            var previewImg = document.getElementById('refundBillImagePreviewImg');
+            if (previewImg) {
+                previewImg.style.display = 'none';
+            }
+            var pdfPreview = document.getElementById('refundBillPdfPreview');
+            if (pdfPreview) {
+                pdfPreview.style.display = 'none';
+            }
+            var submitBtn = document.getElementById('confirmRefundSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+            
             // Sử dụng jQuery nếu có, nếu không dùng vanilla JS
             if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
                 jQuery('#confirmRefundModal').modal('hide');
@@ -1695,8 +1773,124 @@
             }
         }
         
-        // Đóng modal khi click vào backdrop
+        // Validate form trước khi submit
+        function validateRefundForm(event) {
+            console.log('validateRefundForm called');
+            
+            var fileInput = document.getElementById('refundBillImage');
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                event.preventDefault();
+                alert('Vui lòng upload ảnh hoặc PDF bill hoàn tiền trước khi xác nhận!');
+                return false;
+            }
+            
+            // Kiểm tra kích thước file (tối đa 5MB)
+            var file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                event.preventDefault();
+                alert('Kích thước file không được vượt quá 5MB!');
+                return false;
+            }
+            
+            // Kiểm tra định dạng file
+            var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                event.preventDefault();
+                alert('Chỉ chấp nhận file ảnh (JPG, PNG, GIF) hoặc PDF!');
+                return false;
+            }
+            
+            // Kiểm tra form action
+            var form = document.getElementById('confirmRefundForm');
+            if (form) {
+                console.log('Form action:', form.action);
+                console.log('Form method:', form.method);
+                console.log('File selected:', file.name, file.size, file.type);
+            }
+            
+            // Disable nút submit để tránh double submit
+            var submitBtn = document.getElementById('confirmRefundSubmitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+            }
+            
+            // Form sẽ submit và redirect, không cần đóng modal ở đây
+            // Trang sẽ được reload sau khi redirect
+            console.log('Form validation passed, submitting...');
+            return true;
+        }
+        
+        // Preview ảnh/PDF khi chọn file và enable/disable nút submit
         document.addEventListener('DOMContentLoaded', function() {
+            var fileInput = document.getElementById('refundBillImage');
+            var preview = document.getElementById('refundBillImagePreview');
+            var previewImg = document.getElementById('refundBillImagePreviewImg');
+            var pdfPreview = document.getElementById('refundBillPdfPreview');
+            var fileName = document.getElementById('refundBillFileName');
+            var submitBtn = document.getElementById('confirmRefundSubmitBtn');
+            
+            if (fileInput && preview && previewImg && submitBtn) {
+                fileInput.addEventListener('change', function(e) {
+                    var file = e.target.files[0];
+                    if (file) {
+                        // Kiểm tra kích thước
+                        if (file.size > 5 * 1024 * 1024) {
+                            alert('Kích thước file không được vượt quá 5MB!');
+                            e.target.value = '';
+                            preview.style.display = 'none';
+                            previewImg.style.display = 'none';
+                            if (pdfPreview) pdfPreview.style.display = 'none';
+                            submitBtn.disabled = true;
+                            return;
+                        }
+                        
+                        // Kiểm tra định dạng
+                        var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+                        if (!allowedTypes.includes(file.type)) {
+                            alert('Chỉ chấp nhận file ảnh (JPG, PNG, GIF) hoặc PDF!');
+                            e.target.value = '';
+                            preview.style.display = 'none';
+                            previewImg.style.display = 'none';
+                            if (pdfPreview) pdfPreview.style.display = 'none';
+                            submitBtn.disabled = true;
+                            return;
+                        }
+                        
+                        // Hiển thị preview
+                        preview.style.display = 'block';
+                        
+                        if (file.type === 'application/pdf') {
+                            // Hiển thị preview cho PDF
+                            previewImg.style.display = 'none';
+                            if (pdfPreview) {
+                                pdfPreview.style.display = 'block';
+                                if (fileName) {
+                                    fileName.textContent = file.name;
+                                }
+                            }
+                        } else {
+                            // Hiển thị preview cho ảnh
+                            if (pdfPreview) pdfPreview.style.display = 'none';
+                            previewImg.style.display = 'block';
+                            var reader = new FileReader();
+                            reader.onload = function(e) {
+                                previewImg.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                        
+                        submitBtn.disabled = false;
+                    } else {
+                        preview.style.display = 'none';
+                        previewImg.style.display = 'none';
+                        if (pdfPreview) pdfPreview.style.display = 'none';
+                        submitBtn.disabled = true;
+                    }
+                });
+            }
+            
+            // Đóng modal khi click vào backdrop
             var modal = document.getElementById('confirmRefundModal');
             if (modal) {
                 modal.addEventListener('click', function(e) {
@@ -1711,86 +1905,6 @@
 
     @push('scripts')
         <script>
-            // Code load danh sách đơn cần hoàn tiền đã được chuyển sang script tag inline
-            // để tránh conflict với các lỗi JavaScript khác
-                        let html = '';
-                        
-                        if (!response || !response.success) {
-                            html = '<div class="alert alert-warning">Không thể tải dữ liệu. Vui lòng thử lại.</div>';
-                        } else if (!response.data || response.data.length === 0) {
-                            html = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Không có đơn nào cần hoàn tiền.</div>';
-                        } else {
-                            html = '<div class="table-responsive"><table class="table table-bordered table-hover">';
-                            html += '<thead><tr>';
-                            html += '<th>STT</th>';
-                            html += '<th>Mã đơn</th>';
-                            html += '<th>Khách hàng</th>';
-                            html += '<th>Số điện thoại</th>';
-                            html += '<th>Ngày đặt</th>';
-                            html += '<th>Ca</th>';
-                            html += '<th>Tiền cọc</th>';
-                            html += '<th>Thao tác</th>';
-                            html += '</tr></thead><tbody>';
-                            
-                            response.data.forEach(function(item, index) {
-                                html += '<tr>';
-                                html += '<td>' + (index + 1) + '</td>';
-                                html += '<td><strong>#' + (item.id || 'N/A') + '</strong></td>';
-                                html += '<td>' + (item.user_name || 'N/A') + '</td>';
-                                html += '<td>' + (item.user_phone || 'N/A') + '</td>';
-                                html += '<td>' + (item.reservation_date || 'N/A') + '</td>';
-                                html += '<td>';
-                                if (item.shift === 'morning') {
-                                    html += '<span class="badge badge-info">Sáng</span>';
-                                } else if (item.shift === 'afternoon') {
-                                    html += '<span class="badge badge-warning">Trưa</span>';
-                                } else if (item.shift === 'evening') {
-                                    html += '<span class="badge badge-dark">Tối</span>';
-                                } else {
-                                    html += '<span class="badge badge-secondary">' + (item.shift || 'N/A') + '</span>';
-                                }
-                                html += '</td>';
-                                html += '<td><strong class="text-primary">' + number_format(item.deposit || 0) + ' VND</strong></td>';
-                                html += '<td>';
-                                var reservationCode = item.reservation_code || '#' + item.id;
-                                html += '<button type="button" class="btn btn-sm btn-success" onclick="showConfirmRefundModal(' + item.id + ', \'' + reservationCode + '\')">';
-                                html += '<i class="fas fa-check"></i> Đã hoàn tiền';
-                                html += '</button>';
-                                html += '</td>';
-                                html += '</tr>';
-                            });
-                            
-                            html += '</tbody></table></div>';
-                        }
-                        
-                        $list.html(html);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error loading pending refunds:', error);
-                        console.error('Status:', status);
-                        console.error('Response:', xhr.responseText);
-                        console.error('XHR:', xhr);
-                        
-                        let errorMsg = 'Có lỗi xảy ra khi tải danh sách.';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMsg += '<br><strong>Chi tiết:</strong> ' + xhr.responseJSON.message;
-                        } else if (xhr.responseText) {
-                            try {
-                                const response = JSON.parse(xhr.responseText);
-                                if (response.message) {
-                                    errorMsg += '<br><strong>Chi tiết:</strong> ' + response.message;
-                                }
-                            } catch (e) {
-                                errorMsg += '<br><strong>Response:</strong> ' + xhr.responseText.substring(0, 200);
-                            }
-                        }
-                        errorMsg += '<br><small>Vui lòng mở Console (F12) để xem chi tiết lỗi.</small>';
-                        $list.html('<div class="alert alert-danger">' + errorMsg + '</div>');
-                    }
-                });
-            };
-            
-            })(jQuery);
 
             // Hàm đóng modal chỉnh sửa bàn
             function closeEditTableModal(reservationId) {
@@ -1832,13 +1946,13 @@
             }
 
             // Voucher helper functions
-            function formatDate(dateString) {
+            window.formatDate = function(dateString) {
                 if (!dateString) return '';
                 const date = new Date(dateString);
                 return date.toLocaleDateString('vi-VN');
             }
 
-            function getMaxUses(voucher) {
+            window.getMaxUses = function(voucher) {
                 if (!voucher || voucher.max_uses === null || voucher.max_uses === undefined) {
                     return 1;
                 }
@@ -1846,7 +1960,7 @@
                 return isNaN(maxUses) || maxUses <= 0 ? 1 : maxUses;
             }
 
-            function getUsedCount(voucher) {
+            window.getUsedCount = function(voucher) {
                 if (!voucher || voucher.used_count === null || voucher.used_count === undefined) {
                     return 0;
                 }
@@ -1854,16 +1968,22 @@
                 return isNaN(usedCount) || usedCount < 0 ? 0 : usedCount;
             }
 
-            function getRemainingUses(voucher) {
-                const maxUses = getMaxUses(voucher);
-                const usedCount = getUsedCount(voucher);
+            window.getRemainingUses = function(voucher) {
+                const maxUses = window.getMaxUses(voucher);
+                const usedCount = window.getUsedCount(voucher);
                 const remaining = maxUses - usedCount;
                 return remaining < 0 ? 0 : remaining;
             }
 
-            // Voucher functions
-            function loadVouchers(reservationId) {
+            // Voucher functions - Đảm bảo hàm được định nghĩa trong scope global
+            window.loadVouchers = function(reservationId) {
                 const voucherListDiv = document.getElementById('voucherList' + reservationId);
+                if (!voucherListDiv) {
+                    console.error('Không tìm thấy element voucherList' + reservationId);
+                    alert('Có lỗi xảy ra. Vui lòng thử lại.');
+                    return;
+                }
+                
                 voucherListDiv.style.display = 'block';
                 voucherListDiv.innerHTML = `
                     <div class="text-center">
@@ -1874,14 +1994,21 @@
                     </div>
                 `;
 
-                fetch('{{ url('admin/dat-ban') }}/' + reservationId + '/applicable-vouchers')
+                const url = '{{ url('admin/dat-ban') }}/' + reservationId + '/applicable-vouchers';
+                console.log('Loading vouchers from:', url);
+                
+                fetch(url)
                     .then(response => {
+                        console.log('Response status:', response.status);
                         if (!response.ok) {
-                            throw new Error('Network response was not ok');
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Network response was not ok: ' + response.status);
+                            });
                         }
                         return response.json();
                     })
                     .then(data => {
+                        console.log('Voucher data:', data);
                         if (data.success) {
                             displayVouchers(reservationId, data.data);
                         } else {
@@ -1890,7 +2017,7 @@
                     })
                     .catch(error => {
                         console.error('Error loading vouchers:', error);
-                        voucherListDiv.innerHTML = '<div class="alert alert-danger">Có lỗi xảy ra khi tải voucher. Vui lòng thử lại.</div>';
+                        voucherListDiv.innerHTML = '<div class="alert alert-danger">' + error.message + '</div>';
                     });
             }
 
@@ -1907,19 +2034,19 @@
                                     <div style="flex: 1;">
                                         <div class="d-flex align-items-center mb-2">
                                             <strong class="text-primary">${voucher.code}</strong>
-                                            ${voucher.end_date ? '<small class="text-muted ml-2">(Hết hạn: ' + formatDate(voucher.end_date) + ')</small>' : ''}
+                                            ${voucher.end_date ? '<small class="text-muted ml-2">(Hết hạn: ' + window.formatDate(voucher.end_date) + ')</small>' : ''}
                                         </div>
                                         <div class="mt-2">
                                             <div class="mb-1">
                                                 <strong>Giảm giá:</strong>
-                                                ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : number_format(voucher.discount_value) + 'đ'}
-                                                ${voucher.max_discount_value ? ' (Tối đa: ' + number_format(voucher.max_discount_value) + 'đ)' : ''}
+                                                ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : window.number_format(voucher.discount_value) + 'đ'}
+                                                ${voucher.max_discount_value ? ' (Tối đa: ' + window.number_format(voucher.max_discount_value) + 'đ)' : ''}
                                             </div>
                                             <div class="text-muted small">
                                                 <div><i class="fas fa-check-circle text-success"></i> <strong>Điều kiện:</strong></div>
                                                 <ul class="mb-1 pl-3">
-                                                    ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
-                                                    <li>Còn lại ${getRemainingUses(voucher)} lần sử dụng</li>
+                                                    ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + window.number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
+                                                    <li>Còn lại ${window.getRemainingUses(voucher)} lần sử dụng</li>
                                                 </ul>
                                             </div>
                                         </div>
@@ -1944,19 +2071,19 @@
                                 <div>
                                     <div class="d-flex align-items-center mb-2">
                                         <strong class="text-secondary">${voucher.code}</strong>
-                                        ${voucher.end_date ? '<small class="text-muted ml-2">(Hết hạn: ' + formatDate(voucher.end_date) + ')</small>' : ''}
+                                        ${voucher.end_date ? '<small class="text-muted ml-2">(Hết hạn: ' + window.formatDate(voucher.end_date) + ')</small>' : ''}
                                     </div>
                                     <div class="mt-2">
                                         <div class="mb-1">
                                             <strong>Giảm giá:</strong>
-                                            ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : number_format(voucher.discount_value) + 'đ'}
-                                            ${voucher.max_discount_value ? ' (Tối đa: ' + number_format(voucher.max_discount_value) + 'đ)' : ''}
+                                            ${voucher.discount_type === 'percent' ? voucher.discount_value + '%' : window.number_format(voucher.discount_value) + 'đ'}
+                                            ${voucher.max_discount_value ? ' (Tối đa: ' + window.number_format(voucher.max_discount_value) + 'đ)' : ''}
                                         </div>
                                         <div class="text-muted small">
                                             <div><i class="fas fa-times-circle text-danger"></i> <strong>Điều kiện:</strong></div>
                                             <ul class="mb-1 pl-3">
-                                                ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
-                                                <li>Còn lại ${getRemainingUses(voucher)} lần sử dụng</li>
+                                                ${voucher.min_order_value ? '<li>Đơn hàng tối thiểu: ' + window.number_format(voucher.min_order_value) + 'đ</li>' : '<li>Không giới hạn giá trị đơn hàng tối thiểu</li>'}
+                                                <li>Còn lại ${window.getRemainingUses(voucher)} lần sử dụng</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -1974,7 +2101,7 @@
                 voucherListDiv.innerHTML = html;
             }
 
-            function applyVoucher(reservationId, voucherId) {
+            window.applyVoucher = function(reservationId, voucherId) {
                 // Tìm nút đang được click để disable
                 const buttons = document.querySelectorAll(`button[onclick*="applyVoucher(${reservationId}, ${voucherId})"]`);
                 buttons.forEach(btn => {
@@ -1990,7 +2117,14 @@
                     },
                     body: JSON.stringify({ voucher_id: voucherId })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Lỗi khi áp dụng voucher');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         updateInvoiceWithVoucher(reservationId, data.data);
@@ -2053,11 +2187,11 @@
                 // Format voucher display: "Voucher (10%)" hoặc "Voucher (100k)"
                 const voucherDisplay = data.voucher.discount_type === 'percent'
                     ? `Voucher (${data.voucher.discount_value}%)`
-                    : `Voucher (${number_format(data.voucher.discount_value)}đ)`;
+                    : `Voucher (${window.number_format(data.voucher.discount_value)}đ)`;
 
                 voucherRow.innerHTML = `
                     <th colspan="3" class="text-right">${voucherDisplay}:</th>
-                    <th class="text-right text-danger">- ${number_format(discountAmount)}đ</th>
+                    <th class="text-right text-danger">- ${window.number_format(discountAmount)}đ</th>
                 `;
 
                 if (!totalAfterDiscountRow) {
@@ -2068,7 +2202,7 @@
                 }
                 totalAfterDiscountRow.innerHTML = `
                     <th colspan="3" class="text-right">Tổng sau giảm giá:</th>
-                    <th class="text-right">${number_format(totalAfterDiscount)}đ</th>
+                    <th class="text-right">${window.number_format(totalAfterDiscount)}đ</th>
                 `;
 
                 // Cập nhật số tiền còn lại
@@ -2090,14 +2224,14 @@
                     remainingRow.innerHTML = `
                         <th colspan="3" class="text-right">Còn phải thanh toán:</th>
                         <th class="text-right">
-                            <h5 class="mb-0" id="remainingAmount${reservationId}">${number_format(remainingAmount)}đ</h5>
+                            <h5 class="mb-0" id="remainingAmount${reservationId}">${window.number_format(remainingAmount)}đ</h5>
                         </th>
                     `;
                 } else if (remainingAmount < 0) {
                     remainingRow.innerHTML = `
                         <th colspan="3" class="text-right">Hoàn lại cho khách:</th>
                         <th class="text-right">
-                            <h5 class="mb-0">${number_format(Math.abs(remainingAmount))}đ</h5>
+                            <h5 class="mb-0">${window.number_format(Math.abs(remainingAmount))}đ</h5>
                         </th>
                     `;
                 } else {
@@ -2121,7 +2255,7 @@
                 const voucherBody = document.querySelector(`#invoiceModal${reservationId} .card-body`);
                 const discountDisplay = voucher.discount_type === 'percent'
                     ? voucher.discount_value + '%'
-                    : number_format(voucher.discount_value) + 'đ';
+                    : window.number_format(voucher.discount_value) + 'đ';
                 voucherBody.innerHTML = `
                     <div class="alert alert-success">
                         <strong>Voucher đã áp dụng:</strong> ${voucher.code}<br>
@@ -2225,7 +2359,7 @@
                 `;
             }
 
-            function number_format(number) {
+            window.number_format = function(number) {
                 return new Intl.NumberFormat('vi-VN').format(Math.round(number));
             }
         </script>

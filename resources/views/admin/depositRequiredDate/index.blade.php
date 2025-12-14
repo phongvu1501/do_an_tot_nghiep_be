@@ -242,6 +242,7 @@
                                                 <th width="150" class="text-right">Số tiền hoàn (VND)</th>
                                                 <th width="150" class="text-center">Ngày đặt</th>
                                                 <th width="150" class="text-center">Ngày hoàn</th>
+                                                <th width="120" class="text-center">Ảnh hoàn tiền</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -265,6 +266,33 @@
                                                             {{ $reservation->refunded_at ? $reservation->refunded_at->format('d/m/Y H:i') : 'N/A' }}
                                                         </span>
                                                     </td>
+                                                    <td class="text-center">
+                                                        @if($reservation->refund_bill_image)
+                                                            @php
+                                                                $imagePath = \Illuminate\Support\Facades\Storage::url($reservation->refund_bill_image);
+                                                                $fileExtension = strtolower(pathinfo($reservation->refund_bill_image, PATHINFO_EXTENSION));
+                                                                $isPdf = $fileExtension === 'pdf';
+                                                            @endphp
+                                                            @if($isPdf)
+                                                                <a href="{{ $imagePath }}" target="_blank" class="btn btn-sm btn-danger" title="Xem PDF">
+                                                                    <i class="fas fa-file-pdf"></i> PDF
+                                                                </a>
+                                                            @else
+                                                                <img src="{{ $imagePath }}" 
+                                                                     alt="Ảnh bill hoàn tiền" 
+                                                                     class="img-thumbnail" 
+                                                                     style="max-width: 80px; max-height: 80px; cursor: pointer; object-fit: cover;"
+                                                                     onclick="showRefundBillImage('{{ $imagePath }}')"
+                                                                     title="Click để xem ảnh lớn"
+                                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                                                <span style="display: none; color: red;" title="Không thể tải ảnh">
+                                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                                </span>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -287,6 +315,28 @@
                             @endif
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal xem ảnh bill hoàn tiền -->
+    <div class="modal fade" id="refundBillImageModal" tabindex="-1" role="dialog" aria-labelledby="refundBillImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refundBillImageModalLabel">
+                        <i class="fas fa-image"></i> Ảnh bill hoàn tiền
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="closeRefundBillImageModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="refundBillImageDisplay" src="" alt="Ảnh bill hoàn tiền" class="img-fluid" style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="closeRefundBillImageModal()">Đóng</button>
                 </div>
             </div>
         </div>
@@ -546,7 +596,91 @@
     @endforeach
 @endsection
 
-@push('scripts')
-@endpush
+    @push('scripts')
+        <script>
+            function showRefundBillImage(imagePath) {
+                var modal = document.getElementById('refundBillImageModal');
+                var imgDisplay = document.getElementById('refundBillImageDisplay');
+                
+                if (modal && imgDisplay) {
+                    imgDisplay.src = imagePath;
+                    
+                    if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                        jQuery('#refundBillImageModal').modal('show');
+                    } else {
+                        modal.style.display = 'block';
+                        modal.classList.add('show');
+                        document.body.classList.add('modal-open');
+                        var backdrop = document.createElement('div');
+                        backdrop.className = 'modal-backdrop fade show';
+                        backdrop.id = 'refundBillImageModalBackdrop';
+                        backdrop.onclick = function() {
+                            closeRefundBillImageModal();
+                        };
+                        document.body.appendChild(backdrop);
+                    }
+                }
+            }
+            
+            // Hàm đóng modal
+            function closeRefundBillImageModal() {
+                var modal = document.getElementById('refundBillImageModal');
+                if (modal) {
+                    if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                        jQuery('#refundBillImageModal').modal('hide');
+                    } else {
+                        modal.style.display = 'none';
+                        modal.classList.remove('show');
+                        document.body.classList.remove('modal-open');
+                        var backdrop = document.getElementById('refundBillImageModalBackdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                        // Xóa tất cả backdrop còn sót lại
+                        var allBackdrops = document.querySelectorAll('.modal-backdrop');
+                        allBackdrops.forEach(function(bd) {
+                            bd.remove();
+                        });
+                    }
+                }
+            }
+            
+            // Đóng modal khi click vào backdrop hoặc nút X
+            document.addEventListener('DOMContentLoaded', function() {
+                var modal = document.getElementById('refundBillImageModal');
+                if (modal) {
+                    // Click vào backdrop để đóng
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            closeRefundBillImageModal();
+                        }
+                    });
+                    
+                    // Đảm bảo các nút đóng hoạt động
+                    var closeButtons = modal.querySelectorAll('[data-dismiss="modal"], .close');
+                    closeButtons.forEach(function(btn) {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            closeRefundBillImageModal();
+                        });
+                    });
+                }
+            });
+            
+            // Xử lý sự kiện khi modal được ẩn (Bootstrap event)
+            if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                jQuery(document).ready(function() {
+                    jQuery('#refundBillImageModal').on('hidden.bs.modal', function() {
+                        document.body.classList.remove('modal-open');
+                        var backdrops = document.querySelectorAll('.modal-backdrop');
+                        backdrops.forEach(function(bd) {
+                            bd.remove();
+                        });
+                    });
+                });
+            }
+        </script>
+    @endpush
 
 
