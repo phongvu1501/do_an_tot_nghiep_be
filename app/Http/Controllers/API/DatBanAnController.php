@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -149,6 +150,10 @@ class DatBanAnController extends Controller
                 'refund_days' => $refundDays,
                 'can_be_refunded' => $canBeRefunded,
                 'days_until_reservation' => $daysUntilReservation,
+                // Thông tin hoàn tiền
+                'refunded_at' => $reservation->refunded_at ? $reservation->refunded_at->format('d/m/Y H:i') : null,
+                'is_refunded' => $reservation->refunded_at !== null,
+                'refund_bill_image' => $reservation->refund_bill_image ? url('storage/' . ltrim($reservation->refund_bill_image, '/')) : null,
             ];
         });
 
@@ -249,6 +254,10 @@ class DatBanAnController extends Controller
                 'cancellation_reason' => $reservation->cancellation_reason,
                 'created_at' => $reservation->created_at->format('d/m/Y H:i'),
                 'updated_at' => $reservation->updated_at->format('d/m/Y H:i'),
+                // Thông tin hoàn tiền
+                'refunded_at' => $reservation->refunded_at ? $reservation->refunded_at->format('d/m/Y H:i') : null,
+                'is_refunded' => $reservation->refunded_at !== null,
+                'refund_bill_image' => $reservation->refund_bill_image ? url('storage/' . ltrim($reservation->refund_bill_image, '/')) : null,
             ],
         ], 200);
     }

@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class DatBanController extends Controller
 {
@@ -715,6 +716,14 @@ class DatBanController extends Controller
     {
         $reservation = Reservation::with(['reservationItems.menu', 'user', 'voucher'])->findOrFail($id);
         
+        // Kiểm tra xem có món ăn không
+        if ($reservation->reservationItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chưa có món ăn. Vui lòng thêm món ăn trước khi áp dụng voucher.',
+            ], 400);
+        }
+        
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
         $vat = $subtotal * 0.08;
         $totalPrice = $subtotal + $vat;
@@ -876,6 +885,14 @@ class DatBanController extends Controller
         ]);
 
         $reservation = Reservation::with(['reservationItems.menu', 'user'])->findOrFail($id);
+        
+        // Kiểm tra xem có món ăn không
+        if ($reservation->reservationItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chưa có món ăn. Vui lòng thêm món ăn trước khi áp dụng voucher.',
+            ], 400);
+        }
         
         $subtotal = $reservation->reservationItems->sum(fn($item) => $item->price * $item->quantity);
         $vat = $subtotal * 0.08;
@@ -1120,14 +1137,20 @@ class DatBanController extends Controller
         try {
             $now = Carbon::now();
             
+            // Lấy danh sách đơn cần hoàn tiền - đảm bảo refunded_at là NULL
             $reservations = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher'])
                 ->where('status', 'cancelled')
                 ->whereNotNull('deposit')
                 ->where('deposit', '>', 0)
-                ->whereNull('refunded_at')
+                ->whereNull('refunded_at') // Chỉ lấy đơn chưa hoàn tiền
                 ->get()
                 ->filter(function($reservation) use ($now) {
                     try {
+                        // Double check: nếu đã có refunded_at thì loại bỏ
+                        if ($reservation->refunded_at) {
+                            \Log::info('Reservation already refunded, skipping', ['id' => $reservation->id, 'refunded_at' => $reservation->refunded_at]);
+                            return false;
+                        }
                         return $this->isEligibleForRefund($reservation, $now);
                     } catch (\Exception $e) {
                         \Log::error('Error checking refund eligibility for reservation ' . $reservation->id . ': ' . $e->getMessage());
@@ -1197,18 +1220,85 @@ class DatBanController extends Controller
      */
     public function processRefund(Request $request, $id)
     {
+        \Log::info('processRefund called', [
+            'id' => $id, 
+            'has_file' => $request->hasFile('refund_bill_image'),
+            'all_files' => $request->allFiles(),
+            'content_type' => $request->header('Content-Type'),
+            'method' => $request->method()
+        ]);
+        
+        // Kiểm tra xem có file không
+        if (!$request->hasFile('refund_bill_image')) {
+            \Log::error('No file uploaded', ['request_all' => $request->all()]);
+            return back()->with('error', 'Vui lòng upload ảnh bill hoàn tiền!');
+        }
+        
+        $request->validate([
+            'refund_bill_image' => 'required|file|mimes:jpeg,jpg,png,gif,pdf|max:5120', // Max 5MB
+        ], [
+            'refund_bill_image.required' => 'Vui lòng upload ảnh bill hoàn tiền!',
+            'refund_bill_image.file' => 'File không hợp lệ!',
+            'refund_bill_image.mimes' => 'Chỉ chấp nhận file ảnh (JPG, PNG, GIF) hoặc PDF!',
+            'refund_bill_image.max' => 'Kích thước file không được vượt quá 5MB!',
+        ]);
+
         $reservation = Reservation::findOrFail($id);
+        \Log::info('Reservation found', ['id' => $reservation->id, 'refunded_at' => $reservation->refunded_at]);
 
         // Kiểm tra điều kiện hoàn tiền
         if (!$this->isEligibleForRefund($reservation)) {
+            \Log::warning('Reservation not eligible for refund', ['id' => $reservation->id]);
             return back()->with('error', 'Đơn này không đủ điều kiện để hoàn tiền!');
         }
 
-        // Cập nhật refunded_at
-        $reservation->refunded_at = Carbon::now();
-        $reservation->save();
+        try {
+            DB::beginTransaction();
+
+            // Lưu ảnh bill
+            if ($request->hasFile('refund_bill_image')) {
+                $image = $request->file('refund_bill_image');
+                $imageName = 'refund_bill_' . $reservation->id . '_' . time() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('refund_bills', $imageName, 'public');
+                $reservation->refund_bill_image = $imagePath;
+                \Log::info('Bill image saved', ['path' => $imagePath]);
+            }
+
+            // Cập nhật refunded_at - đảm bảo set đúng giá trị
+            $refundedAt = Carbon::now();
+            $reservation->refunded_at = $refundedAt;
+            $reservation->save();
+            
+            \Log::info('Reservation updated', ['id' => $reservation->id, 'refunded_at' => $reservation->refunded_at]);
+            
+            // Refresh model để đảm bảo dữ liệu được cập nhật
+            $reservation->refresh();
+            
+            // Double check: verify refunded_at đã được lưu vào database
+            $reservationCheck = Reservation::find($reservation->id);
+            if (!$reservationCheck || !$reservationCheck->refunded_at) {
+                \Log::error('refunded_at was not saved to database!', ['id' => $reservation->id]);
+                throw new \Exception('Không thể lưu thông tin hoàn tiền. Vui lòng thử lại.');
+            }
+            
+            \Log::info('Refund confirmed in database', [
+                'id' => $reservationCheck->id,
+                'refunded_at' => $reservationCheck->refunded_at,
+                'refund_bill_image' => $reservationCheck->refund_bill_image
+            ]);
+            
+            \Log::info('After refresh', ['id' => $reservation->id, 'refunded_at' => $reservation->refunded_at]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error processing refund: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Có lỗi xảy ra khi xử lý hoàn tiền: ' . $e->getMessage());
+        }
 
         $reservationCode = $reservation->reservation_code ?? '#' . $reservation->id;
+        \Log::info('Refund processed successfully', ['reservation_code' => $reservationCode]);
+        
         return redirect()->route('admin.datBan.index')
             ->with('success', "Đã đánh dấu hoàn tiền cho đơn {$reservationCode} thành công!");
     }
