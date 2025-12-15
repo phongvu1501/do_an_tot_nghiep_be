@@ -2,11 +2,10 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Mã OTP</title>
+    <title>Chào mừng bạn đến với website DATBAN</title>
 </head>
 <body>
-    <p>Chào {{ $user->name }},</p>
-    <p>Mã OTP của bạn là: <strong>{{ $otp }}</strong></p>
-    <p>Mã có hiệu lực trong 5 phút.</p>
+    <p>Chào mừng {{ $user->name }} đến với website DATBAN</p>
+    <p>Tài khoản của bạn đã sẵn sàng</p>
 </body>
 </html>

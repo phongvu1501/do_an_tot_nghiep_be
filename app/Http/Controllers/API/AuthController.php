@@ -59,8 +59,9 @@ class AuthController extends Controller
 
         // Gửi email chứa mã OTP
         try {
-            Mail::raw("Xin chào {$user->name}, mã OTP xác thực của bạn là: {$otp} (hết hạn sau 10 phút)", function ($m) use ($user) {
-                $m->to($user->email)->subject('Xác thực tài khoản - Mã OTP');
+            Mail::raw("Xin chào {$user->name}, chào mừng bạn đã đến với website DATBAN, xin mời bạn chọn bàn và món ăn",
+             function ($m) use ($user) {
+                $m->to($user->email)->subject('Xác nhận đăng ký tài khoản thành công');
             });
         } catch (\Exception $e) {
             return response()->json([
@@ -72,7 +73,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => true,
-            'message' => 'Đăng ký thành công! Vui lòng kiểm tra email để lấy mã OTP.',
+            'message' => 'Đăng ký thành công! Chào mừng bạn đến với website DATBAN.',
             'user' => $user,
         ], 201);
     }
