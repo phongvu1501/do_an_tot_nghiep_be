@@ -43,128 +43,44 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Tạo mã OTP
-        $otp = rand(100000, 999999);
-        // Tạo tài khoản
-         $user = User::create([
+        // Tạo user
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'otp_code' => $otp,
-            'otp_expires_at' => Carbon::now()->addMinutes(10),
-            'is_verified' => false,
+            'is_verified' => true,
         ]);
 
-
-        // Gửi email chứa mã OTP
+        // Gửi email chào mừng
         try {
-            Mail::raw("Xin chào {$user->name}, chào mừng bạn đã đến với website DATBAN, xin mời bạn chọn bàn và món ăn",
-             function ($m) use ($user) {
-                $m->to($user->email)->subject('Xác nhận đăng ký tài khoản thành công');
+            Mail::send([], [], function ($message) use ($user) {
+                $message->to($user->email)
+                    ->subject('Chào mừng bạn đến với DATBAN')
+                    ->html("
+                    <p>Xin chào <strong>{$user->name}</strong>,</p>
+                    <p>Cảm ơn bạn đã đăng ký tài khoản tại hệ thống <strong>DATBAN</strong>.</p>
+                    <p>Bạn có thể đăng nhập và bắt đầu đặt bàn, chọn món ngay hôm nay.</p>
+                    <br>
+                    <p>Trân trọng,<br>Đội ngũ DATBAN</p>
+                ");
             });
         } catch (\Exception $e) {
             return response()->json([
-                'status' => true,
-                'message' => 'Đăng ký thành công, nhưng không thể gửi email OTP.',
+                'success' => true,
+                'message' => 'Đăng ký thành công, nhưng không thể gửi email chào mừng.',
                 'user' => $user,
             ], 201);
         }
 
         return response()->json([
-            'status' => true,
-            'message' => 'Đăng ký thành công! Chào mừng bạn đến với website DATBAN.',
+            'success' => true,
+            'message' => 'Đăng ký tài khoản thành công!',
             'user' => $user,
         ], 201);
     }
 
-    //  API xác nhận OTP
-    public function verifyOtp(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'otp' => 'required|digits:6',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng.'], 404);
-        }
-
-        if ($user->is_verified) {
-            return response()->json(['status' => true, 'message' => 'Tài khoản đã được xác minh.'], 200);
-        }
-
-        if ($user->otp_code !== $request->otp) {
-            return response()->json(['status' => false, 'message' => 'Mã OTP không chính xác.'], 400);
-        }
-
-        if (Carbon::now()->greaterThan($user->otp_expires_at)) {
-            return response()->json(['status' => false, 'message' => 'Mã OTP đã hết hạn.'], 400);
-        }
-
-        // Xác thực thành công
-        $user->update([
-            'is_verified' => true,
-            'otp_code' => null,
-            'otp_expires_at' => null,
-        ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Xác thực tài khoản thành công!',
-            'user' => $user,
-        ], 200);
-    }
-
-    // API gửi lại OTP (tùy chọn)
-    public function resendOtp(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json(['status' => false, 'message' => 'Không tìm thấy người dùng.'], 404);
-        }
-
-        if ($user->is_verified) {
-            return response()->json(['status' => true, 'message' => 'Tài khoản đã được xác minh.'], 200);
-        }
-
-        // Tạo mã OTP mới
-        $otp = rand(100000, 999999);
-        $user->update([
-            'otp_code' => $otp,
-            'otp_expires_at' => Carbon::now()->addMinutes(10),
-        ]);
-
-        try {
-            Mail::raw("Mã OTP mới của bạn là: {$otp} (hết hạn sau 10 phút)", function ($m) use ($user) {
-                $m->to($user->email)->subject('Gửi lại mã OTP');
-            });
-        } catch (\Exception $e) {
-            return response()->json(['status' => false, 'message' => 'Không thể gửi lại email OTP.'], 500);
-        }
-
-        return response()->json(['status' => true, 'message' => 'Đã gửi lại mã OTP. Vui lòng kiểm tra email.'], 200);
-    }
-
-    
     /**
      * Đăng nhập
      */
@@ -226,7 +142,7 @@ class AuthController extends Controller
         ]);
     }
 
-   
+
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -266,7 +182,7 @@ class AuthController extends Controller
         ]);
     }
 
-  
+
     public function changePassword(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -302,7 +218,4 @@ class AuthController extends Controller
             'message' => 'Đổi mật khẩu thành công!'
         ]);
     }
-
 }
-
-
