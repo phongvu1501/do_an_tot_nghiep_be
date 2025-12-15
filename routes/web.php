@@ -141,24 +141,3 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name(
 Route::get('/change-password', [PasswordResetController::class, 'showChangeForm'])->name('password.change.form');
 Route::post('/change-password', [PasswordResetController::class, 'change'])->name('password.change');
 
-// web.php
-Route::get('/test-pdf', function () {
-  $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('
-        <!DOCTYPE html>
-        <html><head>
-          <meta charset="utf-8">
-          <style>
-            @font-face {
-              font-family: "DejaVuSans";
-              src: url("' . public_path('fonts/DejaVuSans.ttf') . '") format("truetype");
-            }
-            body { font-family: "DejaVuSans", sans-serif; }
-          </style>
-        </head>
-        <body>
-          <p>Tiếng Việt có dấu: ă â đ ê ô ư ơ</p>
-        </body>
-        </html>
-    ');
-  return $pdf->download('test.pdf');
-});
