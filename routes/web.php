@@ -23,10 +23,6 @@ Route::get('/', function () {
   return redirect()->route('login');
 });
 //
-Route::get('/login', function () {
-  return view('auth.login'); // view login
-})->name('login');
-
 //route tài khoản role admin user
 Route::middleware(['auth'])->group(function () {
   Route::get('/accounts', [UserController::class, 'showAdmins'])->name('admin.accounts');
@@ -123,7 +119,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOTP'])->name('verify.o
 
 
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/login', [AuthController::class, 'showLoginForm'])->middleware('guest')->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
