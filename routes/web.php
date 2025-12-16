@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\TierController;
 use App\Http\Controllers\Admin\BanAnController;
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\DatBanController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\PasswordResetController;
@@ -23,6 +24,10 @@ Route::get('/', function () {
   return redirect()->route('login');
 });
 //
+Route::get('/login', function () {
+  return view('auth.login'); // view login
+})->name('login');
+
 //route tài khoản role admin user
 Route::middleware(['auth'])->group(function () {
   Route::get('/accounts', [UserController::class, 'showAdmins'])->name('admin.accounts');
@@ -78,6 +83,13 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
   Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
   Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
   Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
+
+  Route::resource('/comments', CommentController::class)->names('admin.comments');
+  Route::post('/comments/{review}/toggle-status', [CommentController::class, 'toggleStatus'])
+    ->name('admin.comments.toggleStatus');
+
+  Route::resource('/tiers', TierController::class)->names('admin.tiers');
+  Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
 
   Route::resource('/tiers', TierController::class)->names('admin.tiers');
   Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
@@ -137,3 +149,24 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name(
 Route::get('/change-password', [PasswordResetController::class, 'showChangeForm'])->name('password.change.form');
 Route::post('/change-password', [PasswordResetController::class, 'change'])->name('password.change');
 
+// web.php
+Route::get('/test-pdf', function () {
+  $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('
+        <!DOCTYPE html>
+        <html><head>
+          <meta charset="utf-8">
+          <style>
+            @font-face {
+              font-family: "DejaVuSans";
+              src: url("' . public_path('fonts/DejaVuSans.ttf') . '") format("truetype");
+            }
+            body { font-family: "DejaVuSans", sans-serif; }
+          </style>
+        </head>
+        <body>
+          <p>Tiếng Việt có dấu: ă â đ ê ô ư ơ</p>
+        </body>
+        </html>
+    ');
+  return $pdf->download('test.pdf');
+});

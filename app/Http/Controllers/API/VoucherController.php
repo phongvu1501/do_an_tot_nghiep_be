@@ -99,6 +99,7 @@ class VoucherController extends Controller
 
         $vouchers = $user->vouchers()
             ->where('vouchers.status', 'active') 
+            ->wherePivot('status', 'unused')
             ->orderBy('vouchers.created_at', 'desc')
             ->get();
 

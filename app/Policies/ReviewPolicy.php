@@ -16,4 +16,9 @@ class ReviewPolicy
     {
         return $user->id === $review->user_id;
     }
+    public function updateStatus(User $user, Review $review): bool
+    {
+        return $user->id === $review->user_id
+            || $user->role === 'admin';
+    }
 }

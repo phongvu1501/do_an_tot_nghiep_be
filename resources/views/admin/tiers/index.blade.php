@@ -47,6 +47,66 @@
 
                                 <a href="{{ route('admin.tiers.create') }}" class="btn btn-success btn-sm mb-3 col-1">Thêm
                                     mới</a>
+                                <div class="card mb-3 bg-light">
+                                    <div class="card-body">
+                                        <form action="{{ route('admin.tiers.index') }}" method="GET" class="row g-3">
+
+                                            <div class="col-md-3">
+                                                <label class="font-weight-bold">Tên Tier</label>
+                                                <input type="text" name="name" class="form-control"
+                                                    value="{{ request('name') }}" placeholder="Nhập tên tier">
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Điểm </label>
+                                                <input type="number" name="points_required" class="form-control"
+                                                    value="{{ request('points_required') }}" placeholder="VD: 10">
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">% Giảm </label>
+                                                <input type="number" name="discount_percent" class="form-control"
+                                                    value="{{ request('discount_percent') }}" placeholder="VD: 20">
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Trạng thái</label>
+                                                <select name="is_active" class="form-control">
+                                                    <option value="">Tất cả</option>
+                                                    <option value="1"
+                                                        {{ request('is_active') === '1' ? 'selected' : '' }}>
+                                                        Hoạt động
+                                                    </option>
+                                                    <option value="0"
+                                                        {{ request('is_active') === '0' ? 'selected' : '' }}>
+                                                        Tạm dừng
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Từ ngày</label>
+                                                <input type="date" name="created_from" class="form-control"
+                                                    value="{{ request('created_from') }}">
+                                            </div>
+
+                                            <div class="col-md-1 d-flex align-items-end">
+                                                <button type="submit" class="btn btn-primary btn-block">
+                                                    <i class="fas fa-search">Tìm kiếm</i>
+                                                </button>
+                                            </div>
+
+                                            <div class="col-md-12 mt-2">
+                                                <a href="{{ route('admin.tiers.index') }}"
+                                                    class="btn btn-secondary btn-sm">
+                                                    <i class="fas fa-redo"></i> Đặt lại
+                                                </a>
+                                            </div>
+
+                                        </form>
+                                    </div>
+                                </div>
+
 
                                 <table id="example2" class="table table-bordered table-hover">
                                     <thead>
@@ -57,7 +117,7 @@
                                             <th>% Giảm giá</th>
                                             <th>Giá trị giảm tối đa</th>
                                             <th>Đơn hàng tối thiểu</th>
-                                            <th>Giá trị đơn hàng áp dụng</th>
+                                            {{-- <th>Giá trị đơn hàng áp dụng</th> --}}
                                             <th>Trạng thái</th>
                                             <th>Ngày tạo</th>
                                             <th>Thao tác</th>
@@ -74,7 +134,7 @@
                                                     <td>{{ $tier->discount_percent }}%</td>
                                                     <td>{{ number_format($tier->max_discount_value, 0) }}</td>
                                                     <td>{{ number_format($tier->min_order_value, 0) }}</td>
-                                                    <td>{{ number_format($tier->order_value_allowed, 0) }}</td>
+                                                    {{-- <td>{{ number_format($tier->order_value_allowed, 0) }}</td> --}}
                                                     <td>
                                                         @if ($tier->is_active)
                                                             <span class="badge badge-success">Hoạt động</span>
@@ -125,13 +185,16 @@
                                             <th>% Giảm giá</th>
                                             <th>Giá trị giảm tối đa</th>
                                             <th>Đơn hàng tối thiểu</th>
-                                            <th>Giá trị đơn hàng áp dụng</th>
+                                            {{-- <th>Giá trị đơn hàng áp dụng</th> --}}
                                             <th>Trạng thái</th>
                                             <th>Ngày tạo</th>
                                             <th>Thao tác</th>
                                         </tr>
                                     </tfoot>
                                 </table>
+                                <div class="mt-3">
+                                    {{ $tiers->links('vendor.pagination.bootstrap-4') }}
+                                </div>
                             </div>
                         </div>
                     </div>
