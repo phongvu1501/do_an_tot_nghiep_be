@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\MenuStatisticsController;
 use App\Http\Controllers\Admin\UserStatisticsController;
 use App\Http\Controllers\Admin\DepositRequiredDateController;
 use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\ReviewController;
 
 // --- Trang chính
 Route::get('/', function () {
@@ -90,9 +91,15 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
   Route::resource('/tiers', TierController::class)->names('admin.tiers');
   Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
 
+  Route::resource('/tiers', TierController::class)->names('admin.tiers');
+  Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
+
   // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
   // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
 
+  // Quản lý bình luận
+  Route::get('/reviews', [ReviewController::class, 'index'])->name('admin.reviews.index');
+  Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('admin.reviews.destroy');
 
   Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');
 
@@ -124,7 +131,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOTP'])->name('verify.o
 
 
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/login', [AuthController::class, 'showLoginForm'])->middleware('guest')->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

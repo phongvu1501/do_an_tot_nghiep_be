@@ -18,37 +18,43 @@
                         <form action="{{ route('admin.voucherStatistics') }}" method="GET" id="filterForm">
                             <div class="btn-group" role="group">
                                 <button type="submit" name="filter" value="today"
-                                    class="btn btn-sm {{ ($filterType ?? 'this_month') == 'today' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                    class="btn btn-sm {{ $filterType == 'today' ? 'btn-primary' : 'btn-outline-primary' }}">
                                     Hôm nay
                                 </button>
+
                                 <button type="submit" name="filter" value="this_week"
-                                    class="btn btn-sm {{ ($filterType ?? 'this_month') == 'this_week' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                    class="btn btn-sm {{ $filterType == 'this_week' ? 'btn-primary' : 'btn-outline-primary' }}">
                                     Tuần này
                                 </button>
+
                                 <button type="submit" name="filter" value="this_month"
-                                    class="btn btn-sm {{ ($filterType ?? 'this_month') == 'this_month' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                    class="btn btn-sm {{ $filterType == 'this_month' ? 'btn-primary' : 'btn-outline-primary' }}">
                                     Tháng này
                                 </button>
+
                                 <button type="submit" name="filter" value="this_year"
-                                    class="btn btn-sm {{ ($filterType ?? 'this_month') == 'this_year' ? 'btn-primary' : 'btn-outline-primary' }}">
+                                    class="btn btn-sm {{ $filterType == 'this_year' ? 'btn-primary' : 'btn-outline-primary' }}">
                                     Năm nay
                                 </button>
                             </div>
 
                             <div class="form-inline mt-2">
                                 <label class="mr-2">Tùy chọn:</label>
+
                                 <input type="date" name="from" value="{{ request('from', $from->format('Y-m-d')) }}"
-                                    class="form-control form-control-sm mr-2" id="customFrom">
+                                    class="form-control form-control-sm mr-2">
+
                                 <label class="mr-2">đến</label>
+
                                 <input type="date" name="to" value="{{ request('to', $to->format('Y-m-d')) }}"
-                                    class="form-control form-control-sm mr-2" id="customTo">
+                                    class="form-control form-control-sm mr-2">
 
-                                <input type="hidden" name="filter" value="custom" id="customFilter">
-
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                <button type="submit" name="filter" value="custom"
+                                    class="btn btn-sm btn-outline-secondary">
                                     <i class="fas fa-search"></i> Áp dụng
                                 </button>
                             </div>
+
 
                             <div class="mt-2">
                                 <small class="text-muted">

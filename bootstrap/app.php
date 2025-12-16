@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     // Middleware custom cho role admin
     $middleware->alias([
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
     ]);
 })
 
