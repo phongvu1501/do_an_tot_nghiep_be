@@ -5,6 +5,7 @@
         .detail-row {
             background: #fafafa;
         }
+
         .detail-box {
             padding: 15px;
             border-left: 3px solid #007bff;
@@ -12,6 +13,7 @@
             border-radius: 6px;
             margin-bottom: 10px;
         }
+
         .detail-title {
             font-weight: bold;
             margin-bottom: 8px;
@@ -64,6 +66,76 @@
                                         </button>
                                     </div>
                                 @endif
+                                <div class="card mb-3 bg-light">
+                                    <div class="card-body">
+                                        <form method="GET" class="row align-items-end">
+
+                                            <div class="col-md-3">
+                                                <label class="font-weight-bold">Người dùng</label>
+                                                <select name="user_id" class="form-control">
+                                                    <option value="">-- Tất cả --</option>
+                                                    @foreach ($users as $user)
+                                                        <option value="{{ $user->id }}"
+                                                            {{ request('user_id') == $user->id ? 'selected' : '' }}>
+                                                            {{ $user->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Đánh giá</label>
+                                                <select name="rating" class="form-control">
+                                                    <option value="">Tất cả</option>
+                                                    @for ($i = 5; $i >= 1; $i--)
+                                                        <option value="{{ $i }}"
+                                                            {{ request('rating') == $i ? 'selected' : '' }}>
+                                                            {{ $i }} ⭐
+                                                        </option>
+                                                    @endfor
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Trạng thái</label>
+                                                <select name="status" class="form-control">
+                                                    <option value="">Tất cả</option>
+                                                    <option value="1"
+                                                        {{ request('status') === '1' ? 'selected' : '' }}>
+                                                        Hiển thị
+                                                    </option>
+                                                    <option value="0"
+                                                        {{ request('status') === '0' ? 'selected' : '' }}>
+                                                        Đã ẩn
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Từ ngày</label>
+                                                <input type="date" name="from_date" class="form-control"
+                                                    value="{{ request('from_date') }}">
+                                            </div>
+
+                                            <div class="col-md-2">
+                                                <label class="font-weight-bold">Đến ngày</label>
+                                                <input type="date" name="to_date" class="form-control"
+                                                    value="{{ request('to_date') }}">
+                                            </div>
+
+                                            <div class="col-md-1">
+                                                <button class="btn btn-primary btn-block">
+                                                    <i class="fas fa-search">Tìm kiếm</i>
+                                                </button>
+                                                <a href="{{ route('admin.comments.index') }}"
+                                                    class="btn btn-secondary btn-block mt-1">
+                                                    <i class="fas fa-redo">Đặt lại</i>
+                                                </a>
+                                            </div>
+
+                                        </form>
+                                    </div>
+                                </div>
 
                                 <table id="example2" class="table table-bordered table-hover">
                                     <thead>

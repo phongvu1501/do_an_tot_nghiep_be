@@ -96,7 +96,7 @@
         <button class="btn btn-primary w-100 py-2 mt-2">Đăng nhập</button>
         <div class="auth-links">
             <a href="{{ route('password.change.form') }}"> Đổi mật khẩu</a>
-            <a href="{{ route('register') }}"> Đăng ký tài khoản</a>
+            {{-- <a href="{{ route('register') }}"> Đăng ký tài khoản</a> --}}
         </div>
     </form>
 </div>

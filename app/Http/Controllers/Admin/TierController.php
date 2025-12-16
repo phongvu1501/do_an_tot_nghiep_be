@@ -8,12 +8,41 @@ use Illuminate\Http\Request;
 
 class TierController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $title = 'Danh sách tiêu chí quy đổi điểm lấy voucher';
-        $tiers = PointVoucherTier::all();
+
+        $query = PointVoucherTier::query();
+
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('points_required')) {
+            $query->where('points_required', '>=', $request->points_required);
+        }
+
+        if ($request->filled('discount_percent')) {
+            $query->where('discount_percent', '>=', $request->discount_percent);
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->is_active);
+        }
+
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->created_from);
+        }
+
+        $tiers = $query
+            ->orderBy('id', 'desc')
+            ->paginate(10) 
+            ->appends($request->query()); 
+
+
         return view('admin.tiers.index', compact('title', 'tiers'));
     }
+
 
     public function show(PointVoucherTier $tier)
     {
