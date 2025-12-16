@@ -50,6 +50,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
   Route::get('/voucher-statistics', [DashboardController::class, 'voucherStatistics'])->name('admin.voucherStatistics');
   Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
   Route::get('/thong-ke-statistics', [DashboardController::class, 'revenueStatistics'])->name('admin.thongkeStatistics');
+  Route::get('/binh-luan-statistics', [DashboardController::class, 'commentStatistics'])->name('admin.binhluanStatistics');
   Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
   Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');

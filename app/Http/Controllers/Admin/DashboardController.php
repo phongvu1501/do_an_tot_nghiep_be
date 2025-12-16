@@ -9,6 +9,7 @@ use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Review;
 use App\Models\Voucher;
 
 class DashboardController extends Controller
@@ -690,6 +691,101 @@ class DashboardController extends Controller
             'chartLabels',
             'chartRevenue',
             'chartRevenueAfterDiscount'
+        ));
+    }
+
+
+    public function commentStatistics(Request $request)
+    {
+        $filterType = $request->input('filter', 'this_month');
+
+        switch ($filterType) {
+            case 'today':
+                $from = Carbon::today();
+                $to = Carbon::today()->endOfDay();
+                $filterLabel = 'Hôm nay';
+                break;
+
+            case 'this_week':
+                $from = Carbon::now()->startOfWeek();
+                $to = Carbon::now()->endOfWeek();
+                $filterLabel = 'Tuần này';
+                break;
+
+            case 'this_year':
+                $from = Carbon::now()->startOfYear();
+                $to = Carbon::now()->endOfYear();
+                $filterLabel = 'Năm nay';
+                break;
+
+            case 'custom':
+                $from = $request->filled('from')
+                    ? Carbon::parse($request->from)->startOfDay()
+                    : Carbon::now()->startOfMonth();
+
+                $to = $request->filled('to')
+                    ? Carbon::parse($request->to)->endOfDay()
+                    : Carbon::now()->endOfMonth();
+
+                $filterLabel = $from->format('d/m/Y') . ' - ' . $to->format('d/m/Y');
+                break;
+
+            default:
+                $from = Carbon::now()->startOfMonth();
+                $to = Carbon::now()->endOfMonth();
+                $filterLabel = 'Tháng này';
+        }
+
+
+        $totalComments = Review::whereBetween('created_at', [$from, $to])->count();
+
+        $approvedComments = Review::where('status', 1)
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
+
+        $pendingComments = Review::where('status', 0)
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
+
+        $avgRating = Review::whereBetween('created_at', [$from, $to])->avg('rating');
+
+
+        $comments = Review::with('user')
+            ->whereBetween('created_at', [$from, $to])
+            ->latest()
+            ->get();
+
+
+        $period = CarbonPeriod::create($from, $to);
+        $chartLabels = [];
+        $chartTotal = [];
+        $chartApproved = [];
+        $chartPending = [];
+
+        foreach ($period as $date) {
+            $chartLabels[] = $date->format('d/m');
+
+            $chartTotal[] = Review::whereDate('created_at', $date)->count();
+            $chartApproved[] = Review::whereDate('created_at', $date)
+                ->where('status', 1)->count();
+            $chartPending[] = Review::whereDate('created_at', $date)
+                ->where('status', 0)->count();
+        }
+
+        return view('admin.binhluanStatistics.index', compact(
+            'filterType',
+            'filterLabel',
+            'from',
+            'to',
+            'totalComments',
+            'approvedComments',
+            'pendingComments',
+            'avgRating',
+            'comments',
+            'chartLabels',
+            'chartTotal',
+            'chartApproved',
+            'chartPending'
         ));
     }
 }
