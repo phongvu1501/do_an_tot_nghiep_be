@@ -19,7 +19,7 @@
                                         <th>% Giảm giá</th>
                                         <th>Giá trị giảm tối đa</th>
                                         <th>Đơn hàng tối thiểu</th>
-                                        <th>Giá trị đơn hàng áp dụng</th>
+                                        {{-- <th>Giá trị đơn hàng áp dụng</th> --}}
                                         <th>Trạng thái</th>
                                         <th>Ngày tạo</th>
                                         <th>Ngày cập nhật</th>
@@ -35,9 +35,9 @@
                                         <td>{{ number_format($tier->min_order_value ?? 0, 0, ',', '.') }}đ</td>
                                         <td>{{ number_format($tier->order_value_allowed, 0) }}</td>
 
-                                        <td>
+                                        {{-- <td>
                                             {{ number_format($tier->order_value_allowed ?? 0, 0, ',', '.') }}đ
-                                        </td>
+                                        </td> --}}
 
                                         <td>
                                             @if ($tier->is_active)
@@ -74,7 +74,7 @@
                                         <th>% Giảm giá</th>
                                         <th>Giá trị giảm tối đa</th>
                                         <th>Đơn hàng tối thiểu</th>
-                                        <th>Giá trị đơn hàng áp dụng</th>
+                                        {{-- <th>Giá trị đơn hàng áp dụng</th> --}}
                                         <th>Trạng thái</th>
                                         <th>Ngày tạo</th>
                                         <th>Ngày cập nhật</th>

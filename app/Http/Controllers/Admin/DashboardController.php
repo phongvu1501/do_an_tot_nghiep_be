@@ -519,11 +519,12 @@ class DashboardController extends Controller
             ->where('end_date', '<', Carbon::now())
             ->count();
 
-        $activeVouchers = Voucher::where('status', 'active')
+        $activeVouchers = Voucher::whereIn('status', ['active', 'inactive'])
             ->whereDate('start_date', '<=', $to)
             ->whereDate('end_date', '>=', $from)
             ->orderBy('created_at', 'desc')
             ->get();
+
 
         $period = CarbonPeriod::create($from, '1 day', $to);
 

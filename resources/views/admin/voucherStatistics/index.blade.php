@@ -216,8 +216,10 @@
 
             const ctx = document.getElementById('voucherChart').getContext('2d');
 
+            const chartType = chartLabels.length === 1 ? 'bar' : 'line';
+
             new Chart(ctx, {
-                type: 'line',
+                type: chartType,
                 data: {
                     labels: chartLabels,
                     datasets: [{
@@ -225,30 +227,47 @@
                             data: chartCreated,
                             borderWidth: 2,
                             borderColor: 'blue',
+                            backgroundColor: chartType === 'bar' ? 'rgba(0, 0, 255, 0.3)' : 'transparent',
                             fill: false,
-                            tension: 0.3
+                            tension: 0.3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
                         },
                         {
                             label: 'Voucher hết hạn',
                             data: chartExpired,
                             borderWidth: 2,
                             borderColor: 'red',
+                            backgroundColor: chartType === 'bar' ? 'rgba(255, 0, 0, 0.3)' : 'transparent',
                             fill: false,
-                            tension: 0.3
+                            tension: 0.3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
                         },
                         {
                             label: 'Voucher được sử dụng',
                             data: chartUsed,
                             borderWidth: 2,
                             borderColor: 'green',
+                            backgroundColor: chartType === 'bar' ? 'rgba(0, 128, 0, 0.3)' : 'transparent',
                             fill: false,
-                            tension: 0.3
+                            tension: 0.3,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
                 }
             });
         </script>

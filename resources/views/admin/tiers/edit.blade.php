@@ -81,7 +81,7 @@
                                         @enderror
                                     </div>
                                     <!-- Order value allowed -->
-                                    <div class="form-group">
+                                    {{-- <div class="form-group">
                                         <label for="order_value_allowed">Giá trị đơn hàng áp dụng</label>
                                         <input type="number" step="0.01" name="order_value_allowed"
                                             id="order_value_allowed"
@@ -90,7 +90,7 @@
                                         @error('order_value_allowed')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
-                                    </div>
+                                    </div> --}}
 
 
                                     <!-- Status -->
