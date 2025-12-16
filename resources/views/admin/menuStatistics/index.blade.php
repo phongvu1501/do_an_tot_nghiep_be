@@ -1,26 +1,9 @@
 @extends('admin.layouts.main')
 
 @section('noidung')
-    <style>
-        /* Giới hạn chiều rộng ô và ẩn chữ thừa bằng dấu ... */
-        .text-ellipsis {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: inline-block;
-            max-width: 320px;
-            /* chỉnh theo cần — 320px cho desktop */
-            vertical-align: middle;
-        }
-
-        /* Với màn hình nhỏ, giảm max-width */
-        @media (max-width: 767px) {
-            .text-ellipsis {
-                max-width: 160px;
-            }
-        }
-    </style>
     <div class="content-wrapper">
+
+        {{-- HEADER --}}
         <div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -53,12 +36,10 @@
 
                             <div class="form-inline mt-2">
                                 <label class="mr-2">Tùy chọn:</label>
-                                <input type="date" name="from"
-                                    value="{{ request('from', optional($from)->format('Y-m-d')) }}"
+                                <input type="date" name="from" value="{{ request('from', $from->format('Y-m-d')) }}"
                                     class="form-control form-control-sm mr-2" id="customFrom">
                                 <label class="mr-2">đến</label>
-                                <input type="date" name="to"
-                                    value="{{ request('to', optional($to)->format('Y-m-d')) }}"
+                                <input type="date" name="to" value="{{ request('to', $to->format('Y-m-d')) }}"
                                     class="form-control form-control-sm mr-2" id="customTo">
                                 <input type="hidden" name="filter" value="custom" id="customFilter">
                                 <button type="submit" class="btn btn-sm btn-outline-secondary">
@@ -70,8 +51,7 @@
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle"></i>
                                     <strong>{{ $filterLabel ?? 'Tháng này' }}</strong>
-                                    ({{ optional($from)->format('d/m/Y') ?? '-' }} -
-                                    {{ optional($to)->format('d/m/Y') ?? '-' }})
+                                    ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})
                                 </small>
                             </div>
                         </form>
@@ -80,214 +60,134 @@
             </div>
         </div>
 
+        {{-- CONTENT --}}
         <section class="content">
             <div class="container-fluid">
-                <!-- KPI cards -->
+
+                {{-- BOX THỐNG KÊ --}}
                 <div class="row">
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-info">
                             <div class="inner">
-                                <h3>{{ $totalMenus ?? 0 }}</h3>
+                                <h3>{{ $totalMenus }}</h3>
                                 <p>Tổng số món</p>
                             </div>
                             <div class="icon">
-                                <i class="ion ion-pie-graph"></i>
+                                <i class="fas fa-utensils"></i>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-lg-4 col-6">
-                        <div class="small-box bg-primary">
-                            <div class="inner">
-                                <h4 class="mb-1">Món bán chạy nhất</h4>
-                                @if ($bestSelling)
-                                    <p class="mb-0"><strong>{{ $bestSelling['name'] }}</strong></p>
-                                    <p class="mb-0">Số lượng: {{ $bestSelling['total_sold'] }}</p>
-                                @else
-                                    <p>Chưa có dữ liệu</p>
-                                @endif
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-ios-fastforward"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-5 col-12">
+                    <div class="col-lg-5 col-6">
                         <div class="small-box bg-success">
                             <div class="inner">
-                                <h4 class="mb-1">Món và combo được chọn nhiều nhất</h4>
-                                @if ($topCategory)
-                                    <p class="mb-0"><strong>{{ $topCategory['name'] }}</strong></p>
-                                    <p class="mb-0">Số lượng: {{ $topCategory['total_qty'] }}</p>
+                                @if ($bestSelling)
+                                    <h4 class="mb-1">{{ $bestSelling->name }}</h4>
+                                    <p>Bán chạy nhất ({{ $bestSelling->total_qty }} lượt)</p>
                                 @else
                                     <p>Chưa có dữ liệu</p>
                                 @endif
                             </div>
                             <div class="icon">
-                                <i class="ion ion-ios-people"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4 col-12">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                @if ($topCategory)
+                                    <h4 class="mb-1">{{ $topCategory['name'] }}</h4>
+                                    <p>Nhóm được chọn nhiều nhất</p>
+                                @else
+                                    <p>Chưa có dữ liệu</p>
+                                @endif
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-layer-group"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
-
-
-                <!-- (Optional) Full table of revenue (paginated) -->
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Danh sách món - Doanh thu chi tiết</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Món</th>
-                                                <th>Ảnh</th>
-                                                <th>Doanh thu (VND)</th>
-                                                <th>Số lượng</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($revenuePerItem ?? [] as $i => $row)
-                                                <tr>
-                                                    <td>{{ $i + 1 }}</td>
-                                                    <td>{{ $row['name'] }}</td>
-                                                    <td>
-                                                        @if ($row['image'])
-                                                            <img src="{{ asset('storage/' . $row['image']) }}"
-                                                                width="150" class="rounded shadow-sm" alt="Ảnh món ăn">
-                                                        @else
-                                                            <span class="text-muted">Không có ảnh</span>
-                                                        @endif
-                                                    </td>
-                                                    <td>{{ number_format($row['revenue'] ?? 0, 0, ',', '.') }}</td>
-                                                    <td>{{ $row['total_qty'] ?? 0 }}</td>
-                                                </tr>
-                                            @endforeach
-                                            @if (empty($revenuePerItem))
-                                                <tr>
-                                                    <td colspan="4" class="text-center">Chưa có dữ liệu</td>
-                                                </tr>
-                                            @endif
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                {{-- BẢNG --}}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Doanh thu chi tiết theo món</h3>
                     </div>
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tên món</th>
+                                    <th>Danh mục</th>
+                                    <th>Số lượng bán</th>
+                                    <th>Doanh thu (VNĐ)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($menuStats as $index => $item)
+                                    <tr>
+                                        <td>{{ $menuStats->firstItem() + $index }}</td>
+                                        <td>{{ $item->name }}</td>
+                                        <td>{{ $item->category_name }}</td>
+                                        <td>{{ $item->total_qty }}</td>
+                                        <td>{{ number_format($item->revenue) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            Không có dữ liệu
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer clearfix">
+                        {{ $menuStats->links() }}
+                    </div>
+
                 </div>
-                <!-- end rows -->
+
             </div>
         </section>
     </div>
-@endsection
 
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Build chart data from PHP $revenuePerItem
-        (function() {
-            const revenueRows = @json($revenuePerItem ?? []);
-            const labels = revenueRows.map(r => r.name);
-            const revenueData = revenueRows.map(r => parseFloat(r.revenue ?? 0));
-            const qtyData = revenueRows.map(r => parseInt(r.total_qty ?? 0));
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
 
-            // Revenue chart (bar)
-            const revenueCtx = document.getElementById('revenueChart');
-            if (revenueCtx) {
-                new Chart(revenueCtx.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                                label: 'Doanh thu (VND)',
-                                data: revenueData,
-                                yAxisID: 'y',
-                                borderWidth: 1,
-                                // colors are inherited from Chart.js defaults (do not explicitly set to respect guidelines)
-                            },
-                            {
-                                label: 'Số lượng',
-                                data: qtyData,
-                                yAxisID: 'y1',
-                                type: 'line',
-                                tension: 0.2,
-                                borderWidth: 2,
-                                fill: false
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: 'Doanh thu (VND)'
-                                },
-                                ticks: {
-                                    callback: function(value) {
-                                        return new Intl.NumberFormat('vi-VN').format(value);
-                                    }
-                                }
-                            },
-                            y1: {
-                                beginAtZero: true,
-                                position: 'right',
-                                grid: {
-                                    drawOnChartArea: false
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Số lượng'
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
-                            title: {
-                                display: false
-                            }
-                        }
-                    }
-                });
-            }
-        })();
+                const customFrom = document.getElementById('customFrom');
+                const customTo = document.getElementById('customTo');
+                const customFilter = document.getElementById('customFilter');
 
-        // Sync filter buttons with date pickers (same UX as reservation UI)
-        (function() {
-            function formatDate(d) {
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
-            }
-            const customFrom = document.getElementById('customFrom');
-            const customTo = document.getElementById('customTo');
-            const customFilter = document.getElementById('customFilter');
+                if (!customFrom || !customTo || !customFilter) return;
 
-            document.querySelectorAll('button[name="filter"]').forEach(button => {
-                button.addEventListener('click', function() {
-                    const filter = this.value;
-                    if (filter !== 'custom') {
+                // Khi user chỉnh ngày thủ công → chuyển sang custom
+                customFrom.addEventListener('change', () => customFilter.value = 'custom');
+                customTo.addEventListener('change', () => customFilter.value = 'custom');
+
+                // Khi bấm các nút filter nhanh
+                document.querySelectorAll('button[name="filter"]').forEach(button => {
+                    button.addEventListener('click', function() {
+
+                        const filterType = this.value;
+
+                        // Nếu là custom (nút Áp dụng) thì không làm gì
+                        if (filterType === 'custom') return;
+
                         const today = new Date();
                         let fromDate, toDate;
-                        switch (filter) {
+
+                        switch (filterType) {
                             case 'today':
                                 fromDate = new Date(today);
                                 toDate = new Date(today);
                                 break;
+
                             case 'this_week':
                                 const day = today.getDay();
                                 const diff = today.getDate() - day + (day === 0 ? -6 : 1);
@@ -295,35 +195,33 @@
                                 toDate = new Date(fromDate);
                                 toDate.setDate(fromDate.getDate() + 6);
                                 break;
+
                             case 'this_month':
                                 fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
                                 toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                                 break;
+
                             case 'this_year':
                                 fromDate = new Date(today.getFullYear(), 0, 1);
                                 toDate = new Date(today.getFullYear(), 11, 31);
                                 break;
                         }
-                        if (fromDate && toDate && customFrom && customTo) {
+
+                        const formatDate = (date) => {
+                            const y = date.getFullYear();
+                            const m = String(date.getMonth() + 1).padStart(2, '0');
+                            const d = String(date.getDate()).padStart(2, '0');
+                            return `${y}-${m}-${d}`;
+                        };
+
+                        if (fromDate && toDate) {
                             customFrom.value = formatDate(fromDate);
                             customTo.value = formatDate(toDate);
-                            customFilter.value = 'custom';
                         }
-                    }
+
+                    });
                 });
             });
-
-            // ensure date pickers initialize to server values
-            document.addEventListener('DOMContentLoaded', function() {
-                try {
-                    @if (isset($from))
-                        document.getElementById('customFrom').value = '{{ $from->format('Y-m-d') }}';
-                    @endif
-                    @if (isset($to))
-                        document.getElementById('customTo').value = '{{ $to->format('Y-m-d') }}';
-                    @endif
-                } catch (e) {}
-            });
-        })();
-    </script>
-@endpush
+        </script>
+    @endpush
+@endsection
