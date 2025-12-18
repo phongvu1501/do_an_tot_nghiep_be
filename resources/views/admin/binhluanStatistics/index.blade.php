@@ -50,8 +50,8 @@
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-success">
                             <div class="inner">
-                                <h3>{{ $approvedComments }}</h3>
-                                <p>Đã duyệt</p>
+                                <h3>{{ $commentsWithText }}</h3>
+                                <p>Bình luận có nội dung</p>
                             </div>
                         </div>
                     </div>
@@ -59,8 +59,8 @@
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-warning">
                             <div class="inner">
-                                <h3>{{ $pendingComments }}</h3>
-                                <p>Chờ duyệt</p>
+                                <h3>{{ $totalComments - $commentsWithText }}</h3>
+                                <p>Chỉ đánh giá sao</p>
                             </div>
                         </div>
                     </div>
@@ -87,42 +87,95 @@
                                     <th>Nội dung</th>
                                     <th>Số sao</th>
                                     <th>Ngày</th>
-                                    <th>Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($comments as $c)
                                     <tr>
-                                        <td>{{ $c->user->name ?? 'Ẩn danh' }}</td>
-                                        <td>{{ $c->comment }}</td>
-                                        <td>{{ $c->rating }} ⭐</td>
-                                        <td>{{ $c->created_at->format('d/m/Y') }}</td>
                                         <td>
-                                            @if ($c->status == 1)
-                                                <span class="badge badge-success">Đã duyệt</span>
+                                            <div>{{ $c->user->name ?? 'Ẩn danh' }}</div>
+                                            @if($c->user && $c->user->phone)
+                                                <small class="text-muted">{{ $c->user->phone }}</small>
                                             @else
-                                                <span class="badge badge-warning">Chờ duyệt</span>
+                                                <small class="text-muted">Chưa có SĐT</small>
                                             @endif
                                         </td>
+                                        <td>
+                                            @if($c->comment)
+                                                {{ $c->comment }}
+                                            @else
+                                                <span class="text-muted">Không có nội dung</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @for($i = 1; $i <= 5; $i++)
+                                                @if($i <= $c->rating)
+                                                    <span class="text-warning">⭐</span>
+                                                @else
+                                                    <span class="text-muted">☆</span>
+                                                @endif
+                                            @endfor
+                                            <span class="ml-1">({{ $c->rating }}/5)</span>
+                                        </td>
+                                        <td>{{ $c->created_at->format('d/m/Y H:i') }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted">
+                                        <td colspan="4" class="text-center text-muted">
                                             Không có dữ liệu
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
+                        
+                        <div class="card-footer">
+                            {{ $comments->links() }}
+                        </div>
                     </div>
                 </div>
 
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h3 class="card-title">Biểu đồ bình luận theo ngày</h3>
+                <div class="row mt-3">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Biểu đồ bình luận theo ngày</h3>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="commentChart" height="100"></canvas>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <canvas id="commentChart" height="100"></canvas>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Thống kê theo sao</h3>
+                            </div>
+                            <div class="card-body">
+                                @for($i = 5; $i >= 1; $i--)
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>
+                                                @for($j = 1; $j <= 5; $j++)
+                                                    @if($j <= $i)
+                                                        <span class="text-warning">⭐</span>
+                                                    @else
+                                                        <span class="text-muted">☆</span>
+                                                    @endif
+                                                @endfor
+                                            </span>
+                                            <strong>{{ $ratingStats[$i] ?? 0 }}</strong>
+                                        </div>
+                                        @if(isset($ratingStats[$i]) && $totalComments > 0)
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-warning" role="progressbar" 
+                                                     style="width: {{ ($ratingStats[$i] / $totalComments) * 100 }}%"></div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endfor
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -138,24 +191,21 @@
                 data: {
                     labels: @json($chartLabels),
                     datasets: [{
-                            label: 'Tổng',
-                            data: @json($chartTotal),
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Đã duyệt',
-                            data: @json($chartApproved),
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Chờ duyệt',
-                            data: @json($chartPending),
-                            borderWidth: 2
-                        }
-                    ]
+                        label: 'Số bình luận',
+                        data: @json($chartTotal),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
                 },
                 options: {
                     responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -169,3 +219,4 @@
         </script>
     @endpush
 @endsection
+

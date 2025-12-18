@@ -113,6 +113,33 @@ class DatBanController extends Controller
             'table_ids.required'         => 'Vui lòng chọn ít nhất 1 bàn!',
         ]);
 
+        // Kiểm tra ca đã qua chưa (nếu ngày đặt là hôm nay)
+        $reservationDate = Carbon::parse($request->reservation_date);
+        $now = Carbon::now();
+        
+        if ($reservationDate->isToday()) {
+            $currentHour = $now->hour;
+            $shift = $request->shift;
+            
+            // Ca sáng: 8-13h, không thể đặt nếu hiện tại >= 13h
+            if ($shift === 'morning' && $currentHour >= 13) {
+                return back()->withInput()
+                    ->with('error', 'Ca sáng (8-13h) đã qua rồi. Vui lòng chọn ca khác!');
+            }
+            
+            // Ca trưa: 13-18h, không thể đặt nếu hiện tại >= 18h
+            if ($shift === 'afternoon' && $currentHour >= 18) {
+                return back()->withInput()
+                    ->with('error', 'Ca trưa (13-18h) đã qua rồi. Vui lòng chọn ca khác!');
+            }
+            
+            // Ca tối: 18-23h, không thể đặt nếu hiện tại >= 23h
+            if ($shift === 'evening' && $currentHour >= 23) {
+                return back()->withInput()
+                    ->with('error', 'Ca tối (18-23h) đã qua rồi. Vui lòng chọn ca khác!');
+            }
+        }
+
         // Nếu có user_id, kiểm tra xem user đã có đặt bàn trong thời gian đó chưa
         if ($request->filled('user_id')) {
             $existingReservation = Reservation::where('user_id', $request->user_id)

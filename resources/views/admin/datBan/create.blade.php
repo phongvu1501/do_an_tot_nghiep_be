@@ -132,7 +132,7 @@
                                                 id="reservation_date" name="reservation_date"
                                                 value="{{ old('reservation_date', date('Y-m-d')) }}"
                                                 min="{{ date('Y-m-d') }}"
-                                                onchange="updateAvailableTables(); checkExistingReservation(); checkDepositRequired();"
+                                                onchange="updateAvailableTables(); checkExistingReservation(); checkDepositRequired(); updateShiftOptions();"
                                                 required>
                                             @error('reservation_date')
                                                 <span class="invalid-feedback">{{ $message }}</span>
@@ -685,6 +685,61 @@
             return true;
         });
 
+        // Cập nhật các option ca dựa trên ngày đặt
+        function updateShiftOptions() {
+            const dateInput = document.getElementById('reservation_date');
+            const shiftSelect = document.getElementById('shift');
+            
+            if (!dateInput || !shiftSelect) return;
+            
+            const selectedDate = new Date(dateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+            
+            const isToday = selectedDate.getTime() === today.getTime();
+            
+            // Lấy giờ hiện tại
+            const now = new Date();
+            const currentHour = now.getHours();
+            
+            // Lấy tất cả các option
+            const morningOption = shiftSelect.querySelector('option[value="morning"]');
+            const afternoonOption = shiftSelect.querySelector('option[value="afternoon"]');
+            const eveningOption = shiftSelect.querySelector('option[value="evening"]');
+            
+            // Reset tất cả các option
+            if (morningOption) {
+                morningOption.disabled = false;
+            }
+            if (afternoonOption) {
+                afternoonOption.disabled = false;
+            }
+            if (eveningOption) {
+                eveningOption.disabled = false;
+            }
+            
+            if (isToday) {
+                // Nếu là hôm nay, disable các ca đã qua
+                if (currentHour >= 13 && morningOption) {
+                    morningOption.disabled = true;
+                }
+                
+                if (currentHour >= 18 && afternoonOption) {
+                    afternoonOption.disabled = true;
+                }
+                
+                if (currentHour >= 23 && eveningOption) {
+                    eveningOption.disabled = true;
+                }
+                
+                // Nếu ca đang chọn bị disable, reset về rỗng
+                if (shiftSelect.value && shiftSelect.options[shiftSelect.selectedIndex].disabled) {
+                    shiftSelect.value = '';
+                }
+            }
+        }
+
         // Cập nhật danh sách bàn trống khi chọn ngày/ca
         function updateAvailableTables() {
             var date = document.getElementById('reservation_date').value;
@@ -893,6 +948,9 @@
 
         // Cập nhật thông tin cọc khi thay đổi ngày, bàn hoặc checkbox cần cọc
         document.addEventListener('DOMContentLoaded', function() {
+            // Khởi tạo các option ca khi tải trang
+            updateShiftOptions();
+            
             // Event listener cho ngày
             const dateInput = document.getElementById('reservation_date');
             if (dateInput) {

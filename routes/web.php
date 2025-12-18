@@ -86,8 +86,6 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
   Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
 
   Route::resource('/comments', CommentController::class)->names('admin.comments');
-  Route::post('/comments/{review}/toggle-status', [CommentController::class, 'toggleStatus'])
-    ->name('admin.comments.toggleStatus');
 
   Route::resource('/tiers', TierController::class)->names('admin.tiers');
   Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');

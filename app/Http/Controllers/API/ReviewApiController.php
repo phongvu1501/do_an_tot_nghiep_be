@@ -25,13 +25,11 @@ class ReviewApiController extends Controller
     {
         $reservations = Reservation::where('user_id', auth()->id())
             ->where('status', 'completed')
-            ->with(['review' => function ($q) {
-                $q->where('status', 1);
-            }])
+            ->with(['review'])
             ->latest('reservation_date')
             ->get()
             ->map(function ($reservation) {
-                $hasReview = $reservation->review()->where('status', 1)->exists();
+                $hasReview = $reservation->review !== null;
 
                 return [
                     'reservation_id'     => $reservation->id,
@@ -44,7 +42,6 @@ class ReviewApiController extends Controller
                         'id'         => $reservation->review->id,
                         'rating'     => $reservation->review->rating,
                         'comment'    => $reservation->review->comment,
-                        'status'     => $reservation->review->status,
                         'created_at' => $reservation->review->created_at->format('d/m/Y H:i'),
                     ] : null,
                 ];
@@ -71,7 +68,6 @@ class ReviewApiController extends Controller
                 'user_id' => auth()->id(),
                 'rating'  => $request->rating,
                 'comment' => $request->comment,
-                'status'  => 1,
             ]
         );
 
@@ -90,7 +86,7 @@ class ReviewApiController extends Controller
     {
         $this->authorize('view', $reservation);
 
-        $review = $reservation->review()->where('status', 1)->first();
+        $review = $reservation->review()->first();
 
         return response()->json([
             'data' => $review ? new ReviewResource($review) : null,
@@ -110,23 +106,10 @@ class ReviewApiController extends Controller
         $review->update([
             'rating'   => $data['rating'],
             'comment'  => $data['comment'],
-            'status'   => $data['status'] ?? $review->status,
         ]);
 
         return new ReviewResource($review);
     }
 
 
-    /**
-     */
-    public function hide(Review $review): JsonResponse
-    {
-        $this->authorize('updateStatus', $review);
-
-        $review->update(['status' => 0]);
-
-        return response()->json([
-            'message' => 'Ẩn đánh giá thành công!',
-        ]);
-    }
 }

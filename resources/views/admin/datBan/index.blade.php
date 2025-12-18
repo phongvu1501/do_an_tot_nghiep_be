@@ -286,7 +286,7 @@
                                                     </button>
                                                 @endif
 
-                                                @if ($reservation->status != 'cancelled' && $reservation->status != 'completed')
+                                                @if ($reservation->status != 'cancelled' && $reservation->status != 'completed' && $reservation->status != 'serving')
                                                     <button type="button" class="btn btn-danger btn-sm"
                                                         data-toggle="modal"
                                                         data-target="#cancelModal{{ $reservation->id }}">
@@ -995,7 +995,7 @@
             @endif
 
             <!-- Modal Hủy Đơn -->
-            @if ($reservation->status != 'cancelled' && $reservation->status != 'completed')
+            @if ($reservation->status != 'cancelled' && $reservation->status != 'completed' && $reservation->status != 'serving')
                 <div class="modal fade" id="cancelModal{{ $reservation->id }}" tabindex="-1" role="dialog">
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
@@ -1163,11 +1163,27 @@
                                     </div>
 
                                     @php
-                                        // Kiểm tra xem đơn có thể được hoàn tiền không (có tiền cọc và ngày đặt trong tương lai)
-                                        $canBeRefunded =
-                                            $reservation->deposit &&
-                                            $reservation->deposit > 0 &&
-                                            !$reservation->reservation_date->isPast();
+                                        // Kiểm tra xem đơn có thể được hoàn tiền không
+                                        // Giống logic trong isEligibleForRefund() của DatBanController
+                                        $canBeRefunded = false;
+                                        
+                                        // Phải có tiền cọc
+                                        $hasDeposit = ($reservation->deposit && (float)$reservation->deposit > 0);
+                                        
+                                        if ($hasDeposit) {
+                                            // Ngày đặt phải trong tương lai
+                                            if (!$reservation->reservation_date->isPast()) {
+                                                // Lấy refund_days từ cấu hình
+                                                $refundDays = max(1, (int)\App\Models\Setting::getValue('refund_days', 1));
+                                                
+                                                // Tính số ngày còn lại đến ngày đặt
+                                                $now = \Carbon\Carbon::now();
+                                                $daysUntilReservation = (int)ceil($now->diffInDays($reservation->reservation_date, false));
+                                                
+                                                // Nếu hủy trước >= số ngày quy định thì được hoàn
+                                                $canBeRefunded = $daysUntilReservation >= $refundDays;
+                                            }
+                                        }
                                     @endphp
 
                                     @if ($canBeRefunded)
@@ -1500,7 +1516,7 @@
             @endif
 
             <!-- Modal Hủy Đơn -->
-            @if ($reservation->status != 'cancelled' && $reservation->status != 'completed')
+            @if ($reservation->status != 'cancelled' && $reservation->status != 'completed' && $reservation->status != 'serving')
                 <div class="modal fade" id="cancelModal{{ $reservation->id }}" tabindex="-1" role="dialog">
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
@@ -1546,11 +1562,27 @@
                                     </div>
 
                                     @php
-                                        // Kiểm tra xem đơn có thể được hoàn tiền không (có tiền cọc và ngày đặt trong tương lai)
-                                        $canBeRefunded =
-                                            $reservation->deposit &&
-                                            $reservation->deposit > 0 &&
-                                            !$reservation->reservation_date->isPast();
+                                        // Kiểm tra xem đơn có thể được hoàn tiền không
+                                        // Giống logic trong isEligibleForRefund() của DatBanController
+                                        $canBeRefunded = false;
+                                        
+                                        // Phải có tiền cọc
+                                        $hasDeposit = ($reservation->deposit && (float)$reservation->deposit > 0);
+                                        
+                                        if ($hasDeposit) {
+                                            // Ngày đặt phải trong tương lai
+                                            if (!$reservation->reservation_date->isPast()) {
+                                                // Lấy refund_days từ cấu hình
+                                                $refundDays = max(1, (int)\App\Models\Setting::getValue('refund_days', 1));
+                                                
+                                                // Tính số ngày còn lại đến ngày đặt
+                                                $now = \Carbon\Carbon::now();
+                                                $daysUntilReservation = (int)ceil($now->diffInDays($reservation->reservation_date, false));
+                                                
+                                                // Nếu hủy trước >= số ngày quy định thì được hoàn
+                                                $canBeRefunded = $daysUntilReservation >= $refundDays;
+                                            }
+                                        }
                                     @endphp
 
                                     @if ($canBeRefunded)

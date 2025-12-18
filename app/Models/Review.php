@@ -14,7 +14,6 @@ class Review extends Model
         'reservation_id',
         'rating',
         'comment',
-        'status',
     ];
 
     protected $casts = [

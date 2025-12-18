@@ -739,37 +739,34 @@ class DashboardController extends Controller
 
         $totalComments = Review::whereBetween('created_at', [$from, $to])->count();
 
-        $approvedComments = Review::where('status', 1)
-            ->whereBetween('created_at', [$from, $to])
+        $avgRating = Review::whereBetween('created_at', [$from, $to])->avg('rating') ?? 0;
+
+        $ratingStats = Review::whereBetween('created_at', [$from, $to])
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->orderBy('rating', 'desc')
+            ->get()
+            ->pluck('count', 'rating')
+            ->toArray();
+
+        // Bình luận có nội dung
+        $commentsWithText = Review::whereBetween('created_at', [$from, $to])
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
             ->count();
-
-        $pendingComments = Review::where('status', 0)
-            ->whereBetween('created_at', [$from, $to])
-            ->count();
-
-        $avgRating = Review::whereBetween('created_at', [$from, $to])->avg('rating');
-
 
         $comments = Review::with('user')
             ->whereBetween('created_at', [$from, $to])
             ->latest()
-            ->get();
-
+            ->paginate(20);
 
         $period = CarbonPeriod::create($from, $to);
         $chartLabels = [];
         $chartTotal = [];
-        $chartApproved = [];
-        $chartPending = [];
 
         foreach ($period as $date) {
             $chartLabels[] = $date->format('d/m');
-
             $chartTotal[] = Review::whereDate('created_at', $date)->count();
-            $chartApproved[] = Review::whereDate('created_at', $date)
-                ->where('status', 1)->count();
-            $chartPending[] = Review::whereDate('created_at', $date)
-                ->where('status', 0)->count();
         }
 
         return view('admin.binhluanStatistics.index', compact(
@@ -778,14 +775,12 @@ class DashboardController extends Controller
             'from',
             'to',
             'totalComments',
-            'approvedComments',
-            'pendingComments',
             'avgRating',
+            'ratingStats',
+            'commentsWithText',
             'comments',
             'chartLabels',
-            'chartTotal',
-            'chartApproved',
-            'chartPending'
+            'chartTotal'
         ));
     }
 }

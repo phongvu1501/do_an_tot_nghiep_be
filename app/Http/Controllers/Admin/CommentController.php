@@ -13,15 +13,17 @@ class CommentController extends Controller
     {
         $title = 'Quản lý bình luận';
 
-        $query = Review::with(['user', 'reservation']);
+        $query = Review::with([
+            'user', 
+            'reservation' => function($q) {
+                $q->with(['tables', 'reservationItems.menu', 'voucher']);
+            }
+        ]);
 
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
 
         if ($request->filled('rating')) {
             $query->where('rating', $request->rating);
@@ -50,11 +52,4 @@ class CommentController extends Controller
     }
 
 
-    public function toggleStatus(Review $review)
-    {
-        $review->status = $review->status == 1 ? 0 : 1;
-        $review->save();
-
-        return redirect()->back()->with('success', 'Cập nhật trạng thái bình luận thành công!');
-    }
 }
