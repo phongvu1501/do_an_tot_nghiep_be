@@ -72,6 +72,10 @@
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Thống kê bình luận</p>
                                 </a>
+                                <a href="{{ route('admin.userStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê người dùng</p>
+                                </a>
                         </li>
                     </ul>
                 </li>

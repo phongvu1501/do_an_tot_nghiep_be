@@ -111,12 +111,13 @@ class MenuStatisticsController extends Controller
             ->selectRaw('
                 m.id,
                 m.name,
+                m.image,
                 m.category_id,
                 c.name as category_name,
                 SUM(t.qty) as total_qty,
                 SUM(t.revenue) as revenue
             ')
-            ->groupBy('m.id', 'm.name', 'm.category_id', 'c.name')
+            ->groupBy('m.id', 'm.name', 'm.image', 'm.category_id', 'c.name')
             ->orderByDesc('revenue');
     }
 

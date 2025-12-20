@@ -51,6 +51,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
   Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
   Route::get('/thong-ke-statistics', [DashboardController::class, 'revenueStatistics'])->name('admin.thongkeStatistics');
   Route::get('/binh-luan-statistics', [DashboardController::class, 'commentStatistics'])->name('admin.binhluanStatistics');
+  Route::get('/user-statistics', [UserStatisticsController::class, 'index'])->name('admin.userStatistics');
   Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
   Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
@@ -104,11 +105,6 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
   Route::get('/admin/accounts', [UserController::class, 'loc'])
     ->name('admin.accounts.users');
-
-  Route::get('/statistics/users', [UserStatisticsController::class, 'index'])
-    ->name('statistics.users');
-
-
 
   Route::get('/admin/user-detail/{id}', [UserController::class, 'detail'])->name('admin.user.detail');
 

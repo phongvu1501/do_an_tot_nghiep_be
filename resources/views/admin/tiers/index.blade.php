@@ -156,12 +156,12 @@
                                                             @if ($tier->is_active == 0)
                                                                 <button type="button" class="btn btn-secondary btn-sm"
                                                                     disabled>
-                                                                    Xóa
+                                                                    Tạm dừng
                                                                 </button>
                                                             @else
                                                                 <button type="submit" class="btn btn-danger btn-sm"
-                                                                    onclick="return confirm('Bạn có chắc chắn muốn xóa tier {{ $tier->name }} không?');">
-                                                                    Xóa
+                                                                    onclick="return confirm('Bạn có chắc chắn muốn tạm dừng tier {{ $tier->name }} không?');">
+                                                                    Tạm dừng
                                                                 </button>
                                                             @endif
                                                         </form>

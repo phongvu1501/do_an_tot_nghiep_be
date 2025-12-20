@@ -90,12 +90,7 @@ class User extends Authenticatable
         return true;
     }
 
-    /**
-     * Thêm điểm cho user (nếu muốn)
-     *
-     * @param int $amount Số điểm thêm
-     * @param string $description Mô tả giao dịch
-     */
+
     public function addPoints(int $amount, string $description = ''): void
     {
         $this->points += $amount;

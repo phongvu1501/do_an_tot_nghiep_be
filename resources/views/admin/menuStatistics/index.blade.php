@@ -60,11 +60,9 @@
             </div>
         </div>
 
-        {{-- CONTENT --}}
         <section class="content">
             <div class="container-fluid">
 
-                {{-- BOX THỐNG KÊ --}}
                 <div class="row">
                     <div class="col-lg-3 col-6">
                         <div class="small-box bg-info">
@@ -111,7 +109,6 @@
                     </div>
                 </div>
 
-                {{-- BẢNG --}}
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Doanh thu chi tiết theo món</h3>
@@ -120,8 +117,9 @@
                         <table class="table table-bordered table-hover">
                             <thead>
                                 <tr>
-                                    <th>#</th>
+                                    <th>STT</th>
                                     <th>Tên món</th>
+                                    <th>Hình ảnh</th>
                                     <th>Danh mục</th>
                                     <th>Số lượng bán</th>
                                     <th>Doanh thu (VNĐ)</th>
@@ -132,6 +130,14 @@
                                     <tr>
                                         <td>{{ $menuStats->firstItem() + $index }}</td>
                                         <td>{{ $item->name }}</td>
+                                        <td>
+                                            @if ($item->image)
+                                                <img src="{{ asset('storage/' . $item->image) }}" width="150"
+                                                    class="rounded shadow-sm" alt="Ảnh món ăn">
+                                            @else
+                                                <span class="text-muted">Không có ảnh</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $item->category_name }}</td>
                                         <td>{{ $item->total_qty }}</td>
                                         <td>{{ number_format($item->revenue) }}</td>

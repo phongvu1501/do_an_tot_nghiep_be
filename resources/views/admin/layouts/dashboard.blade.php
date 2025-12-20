@@ -60,11 +60,11 @@
                             <i class="fas fa-calendar-check"></i> Thống kê Menu
                         </a>
                     </li>
-                    <li class="nav-item">
+                    {{-- <li class="nav-item">
                         <a class="nav-link" href="{{ route('statistics.users') }}">
                             <i class="fas fa-users"></i> Thống kê user
                         </a>
-                    </li>
+                    </li> --}}
                 </ul>
 
 
