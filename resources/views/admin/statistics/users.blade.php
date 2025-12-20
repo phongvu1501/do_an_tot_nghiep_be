@@ -91,10 +91,10 @@
                                         <td>{{ $u->name }}</td>
                                         <td>{{ $u->phone ?? 'Chưa cập nhật' }}</td>
                                         <td class="fw-bold">{{ $u->reservations_count }}</td>
-                                        <td class="text-center">
+                                        <td>
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
                                                 data-bs-target="#detailModal{{ $u->id }}">
-                                                <i class="fas fa-search"></i>
+                                                Chi tiết
                                             </button>
                                         </td>
                                     </tr>
@@ -127,10 +127,10 @@
                                         <td class="fw-bold text-danger">
                                             {{ number_format($u->total_spent ?? 0) }} đ
                                         </td>
-                                        <td class="text-center">
+                                        <td>
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
                                                 data-bs-target="#detailModal{{ $u->id }}">
-                                                <i class="fas fa-search"></i>
+                                                Chi tiết
                                             </button>
                                         </td>
                                     </tr>
@@ -171,10 +171,10 @@
                                             </span>
                                         </td>
                                         <td>{{ $u->created_at->format('d/m/Y H:i') }}</td>
-                                        <td class="text-center">
+                                        <td >
                                             <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
                                                 data-bs-target="#detailModal{{ $u->id }}">
-                                                <i class="fas fa-search"></i>
+                                                Chi tiết
                                             </button>
                                         </td>
                                     </tr>
@@ -244,6 +244,37 @@
                                         @if ($u->reservations->count())
                                             @foreach ($u->reservations as $reservation)
                                                 <div class="border rounded p-3 mb-3">
+                                                    @php
+                                                        $statusMap = [
+                                                            'pending' => 'Chờ xác nhận',
+                                                            'completed' => 'Hoàn thành',
+                                                            'cancelled' => 'Đã huỷ',
+                                                            'deposit_pending' => 'Chờ đặt cọc',
+                                                        ];
+
+                                                        $statusColorMap = [
+                                                            'pending' => 'warning',
+                                                            'completed' => 'success',
+                                                            'cancelled' => 'danger',
+                                                            'deposit_pending' => 'info',
+                                                        ];
+                                                    @endphp
+
+
+                                                    <div class="mb-2">
+                                                        <div class="fw-bold fs-5">
+                                                            🧾 Mã đơn: {{ $reservation->reservation_code }}
+                                                        </div>
+
+                                                        <div class="fw-semibold">
+                                                            📌 Trạng thái:
+                                                            <span
+                                                                class="badge bg-{{ $statusColorMap[$reservation->status] ?? 'secondary' }}">
+                                                                {{ $statusMap[$reservation->status] ?? 'Không xác định' }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
 
                                                     <h6 class="fw-bold">🪑 Bàn đã đặt:</h6>
                                                     @foreach ($reservation->tables as $table)
