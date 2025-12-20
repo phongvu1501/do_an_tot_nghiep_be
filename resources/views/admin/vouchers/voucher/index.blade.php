@@ -237,31 +237,29 @@
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    <div class="btn-group" role="group">
-                                                        <a href="{{ route('admin.vouchers.voucher.show', $voucher->id) }}"
-                                                            class="btn btn-info btn-sm" title="Xem chi tiết">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                        <a href="{{ route('admin.vouchers.voucher.edit', $voucher->id) }}"
-                                                            class="btn btn-warning btn-sm" title="Chỉnh sửa">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        @if ($voucher->status === 'active')
-                                                            <form
-                                                                action="{{ route('admin.vouchers.voucher.disable', $voucher->id) }}"
-                                                                method="POST" style="display:inline;">
-                                                                @csrf
-                                                                @method('PUT')
-                                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                                    onclick="return confirm('Bạn có chắc muốn dừng voucher {{ $voucher->code }} không?');"
-                                                                    title="Dừng voucher">
-                                                                    <i class="fas fa-stop"></i>
-                                                                </button>
-                                                            </form>
+                                                    <a href="{{ route('admin.vouchers.voucher.show', $voucher->id) }}"
+                                                        class="btn btn-info btn-sm">Chi tiết</a>
+                                                    <a href="{{ route('admin.vouchers.voucher.edit', $voucher->id) }}"
+                                                        class="btn btn-warning btn-sm">Chỉnh sửa</a>
+                                                    <form action="{{ route('admin.vouchers.voucher.disable', $voucher->id) }}"
+                                                        method="POST" style="display:inline;">
+                                                        @csrf
+                                                        @method('PUT')
+
+                                                        @if ($voucher->is_active == 0)
+                                                            <button type="button" class="btn btn-secondary btn-sm"
+                                                                disabled>
+                                                                Tạm dừng
+                                                            </button>
                                                         @else
-                                                            <span class="badge badge-secondary">Đã dừng</span>
+                                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                                onclick="return confirm('Bạn có chắc chắn muốn tạm dừng voucher {{ $voucher->code }} không?');">
+                                                                Tạm dừng
+                                                            </button>
                                                         @endif
-                                                    </div>
+                                                    </form>
+
+
                                                 </td>
                                             </tr>
                                         @empty
