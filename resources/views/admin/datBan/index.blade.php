@@ -30,17 +30,17 @@
                                 <div id="notify-alert" class="alert alert-dismissible fade show shadow-sm position-fixed"
                                     role="alert"
                                     style="
-            top: 20px;
-            right: 20px;
-            z-index: 1050;
-            min-width: 320px;
-            max-width: 420px;
-            border-radius: 10px;
-            font-size: 14px;
-            background-color: #e9f7ef;
-            border: 1px solid #b7e4c7;
-            color: #2d6a4f;
-        ">
+                                            top: 20px;
+                                            right: 20px;
+                                            z-index: 1050;
+                                            min-width: 320px;
+                                            max-width: 420px;
+                                            border-radius: 10px;
+                                            font-size: 14px;
+                                            background-color: #e9f7ef;
+                                            border: 1px solid #b7e4c7;
+                                            color: #2d6a4f;
+                                        ">
                                     <div class="d-flex align-items-center">
                                         <i class="fas fa-check-circle mr-2" style="color:#40916c;font-size:18px;"></i>
                                         <div class="flex-grow-1">
