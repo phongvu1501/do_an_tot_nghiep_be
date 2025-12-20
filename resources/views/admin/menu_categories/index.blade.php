@@ -27,11 +27,30 @@
 
                             {{-- Thông báo --}}
                             @if (session('success'))
-                                <div class="alert alert-success alert-dismissible fade show">
-                                    {{ session('success') }}
-                                    <button type="button" class="close" data-dismiss="alert">
-                                        <span>&times;</span>
-                                    </button>
+                                <div id="notify-alert" class="alert alert-dismissible fade show shadow-sm position-fixed"
+                                    role="alert"
+                                    style="
+                                            top: 20px;
+                                            right: 20px;
+                                            z-index: 1050;
+                                            min-width: 320px;
+                                            max-width: 420px;
+                                            border-radius: 10px;
+                                            font-size: 14px;
+                                            background-color: #e9f7ef;
+                                            border: 1px solid #b7e4c7;
+                                            color: #2d6a4f;
+                                        ">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-check-circle mr-2" style="color:#40916c;font-size:18px;"></i>
+                                        <div class="flex-grow-1">
+                                            {{ session('success') }}
+                                        </div>
+                                        <button type="button" class="close ml-2" data-dismiss="alert"
+                                            style="color:#2d6a4f">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
                                 </div>
                             @endif
 
@@ -93,4 +112,14 @@
             </div>
         </div>
     </div>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById('notify-alert');
+            if (alert) {
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, 3000);
+    </script>
 @endsection
