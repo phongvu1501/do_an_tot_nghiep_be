@@ -36,7 +36,7 @@ Route::middleware(['auth'])->group(function () {
   Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
   Route::put('/admin/profile', [UserController::class, 'updateProfile'])->name('admin.profile.update');
   Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
-  Route::get('/admin/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
+  Route::get('/admin/login', [AuthController::class, 'showLoginForm'])->middleware('guest')->name('admin.login');
   Route::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');
 });
 
