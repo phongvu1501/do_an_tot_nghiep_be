@@ -129,7 +129,7 @@
                     <div class="col-md-12">
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">Voucher đang hoạt động</h3>
+                                <h3 class="card-title">Voucher</h3>
                             </div>
                             <div class="card-body table-responsive p-0">
                                 <table class="table table-bordered table-hover text-nowrap">

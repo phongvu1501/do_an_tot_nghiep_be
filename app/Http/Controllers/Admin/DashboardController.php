@@ -599,27 +599,15 @@ class DashboardController extends Controller
                 break;
 
             case 'custom':
-                $from = $request->input('from')
-                    ? Carbon::parse($request->input('from'))->startOfDay()
+                $from = $request->filled('from')
+                    ? Carbon::parse($request->from)->startOfDay()
                     : Carbon::now()->startOfMonth();
 
-                $to = $request->input('to')
-                    ? Carbon::parse($request->input('to'))->endOfDay()
+                $to = $request->filled('to')
+                    ? Carbon::parse($request->to)->endOfDay()
                     : Carbon::now()->endOfMonth();
 
                 $filterLabel = $from->format('d/m/Y') . ' - ' . $to->format('d/m/Y');
-                break;
-
-            case 'all':
-                $from = Reservation::min('created_at')
-                    ? Carbon::parse(Reservation::min('created_at'))
-                    : Carbon::now()->startOfYear();
-
-                $to = Reservation::max('created_at')
-                    ? Carbon::parse(Reservation::max('created_at'))
-                    : Carbon::now()->endOfYear();
-
-                $filterLabel = 'Tất cả';
                 break;
 
             default:
@@ -628,54 +616,54 @@ class DashboardController extends Controller
                 $filterLabel = 'Tháng này';
         }
 
-        $totalRevenue = Reservation::where('status', 'completed')
-            ->whereBetween('created_at', [$from, $to])
-            ->sum('total_amount');
+        $query = Reservation::where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to]);
 
-        $totalDeposit = Reservation::where('status', 'completed')
-            ->whereBetween('created_at', [$from, $to])
-            ->sum('deposit');
-
-        $totalVoucherDiscount = Reservation::where('status', 'completed')
-            ->whereBetween('created_at', [$from, $to])
-            ->sum('voucher_discount');
-
+        $totalRevenue = $query->sum('total_amount');
+        $totalDeposit = $query->sum('deposit');
+        $totalVoucherDiscount = $query->sum('voucher_discount');
         $totalRevenueAfterDiscount = $totalRevenue - $totalVoucherDiscount;
 
-        $avgRevenuePerReservation = Reservation::where('status', 'completed')
+        $avgRevenuePerReservation = round(
+            $query->avg('total_amount') ?? 0,
+            0
+        );
+
+        $dailyStatistics = Reservation::where('status', 'completed')
             ->whereBetween('created_at', [$from, $to])
-            ->avg('total_amount');
-        $avgRevenuePerReservation = $avgRevenuePerReservation ? round($avgRevenuePerReservation, 2) : 0;
+            ->selectRaw('
+            DATE(created_at) as date,
+            SUM(total_amount) as total_revenue,
+            SUM(deposit) as deposit,
+            SUM(voucher_discount) as voucher_discount
+        ')
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->paginate(15)
+            ->withQueryString();
 
-        $period = CarbonPeriod::create($from, '1 day', $to);
-        $dailyStatistics = [];
+        $chartData = Reservation::where('status', 'completed')
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('
+            DATE(created_at) as date,
+            SUM(total_amount) as total_revenue,
+            SUM(voucher_discount) as voucher_discount
+        ')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
 
-        foreach ($period as $date) {
-            $dailyTotal = Reservation::where('status', 'completed')
-                ->whereDate('created_at', $date)
-                ->sum('total_amount');
+        $chartLabels = $chartData->map(
+            fn($i) =>
+            Carbon::parse($i->date)->format('d/m/Y')
+        );
 
-            $dailyDeposit = Reservation::where('status', 'completed')
-                ->whereDate('created_at', $date)
-                ->sum('deposit');
+        $chartRevenue = $chartData->pluck('total_revenue');
 
-            $dailyVoucherDiscount = Reservation::where('status', 'completed')
-                ->whereDate('created_at', $date)
-                ->sum('voucher_discount');
-
-            $dailyStatistics[] = [
-                'date' => $date->format('Y-m-d'),
-                'date_display' => $date->format('d/m/Y'),
-                'total_revenue' => $dailyTotal,
-                'deposit' => $dailyDeposit,
-                'voucher_discount' => $dailyVoucherDiscount,
-                'revenue_after_discount' => $dailyTotal - $dailyVoucherDiscount,
-            ];
-        }
-
-        $chartLabels = collect($dailyStatistics)->pluck('date_display')->toArray();
-        $chartRevenue = collect($dailyStatistics)->pluck('total_revenue')->toArray();
-        $chartRevenueAfterDiscount = collect($dailyStatistics)->pluck('revenue_after_discount')->toArray();
+        $chartRevenueAfterDiscount = $chartData->map(
+            fn($i) =>
+            $i->total_revenue - $i->voucher_discount
+        );
 
         return view('admin.thongkeStatistics.index', compact(
             'filterType',
@@ -693,6 +681,7 @@ class DashboardController extends Controller
             'chartRevenueAfterDiscount'
         ));
     }
+
 
 
     public function commentStatistics(Request $request)
