@@ -586,12 +586,6 @@ class DashboardController extends Controller
                 $filterLabel = 'Tuần này';
                 break;
 
-            case 'this_month':
-                $from = Carbon::now()->startOfMonth();
-                $to = Carbon::now()->endOfMonth();
-                $filterLabel = 'Tháng này';
-                break;
-
             case 'this_year':
                 $from = Carbon::now()->startOfYear();
                 $to = Carbon::now()->endOfYear();
@@ -622,12 +616,9 @@ class DashboardController extends Controller
         $totalRevenue = $query->sum('total_amount');
         $totalDeposit = $query->sum('deposit');
         $totalVoucherDiscount = $query->sum('voucher_discount');
-        $totalRevenueAfterDiscount = $totalRevenue - $totalVoucherDiscount;
+        $totalRevenueAfterDiscount = max($totalRevenue - $totalVoucherDiscount, 0);
 
-        $avgRevenuePerReservation = round(
-            $query->avg('total_amount') ?? 0,
-            0
-        );
+        $avgRevenuePerReservation = round($query->avg('total_amount') ?? 0, 0);
 
         $dailyStatistics = Reservation::where('status', 'completed')
             ->whereBetween('created_at', [$from, $to])
@@ -654,16 +645,31 @@ class DashboardController extends Controller
             ->get();
 
         $chartLabels = $chartData->map(
-            fn($i) =>
-            Carbon::parse($i->date)->format('d/m/Y')
+            fn($i) => Carbon::parse($i->date)->format('d/m/Y')
         );
 
         $chartRevenue = $chartData->pluck('total_revenue');
 
         $chartRevenueAfterDiscount = $chartData->map(
-            fn($i) =>
-            $i->total_revenue - $i->voucher_discount
+            fn($i) => max($i->total_revenue - $i->voucher_discount, 0)
         );
+
+        $topSpendingUsers = User::with([
+            'reservations.tables',
+            'reservations.reservationItems.menu',
+            'reservations.voucher'
+        ])
+            ->withSum([
+                'reservations as total_spent' => function ($q) use ($from, $to) {
+                    $q->where('status', 'completed')
+                        ->whereBetween('created_at', [$from, $to]);
+                }
+            ], 'total_amount')
+            ->where('role', '!=', 'admin')
+            ->having('total_spent', '>', 0)
+            ->orderByDesc('total_spent')
+            ->take(10)
+            ->get();
 
         return view('admin.thongkeStatistics.index', compact(
             'filterType',
@@ -678,7 +684,8 @@ class DashboardController extends Controller
             'dailyStatistics',
             'chartLabels',
             'chartRevenue',
-            'chartRevenueAfterDiscount'
+            'chartRevenueAfterDiscount',
+            'topSpendingUsers'
         ));
     }
 
