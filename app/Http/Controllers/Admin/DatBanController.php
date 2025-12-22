@@ -513,6 +513,20 @@ class DatBanController extends Controller
                     'action' => 'Hoàn tất đơn hàng #' . ($reservation->reservation_code ?? $reservation->id),
                 ]);
             }
+
+            if ($request->ajax() || $request->wantsJson()) {
+                $reservationCode = $reservation->reservation_code ?? $reservation->id;
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Đã hoàn tất đơn hàng thành công!',
+                    'invoice_url' => route('invoice.pdf', $reservationCode),
+                    'reservation_code' => $reservationCode,
+                ]);
+            }
+
+            $reservationCode = $reservation->reservation_code ?? $reservation->id;
+            return redirect()->route('invoice.pdf', $reservationCode)
+                ->with('success', 'Đã hoàn tất đơn hàng và xuất hóa đơn thành công!');
         }
 
         // Điều hướng theo yêu cầu
@@ -1317,6 +1331,21 @@ class DatBanController extends Controller
             \Log::info('After refresh', ['id' => $reservation->id, 'refunded_at' => $reservation->refunded_at]);
 
             DB::commit();
+
+            // Gửi email thông báo hoàn tiền cho khách hàng
+            try {
+                $reservation->load('user');
+                if ($reservation->user && $reservation->user->email) {
+                    Mail::to($reservation->user->email)
+                        ->send(new \App\Mail\RefundSuccessMail($reservation));
+                    \Log::info('Refund email sent successfully', ['reservation_id' => $reservation->id, 'email' => $reservation->user->email]);
+                } else {
+                    \Log::warning('Cannot send refund email: user or email not found', ['reservation_id' => $reservation->id]);
+                }
+            } catch (\Exception $e) {
+                // Không làm gián đoạn flow nếu gửi email thất bại
+                \Log::error('Failed to send refund email: ' . $e->getMessage(), ['reservation_id' => $reservation->id]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error processing refund: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);

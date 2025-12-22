@@ -20,6 +20,11 @@ class MenuController extends Controller
             $query->where('category_id', (int)$request->category_id);
         }
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
         // Sắp xếp món mới nhất lên đầu
         $query->orderBy('id', 'DESC');
 
@@ -34,7 +39,10 @@ class MenuController extends Controller
         // Danh mục đang được chọn
         $selectedCategoryId = $request->category_id ? (int)$request->category_id : null;
 
-        return view('admin.menus.index', compact('menus', 'trashedCount', 'categories', 'selectedCategoryId'));
+        // Từ khóa tìm kiếm
+        $searchKeyword = $request->search ?? '';
+
+        return view('admin.menus.index', compact('menus', 'trashedCount', 'categories', 'selectedCategoryId', 'searchKeyword'));
     }
 
     // 2. Form thêm mới
