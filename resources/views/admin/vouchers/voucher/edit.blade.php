@@ -32,16 +32,18 @@
                                         <span class="ml-1" style="font-weight: normal; font-size: 14px;">Tất cả mọi người</span>
                                     </label>
                                     
-                                    <select id="user_ids" name="user_ids[]" multiple required
-                                        class="form-control @error('user_ids') is-invalid @enderror">
-                                        @foreach ($users as $user)
-                                            <option value="{{ $user->id }}"
-                                                {{ in_array($user->id, $selectedUserIds) ? 'selected' : '' }}
-                                                data-phone="{{ $user->phone ?? '' }}">
-                                                {{ $user->name }} ({{ $user->phone ?: 'Chưa có SĐT' }})
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <div id="user_ids_container" style="{{ $isForAllUsers ? 'display: none;' : '' }}">
+                                        <select id="user_ids" name="user_ids[]" multiple required
+                                            class="form-control @error('user_ids') is-invalid @enderror">
+                                            @foreach ($users as $user)
+                                                <option value="{{ $user->id }}"
+                                                    {{ in_array($user->id, $selectedUserIds) ? 'selected' : '' }}
+                                                    data-phone="{{ $user->phone ?? '' }}">
+                                                    {{ $user->name }} ({{ $user->phone ?: 'Chưa có SĐT' }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <small class="form-text text-muted"></small>
                                     @error('user_ids')
                                         <span class="text-danger">{{ $message }}</span>
@@ -275,6 +277,11 @@
             }
         });
 
+        // Hàm kiểm tra số
+        function isNumeric(value) {
+            return !isNaN(value) && !isNaN(parseFloat(value)) && isFinite(value);
+        }
+
         // Hàm kiểm tra và cập nhật trạng thái checkbox
         function updateCheckboxState() {
             var currentValues = $('#user_ids').val() || [];
@@ -290,6 +297,11 @@
                              });
             
             $('#apply_all_checkbox').prop('checked', allSelected);
+            
+            // Ẩn/hiện danh sách dựa trên trạng thái checkbox
+            if (allSelected) {
+                $('#user_ids_container').hide();
+            }
         }
 
         // Xử lý khi checkbox được tích/bỏ tích
@@ -297,7 +309,11 @@
             if ($(this).is(':checked')) {
                 // Chọn tất cả user
                 $('#user_ids').val(allUserIds).trigger('change');
+                // Ẩn danh sách select2
+                $('#user_ids_container').hide();
             } else {
+                // Hiển thị lại danh sách select2
+                $('#user_ids_container').show();
                 // Khi bỏ tích, chỉ cập nhật trạng thái (không bỏ chọn tất cả để tránh vi phạm validation)
                 // Người dùng sẽ tự chọn user cụ thể từ Select2
                 // Checkbox sẽ tự động bỏ tích khi chọn user cụ thể
@@ -306,10 +322,20 @@
 
         $('#user_ids').on('select2:select', function(e) {
             updateCheckboxState();
+            // Nếu không phải tất cả user được chọn, hiển thị lại container
+            var currentValues = $('#user_ids').val() || [];
+            var numericValues = currentValues.filter(function(id) {
+                return isNumeric(id);
+            });
+            if (numericValues.length < totalUsers) {
+                $('#user_ids_container').show();
+            }
         });
 
         $('#user_ids').on('select2:unselect', function(e) {
             updateCheckboxState();
+            // Khi bỏ chọn một user, hiển thị lại container
+            $('#user_ids_container').show();
         });
 
         $('#user_ids').on('change', function() {

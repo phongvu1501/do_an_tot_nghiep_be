@@ -37,21 +37,36 @@
             <div class="container-fluid">
                 <ul class="nav nav-tabs" id="statisticsTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" role="tab" aria-controls="overview" aria-selected="true">
+                        <a class="nav-link active" id="overview-tab" data-toggle="tab" href="#overview" role="tab"
+                            aria-controls="overview" aria-selected="true">
                             <i class="fas fa-chart-line"></i> Tổng quan
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a class="nav-link" id="reservation-tab" data-toggle="tab" href="#reservation" role="tab" aria-controls="reservation" aria-selected="false">
+                        <a class="nav-link" id="reservation-tab" data-toggle="tab" href="#reservation" role="tab"
+                            aria-controls="reservation" aria-selected="false">
                             <i class="fas fa-calendar-check"></i> Thống kê đặt bàn
                         </a>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" id="voucher-tab" data-toggle="tab" href="#vouchers" role="tabpanel"
+                            aria-controls="voucher" aria-selected="false">
+                            <i class="fas fa-calendar-check"></i> Thống kê vouchers
+                        </a>
+                    </li>
                     <li class="" role="">
-                        <a class="nav-link" id="" data-toggle="tab" href="" role="tab" aria-controls="" aria-selected="">
+                        <a class="nav-link" id="" data-toggle="tab" href="" role="tab" aria-controls=""
+                            aria-selected="">
                             <i class="fas fa-calendar-check"></i> Thống kê Menu
                         </a>
                     </li>
+                    {{-- <li class="nav-item">
+                        <a class="nav-link" href="{{ route('statistics.users') }}">
+                            <i class="fas fa-users"></i> Thống kê user
+                        </a>
+                    </li> --}}
                 </ul>
+
 
                 <!-- TABS CONTENT -->
                 <div class="tab-content" id="statisticsTabsContent">
@@ -69,7 +84,8 @@
                                         <i class="ion ion-bag"></i>
                                     </div>
 
-                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#reservationsModal">
+                                    <a href="#" class="small-box-footer" data-toggle="modal"
+                                        data-target="#reservationsModal">
                                         Chi tiết
                                     </a>
                                 </div>
@@ -86,7 +102,8 @@
                                         <i class="ion ion-stats-bars"></i>
                                     </div>
 
-                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#cancelledModal">
+                                    <a href="#" class="small-box-footer" data-toggle="modal"
+                                        data-target="#cancelledModal">
                                         Chi tiết
                                     </a>
                                 </div>
@@ -103,7 +120,8 @@
                                         <i class="ion ion-person-add"></i>
                                     </div>
 
-                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#newUsersModal">
+                                    <a href="#" class="small-box-footer" data-toggle="modal"
+                                        data-target="#newUsersModal">
                                         Chi tiết
                                     </a>
                                 </div>
@@ -120,7 +138,25 @@
                                         <i class="ion ion-pie-graph"></i>
                                     </div>
 
-                                    <a href="#" class="small-box-footer" data-toggle="modal" data-target="#revenueModal">
+                                    <a href="#" class="small-box-footer" data-toggle="modal"
+                                        data-target="#revenueModal">
+                                        Chi tiết
+                                    </a>
+                                </div>
+                            </div>
+                            {{-- Vouchers --}}
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-primary">
+                                    <div class="inner">
+                                        <h3>{{ number_format($totalVouchersUsed) }}</h3>
+                                        <p>Voucher đã sử dụng</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-pie-graph"></i>
+                                    </div>
+
+                                    <a href="#" class="small-box-footer" data-toggle="modal"
+                                        data-target="#voucherModal">
                                         Chi tiết
                                     </a>
                                 </div>
@@ -133,202 +169,496 @@
                         <!-- ============================== -->
                         <!--  THỐNG KÊ ĐẶT BÀN CHI TIẾT     -->
                         <!-- ============================== -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h3 class="mb-3">Thống kê đặt bàn</h3>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Đơn đặt bàn hôm nay -->
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-info">
-                            <div class="inner">
-                                <h3>{{ $totalToday ?? 0 }}</h3>
-                                <p>Đơn đặt bàn hôm nay</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-calendar"></i>
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h3 class="mb-3">Thống kê đặt bàn</h3>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Đơn đặt bàn trong tháng -->
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-success">
-                            <div class="inner">
-                                <h3>{{ $totalThisMonth ?? 0 }}</h3>
-                                <p>Đơn đặt bàn trong tháng</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-stats-bars"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Đơn hoàn thành (tất cả) -->
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-primary">
-                            <div class="inner">
-                                <h3>{{ $totalCompletedAll ?? 0 }}</h3>
-                                <p>Đơn hoàn thành (tất cả)</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-checkmark-circled"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Đơn đã hủy (tất cả) -->
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-danger">
-                            <div class="inner">
-                                <h3>{{ $totalCancelledAll ?? 0 }}</h3>
-                                <p>Đơn đã hủy (tất cả)</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-close-circled"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-warning">
-                            <div class="inner">
-                                <h3>{{ $totalPending ?? 0 }}</h3>
-                                <p>Đơn chờ xác nhận</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-clock"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-secondary">
-                            <div class="inner">
-                                <h3>{{ $cancellationRate ?? 0 }}%</h3>
-                                <p>Tỷ lệ hủy</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-pie-graph"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-3 col-6">
-                        <div class="small-box bg-info">
-                            <div class="inner">
-                                <h3>{{ $avgNumPeople ?? 0 }}</h3>
-                                <p>Số khách trung bình/đơn</p>
-                            </div>
-                            <div class="icon">
-                                <i class="ion ion-person-stalker"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Thống kê theo ca ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="info-box">
-                                            <span class="info-box-icon bg-info elevation-1">
-                                                <i class="fas fa-sun"></i>
-                                            </span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Ca sáng</span>
-                                                <span class="info-box-number">{{ $morningCountPeriod ?? 0 }}</span>
-                                            </div>
-                                        </div>
+                        <div class="row">
+                            <!-- Đơn đặt bàn hôm nay -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ $totalToday ?? 0 }}</h3>
+                                        <p>Đơn đặt bàn hôm nay</p>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="info-box">
-                                            <span class="info-box-icon bg-success elevation-1">
-                                                <i class="fas fa-cloud-sun"></i>
-                                            </span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Ca trưa</span>
-                                                <span class="info-box-number">{{ $afternoonCountPeriod ?? 0 }}</span>
-                                            </div>
-                                        </div>
+                                    <div class="icon">
+                                        <i class="ion ion-calendar"></i>
                                     </div>
-                                    <div class="col-md-4">
-                                        <div class="info-box">
-                                            <span class="info-box-icon bg-warning elevation-1">
-                                                <i class="fas fa-moon"></i>
-                                            </span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text">Ca tối</span>
-                                                <span class="info-box-number">{{ $eveningCountPeriod ?? 0 }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Đơn đặt bàn trong tháng -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>{{ $totalThisMonth ?? 0 }}</h3>
+                                        <p>Đơn đặt bàn trong tháng</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-stats-bars"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Đơn hoàn thành (tất cả) -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-primary">
+                                    <div class="inner">
+                                        <h3>{{ $totalCompletedAll ?? 0 }}</h3>
+                                        <p>Đơn hoàn thành (tất cả)</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-checkmark-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Đơn đã hủy (tất cả) -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-danger">
+                                    <div class="inner">
+                                        <h3>{{ $totalCancelledAll ?? 0 }}</h3>
+                                        <p>Đơn đã hủy (tất cả)</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-close-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>{{ $totalPending ?? 0 }}</h3>
+                                        <p>Đơn chờ xác nhận</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-clock"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-secondary">
+                                    <div class="inner">
+                                        <h3>{{ $cancellationRate ?? 0 }}%</h3>
+                                        <p>Tỷ lệ hủy</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-pie-graph"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ $avgNumPeople ?? 0 }}</h3>
+                                        <p>Số khách trung bình/đơn</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-person-stalker"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Thống kê theo ca ({{ $from->format('d/m/Y') }} -
+                                            {{ $to->format('d/m/Y') }})</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="info-box">
+                                                    <span class="info-box-icon bg-info elevation-1">
+                                                        <i class="fas fa-sun"></i>
+                                                    </span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Ca sáng</span>
+                                                        <span
+                                                            class="info-box-number">{{ $morningCountPeriod ?? 0 }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="info-box">
+                                                    <span class="info-box-icon bg-success elevation-1">
+                                                        <i class="fas fa-cloud-sun"></i>
+                                                    </span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Ca trưa</span>
+                                                        <span
+                                                            class="info-box-number">{{ $afternoonCountPeriod ?? 0 }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="info-box">
+                                                    <span class="info-box-icon bg-warning elevation-1">
+                                                        <i class="fas fa-moon"></i>
+                                                    </span>
+                                                    <div class="info-box-content">
+                                                        <span class="info-box-text">Ca tối</span>
+                                                        <span
+                                                            class="info-box-number">{{ $eveningCountPeriod ?? 0 }}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Thống kê đơn đặt bàn theo ngày</h3>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="reservationChart" style="height: 300px;"></canvas>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Thống kê đơn đặt bàn theo ngày</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="reservationChart" style="height: 300px;"></canvas>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Bảng thống kê chi tiết theo ngày -->
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Chi tiết thống kê theo ngày</h3>
-                            </div>
-                            <div class="card-body table-responsive p-0">
-                                <table class="table table-striped table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Ngày</th>
-                                            <th>Tổng đơn</th>
-                                            <th>Hoàn thành</th>
-                                            <th>Đã hủy</th>
-                                            <th>Chờ xác nhận</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if(isset($dailyStatistics))
-                                            @foreach ($dailyStatistics as $stat)
+                        <!-- Bảng thống kê chi tiết theo ngày -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Chi tiết thống kê theo ngày</h3>
+                                    </div>
+                                    <div class="card-body table-responsive p-0">
+                                        <table class="table table-striped table-bordered">
+                                            <thead>
                                                 <tr>
-                                                    <td>{{ $stat['date_display'] }}</td>
-                                                    <td><span class="badge badge-info">{{ $stat['count'] }}</span></td>
-                                                    <td><span class="badge badge-success">{{ $stat['completed'] }}</span></td>
-                                                    <td><span class="badge badge-danger">{{ $stat['cancelled'] }}</span></td>
-                                                    <td><span class="badge badge-warning">{{ $stat['pending'] }}</span></td>
+                                                    <th>Ngày</th>
+                                                    <th>Tổng đơn</th>
+                                                    <th>Hoàn thành</th>
+                                                    <th>Đã hủy</th>
+                                                    <th>Chờ xác nhận</th>
                                                 </tr>
-                                            @endforeach
-                                        @endif
-                                    </tbody>
-                                </table>
+                                            </thead>
+                                            <tbody>
+                                                @if (isset($dailyStatistics))
+                                                    @foreach ($dailyStatistics as $stat)
+                                                        <tr>
+                                                            <td>{{ $stat['date_display'] }}</td>
+                                                            <td><span class="badge badge-info">{{ $stat['count'] }}</span>
+                                                            </td>
+                                                            <td><span
+                                                                    class="badge badge-success">{{ $stat['completed'] }}</span>
+                                                            </td>
+                                                            <td><span
+                                                                    class="badge badge-danger">{{ $stat['cancelled'] }}</span>
+                                                            </td>
+                                                            <td><span
+                                                                    class="badge badge-warning">{{ $stat['pending'] }}</span>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                @endif
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
                     </div>
                     <!-- END TAB: THỐNG KÊ ĐẶT BÀN -->
+                    <!-- TAB: THỐNG KÊ VOUCHERS -->
+                    <div class="tab-pane fade" id="vouchers" role="tabpanel" aria-labelledby="vouchers-tab">
+
+                        <!-- TITLE -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h3 class="mb-3">Thống kê Vouchers</h3>
+                            </div>
+                        </div>
+
+                        <!-- SUMMARY CARDS -->
+                        <div class="row">
+
+                            <!-- Voucher đang hoạt động -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>{{ $activeVouchersCount ?? 0 }}</h3>
+                                        <p>Voucher đang hoạt động</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-pricetag"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Voucher hết hạn -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-danger">
+                                    <div class="inner">
+                                        <h3>{{ $expiredVouchersCount ?? 0 }}</h3>
+                                        <p>Voucher đã hết hạn</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-close-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tổng lượt dùng -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ $totalVouchersUsed ?? 0 }}</h3>
+                                        <p>Tổng lượt dùng trong kỳ</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-cash"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Voucher sắp hết hạn -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>{{ $soonExpiredCount ?? 0 }}</h3>
+                                        <p>Sắp hết hạn (≤ 7 ngày)</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-alert-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- CHART -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Biểu đồ sử dụng voucher theo ngày</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="voucherChart" style="height: 300px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DETAIL TABLE -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Danh sách voucher trong khoảng
+                                            ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})</h3>
+                                    </div>
+                                    <div class="card-body table-responsive p-0">
+
+                                        <table class="table table-striped table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã</th>
+                                                    <th>Giảm (%)</th>
+                                                    <th>Ngày bắt đầu</th>
+                                                    <th>Ngày kết thúc</th>
+                                                    <th>Đã dùng</th>
+                                                    <th>Giới hạn</th>
+                                                    <th>Trạng thái</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                @foreach ($activeVouchers ?? [] as $v)
+                                                    <tr>
+                                                        <td><strong>{{ $v->code }}</strong></td>
+                                                        <td>{{ $v->discount_percent }}%</td>
+                                                        <td>{{ \Carbon\Carbon::parse($v->start_date)->format('d/m/Y') }}
+                                                        </td>
+                                                        <td>{{ \Carbon\Carbon::parse($v->end_date)->format('d/m/Y') }}</td>
+                                                        <td><span class="badge badge-info">{{ $v->used_count }}</span>
+                                                        </td>
+                                                        <td>{{ $v->max_uses }}</td>
+                                                        <td>
+                                                            @if ($v->status == 'active')
+                                                                <span class="badge badge-success">Active</span>
+                                                            @else
+                                                                <span class="badge badge-secondary">Inactive</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+
+                                                @if (empty($activeVouchers) || count($activeVouchers) == 0)
+                                                    <tr>
+                                                        <td colspan="7" class="text-center text-muted">Không có voucher
+                                                            nào trong khoảng này</td>
+                                                    </tr>
+                                                @endif
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="tab-pane fade" id="vouchers" role="tabpanel" aria-labelledby="vouchers-tab">
+
+                        <!-- TITLE -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h3 class="mb-3">Thống kê Vouchers</h3>
+                            </div>
+                        </div>
+
+                        <!-- SUMMARY CARDS -->
+                        <div class="row">
+
+                            <!-- Voucher đang hoạt động -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>{{ $activeVouchersCount ?? 0 }}</h3>
+                                        <p>Voucher đang hoạt động</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-pricetag"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Voucher hết hạn -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-danger">
+                                    <div class="inner">
+                                        <h3>{{ $expiredVouchersCount ?? 0 }}</h3>
+                                        <p>Voucher đã hết hạn</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-close-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tổng lượt dùng -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3>{{ $totalVouchersUsed ?? 0 }}</h3>
+                                        <p>Tổng lượt dùng trong kỳ</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-cash"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Voucher sắp hết hạn -->
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>{{ $soonExpiredCount ?? 0 }}</h3>
+                                        <p>Sắp hết hạn (≤ 7 ngày)</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="ion ion-alert-circled"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- CHART -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Biểu đồ sử dụng voucher theo ngày</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="voucherChart" style="height: 300px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DETAIL TABLE -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Danh sách voucher trong khoảng
+                                            ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})</h3>
+                                    </div>
+                                    <div class="card-body table-responsive p-0">
+
+                                        <table class="table table-striped table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã</th>
+                                                    <th>Giảm (%)</th>
+                                                    <th>Ngày bắt đầu</th>
+                                                    <th>Ngày kết thúc</th>
+                                                    <th>Đã dùng</th>
+                                                    <th>Giới hạn</th>
+                                                    <th>Trạng thái</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                @foreach ($activeVouchers ?? [] as $v)
+                                                    <tr>
+                                                        <td><strong>{{ $v->code }}</strong></td>
+                                                        <td>{{ $v->discount_percent }}%</td>
+                                                        <td>{{ \Carbon\Carbon::parse($v->start_date)->format('d/m/Y') }}
+                                                        </td>
+                                                        <td>{{ \Carbon\Carbon::parse($v->end_date)->format('d/m/Y') }}</td>
+                                                        <td><span class="badge badge-info">{{ $v->used_count }}</span>
+                                                        </td>
+                                                        <td>{{ $v->max_uses }}</td>
+                                                        <td>
+                                                            @if ($v->status == 'active')
+                                                                <span class="badge badge-success">Active</span>
+                                                            @else
+                                                                <span class="badge badge-secondary">Inactive</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+
+                                                @if (empty($activeVouchers) || count($activeVouchers) == 0)
+                                                    <tr>
+                                                        <td colspan="7" class="text-center text-muted">Không có voucher
+                                                            nào trong khoảng này</td>
+                                                    </tr>
+                                                @endif
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {{-- END TAB: THỐNG KÊ VOUCHERS --}}
                 </div>
                 <!-- END TABS CONTENT -->
 
@@ -533,6 +863,86 @@
         </div>
     </div>
 
+
+
+    <div class="tab-pane fade" id="user" role="tabpanel" aria-labelledby="user-tab">
+
+        <div class="container mt-4">
+
+            <h2 class="mb-4">📊 Thống kê người dùng</h2>
+
+            <div class="row">
+
+                <div class="col-md-3">
+                    <div class="card text-bg-primary mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Tổng User</h5>
+                            <p class="card-text fs-3">{{ $totalUsers }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">User mới tháng này</h5>
+                            <p class="card-text fs-3">{{ $newUsersThisMonth }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-bg-warning mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">User từng đặt bàn</h5>
+                            <p class="card-text fs-3">{{ $usersWithReservation }}</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <hr>
+
+            <h4 class="mt-4">🏆 Top khách đặt bàn nhiều nhất</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Số lần đặt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($topBookingUsers as $u)
+                        <tr>
+                            <td>{{ $u->name }}</td>
+                            <td>{{ $u->reservations_count }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <h4 class="mt-4">💰 Top khách tiêu tiền nhiều nhất</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Tổng tiền đã tiêu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($topSpendingUsers as $u)
+                        <tr>
+                            <td>{{ $u->name }}</td>
+                            <td>{{ number_format($u->total_spent) }} đ</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
     <!-- ============================== -->
     <!--  MODAL: DOANH THU              -->
     <!-- ============================== -->
@@ -576,74 +986,140 @@
         </div>
     </div>
 
+    {{-- VOUCHER --}}
+    <div class="modal fade" id="voucherModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5>Chi tiết vouhers</h5>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (isset($activeVouchers) && $activeVouchers->count())
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Mã voucher</th>
+                                    <th>Loại giảm</th>
+                                    <th>Giá trị giảm</th>
+                                    <th>Giá trị đơn tối thiểu</th>
+                                    <th>Số lượt tối đa</th>
+                                    <th>Đã dùng</th>
+                                    <th>Ngày bắt đầu</th>
+                                    <th>Ngày kết thúc</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($activeVouchers as $vc)
+                                    <tr>
+                                        <td>{{ $vc->code }}</td>
+                                        @php
+                                            $statusColors = [
+                                                'percent' => 'badge badge-danger',
+                                            ];
+
+                                            $statusLabels = [
+                                                'percent' => 'Giảm phần theo %',
+                                            ];
+                                        @endphp
+
+                                        <td>
+                                            <span class="{{ $statusColors[$vc->status] ?? 'badge badge-light' }}">
+                                                {{ $statusLabels[$vc->discount_type] ?? $vc->discount_type }}
+                                            </span>
+                                        </td>
+                                        <td>{{ number_format($vc->discount_value) }}</td>
+                                        <td>{{ number_format($vc->min_order_value) }}</td>
+                                        <td>{{ $vc->max_uses }}</td>
+                                        <td>{{ $vc->used_count }}</td>
+                                        <td>{{ $vc->start_date }}</td>
+                                        <td>{{ $vc->end_date }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @else
+                        <p>Không có dữ liệu voucher.</p>
+                    @endif
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Biểu đồ thống kê đơn đặt bàn theo ngày
-        @if(isset($reservationChartLabels) && isset($reservationChartData) && isset($reservationChartCompleted) && isset($reservationChartCancelled) && isset($reservationChartPending))
-        const ctx = document.getElementById('reservationChart');
-        if (ctx) {
-            const reservationChart = new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: @json($reservationChartLabels),
-                    datasets: [
-                        {
-                            label: 'Tổng đơn',
-                            data: @json($reservationChartData),
-                            borderColor: 'rgb(54, 162, 235)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                            tension: 0.1
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            // Biểu đồ thống kê đơn đặt bàn theo ngày
+            @if (isset($reservationChartLabels) &&
+                    isset($reservationChartData) &&
+                    isset($reservationChartCompleted) &&
+                    isset($reservationChartCancelled) &&
+                    isset($reservationChartPending))
+                const ctx = document.getElementById('reservationChart');
+                if (ctx) {
+                    const reservationChart = new Chart(ctx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: @json($reservationChartLabels),
+                            datasets: [{
+                                    label: 'Tổng đơn',
+                                    data: @json($reservationChartData),
+                                    borderColor: 'rgb(54, 162, 235)',
+                                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                    tension: 0.1
+                                },
+                                {
+                                    label: 'Hoàn thành',
+                                    data: @json($reservationChartCompleted),
+                                    borderColor: 'rgb(75, 192, 192)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                                    tension: 0.1
+                                },
+                                {
+                                    label: 'Đã hủy',
+                                    data: @json($reservationChartCancelled),
+                                    borderColor: 'rgb(255, 99, 132)',
+                                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                    tension: 0.1
+                                },
+                                {
+                                    label: 'Chờ xác nhận',
+                                    data: @json($reservationChartPending),
+                                    borderColor: 'rgb(255, 206, 86)',
+                                    backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                                    tension: 0.1
+                                }
+                            ]
                         },
-                        {
-                            label: 'Hoàn thành',
-                            data: @json($reservationChartCompleted),
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Đã hủy',
-                            data: @json($reservationChartCancelled),
-                            borderColor: 'rgb(255, 99, 132)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Chờ xác nhận',
-                            data: @json($reservationChartPending),
-                            borderColor: 'rgb(255, 206, 86)',
-                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
-                            tension: 0.1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Thống kê đơn đặt bàn theo ngày'
+                                }
                             }
                         }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        title: {
-                            display: true,
-                            text: 'Thống kê đơn đặt bàn theo ngày'
-                        }
-                    }
+                    });
                 }
-            });
-        }
-        @endif
-    </script>
+            @endif
+        </script>
     @endpush
 
 @endsection

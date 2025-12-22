@@ -30,8 +30,7 @@
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
-                data-accordion="false">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
                 <li class="nav-item">
@@ -42,10 +41,10 @@
                     </a>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ route('admin.dashboard') }}" class="nav-link">
+                            {{-- <a href="{{ route('admin.dashboard') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Tổng quan</p>
-                            </a>
+                            </a> --}}
                         </li>
                     </ul>
                     <ul class="nav nav-treeview">
@@ -58,10 +57,25 @@
                     </ul>
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ route('admin.menuStatistics') }}" class="nav-link">
+                            <a href="{{ route('admin.voucherStatistics') }}" class="nav-link">
                                 <i class="far fa-circle nav-icon"></i>
-                                <p>Thống kê Menu</p>
-                            </a>
+                                <p>Thống kê vouchers</p>
+                                <a href="{{ route('admin.menuStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê Menu</p>
+                                </a>
+                                <a href="{{ route('admin.thongkeStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê doanh thu</p>
+                                </a>
+                                <a href="{{ route('admin.binhluanStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê bình luận</p>
+                                </a>
+                                <a href="{{ route('admin.userStatistics') }}" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Thống kê người dùng</p>
+                                </a>
                         </li>
                     </ul>
                 </li>
@@ -124,6 +138,13 @@
                             Quản lý vouchers
                         </p>
                     </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('admin.comments.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-comment-dots"></i>
+                        <p>Quản lý bình luận</p>
+                    </a>
+                </li>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link">

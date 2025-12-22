@@ -7,27 +7,70 @@ use App\Models\PointVoucherTier;
 use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class VoucherController extends Controller
 {
+
     public function index(Request $request)
     {
         $title = "Trang voucher";
 
-        $vouchers = Voucher::with(['tier', 'users'])
-            ->orderBy('id', 'desc')
-            ->paginate(10);
+        Voucher::where('status', 'active')
+            ->whereDate('end_date', '<', Carbon::today())
+            ->update(['status' => 'inactive']);
 
+        $query = Voucher::with(['tier', 'users']);
+
+        if ($request->filled('code')) {
+            $query->where('code', 'like', '%' . trim($request->code) . '%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('discount_type')) {
+            $query->where('discount_type', $request->discount_type);
+        }
+
+        if ($request->filled('user_id')) {
+            $query->whereHas('users', function ($q) use ($request) {
+                $q->where('users.id', $request->user_id);
+            });
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('start_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('end_date', '<=', $request->end_date);
+        }
+
+        $vouchers = $query
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->appends($request->query());
+
+        $users = User::orderBy('name')->get();
         $totalUsers = User::count();
 
-        return view('admin.vouchers.voucher.index', compact('title', 'vouchers', 'totalUsers'));
+        return view('admin.vouchers.voucher.index', compact(
+            'title',
+            'vouchers',
+            'users',
+            'totalUsers'
+        ));
     }
+
+
 
     public function show(Voucher $voucher)
     {
         $voucher->load(['tier', 'users']);
         $title = "Chi tiết voucher";
-        
+
         $totalUsers = User::count();
 
         return view('admin.vouchers.voucher.show', compact('title', 'voucher', 'totalUsers'));
@@ -38,8 +81,8 @@ class VoucherController extends Controller
         $title = "Thêm voucher mới";
         $tiers = PointVoucherTier::where('is_active', true)->get();
         $users = User::orderByRaw('CASE WHEN phone IS NULL OR phone = "" THEN 1 ELSE 0 END')
-                     ->orderBy('name', 'asc')
-                     ->get();
+            ->orderBy('name', 'asc')
+            ->get();
 
         return view('admin.vouchers.voucher.create', compact('title', 'tiers', 'users'));
     }
@@ -100,7 +143,7 @@ class VoucherController extends Controller
             $allUserIds = User::pluck('id')->toArray();
             $voucher->users()->sync($allUserIds);
         } else {
-            $userIds = array_filter($userIds, function($id) {
+            $userIds = array_filter($userIds, function ($id) {
                 return is_numeric($id);
             });
             $voucher->users()->sync($userIds);
@@ -114,14 +157,14 @@ class VoucherController extends Controller
         $voucher->load(['tier', 'users']);
         $tiers = PointVoucherTier::where('is_active', true)->get();
         $users = User::orderByRaw('CASE WHEN phone IS NULL OR phone = "" THEN 1 ELSE 0 END')
-                     ->orderBy('name', 'asc')
-                     ->get();
+            ->orderBy('name', 'asc')
+            ->get();
         $title = 'Chỉnh sửa Voucher';
-        
+
         $totalUsers = User::count();
         $assignedUsersCount = $voucher->users ? $voucher->users->count() : 0;
         $isForAllUsers = $assignedUsersCount > 0 && $assignedUsersCount == $totalUsers;
-        
+
         $selectedUserIds = old('user_ids', $voucher->users->pluck('id')->toArray());
 
         return view('admin.vouchers.voucher.edit', compact('voucher', 'title', 'tiers', 'users', 'totalUsers', 'isForAllUsers', 'selectedUserIds'));
@@ -175,7 +218,7 @@ class VoucherController extends Controller
             $allUserIds = User::pluck('id')->toArray();
             $voucher->users()->sync($allUserIds);
         } else {
-            $userIds = array_filter($userIds, function($id) {
+            $userIds = array_filter($userIds, function ($id) {
                 return is_numeric($id);
             });
             $voucher->users()->sync($userIds);
@@ -193,12 +236,12 @@ class VoucherController extends Controller
             // Toggle: nếu đang active thì inactive, ngược lại thì active
             $status = $voucher->status === 'active' ? 'inactive' : 'active';
         }
-        
+
         $voucher->status = $status;
         $voucher->save();
 
-        $message = $status === 'active' 
-            ? 'Đã kích hoạt voucher ' . $voucher->code 
+        $message = $status === 'active'
+            ? 'Đã kích hoạt voucher ' . $voucher->code
             : 'Đã tạm dừng voucher ' . $voucher->code;
 
         return redirect()->route('admin.vouchers.voucher.index')

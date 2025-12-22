@@ -12,30 +12,25 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Class ReviewApiController
- *
- * Xử lý API đánh giá đặt bàn
- * - Dễ test: có API liệt kê reservation có thể đánh giá
- * - Cho phép gửi/cập nhật đánh giá
- * - Trả về lỗi rõ ràng
+ * API xử lý đánh giá
  */
 class ReviewApiController extends Controller
 {
     use AuthorizesRequests;
 
     /**
-     * Danh sách đặt bàn hoàn tất + trạng thái đánh giá
-     * GET /api/reviewable
+     * Danh sách reservation có thể đánh giá
      */
     public function index(): JsonResponse
     {
         $reservations = Reservation::where('user_id', auth()->id())
             ->where('status', 'completed')
-            ->with('review')
+            ->with(['review'])
             ->latest('reservation_date')
             ->get()
             ->map(function ($reservation) {
-                $hasReview = $reservation->review()->exists();
+                $hasReview = $reservation->review !== null;
+
                 return [
                     'reservation_id'     => $reservation->id,
                     'reservation_code'   => $reservation->reservation_code,
@@ -86,13 +81,12 @@ class ReviewApiController extends Controller
 
     /**
      * Xem đánh giá của một reservation
-     * GET /api/reservations/{id}/review
      */
     public function show(Reservation $reservation): JsonResponse
     {
         $this->authorize('view', $reservation);
 
-        $review = $reservation->review;
+        $review = $reservation->review()->first();
 
         return response()->json([
             'data' => $review ? new ReviewResource($review) : null,
@@ -100,37 +94,22 @@ class ReviewApiController extends Controller
     }
 
     /**
-     * Cập nhật đánh giá (dành cho chỉnh sửa)
-     * PUT /api/reviews/{id}
+     * Cập nhật đánh giá
      */
-    public function update(Review $review, Request $request): JsonResponse
+    public function update(StoreReviewRequest $request, Review $review)
     {
         $this->authorize('update', $review);
 
-        $request->validate([
-            'rating'  => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|max:1000',
+        $data = $request->validated();
+
+        // 3. Cập nhật đánh giá
+        $review->update([
+            'rating'   => $data['rating'],
+            'comment'  => $data['comment'],
         ]);
 
-        $review->update($request->only('rating', 'comment'));
-
-        return response()->json([
-            'message' => 'Cập nhật đánh giá thành công!',
-            'data'    => new ReviewResource($review),
-        ]);
+        return new ReviewResource($review);
     }
 
-    /**
-     * Xóa đánh giá
-     * DELETE /api/reviews/{id}
-     */
-    public function destroy(Review $review): JsonResponse
-    {
-        $this->authorize('delete', $review);
-        $review->delete();
 
-        return response()->json([
-            'message' => 'Xóa đánh giá thành công!',
-        ]);
-    }
 }

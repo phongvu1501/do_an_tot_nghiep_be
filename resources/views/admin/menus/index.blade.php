@@ -17,28 +17,55 @@
             </div>
 
             @if (session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
-            @endif
-
-            {{-- Thông báo khi đang lọc theo danh mục --}}
-            @if($selectedCategoryId)
-                @php
-                    $selectedCategory = $categories->firstWhere('id', $selectedCategoryId);
-                @endphp
-                @if($selectedCategory)
-                    <div class="alert alert-info d-flex justify-content-between align-items-center">
-                        <span>
-                            <i class="fas fa-filter"></i> Đang hiển thị món ăn của danh mục: <strong>{{ $selectedCategory->name }}</strong>
-                            <span class="badge bg-primary ms-2">{{ $menus->count() }} món</span>
-                        </span>
-                        <a href="{{ route('admin.menus.index') }}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-times"></i> Xóa lọc
-                        </a>
+                <div id="notify-alert" class="alert alert-dismissible fade show shadow-sm position-fixed" role="alert"
+                    style="
+                                            top: 20px;
+                                            right: 20px;
+                                            z-index: 1050;
+                                            min-width: 320px;
+                                            max-width: 420px;
+                                            border-radius: 10px;
+                                            font-size: 14px;
+                                            background-color: #e9f7ef;
+                                            border: 1px solid #b7e4c7;
+                                            color: #2d6a4f;
+                                        ">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle mr-2" style="color:#40916c;font-size:18px;"></i>
+                        <div class="flex-grow-1">
+                            {{ session('success') }}
+                        </div>
+                        <button type="button" class="close ml-2" data-dismiss="alert" style="color:#2d6a4f">
+                            <span>&times;</span>
+                        </button>
                     </div>
-                @endif
+                </div>
             @endif
 
-            {{-- Bộ lọc theo danh mục --}}
+            {{-- Thông báo khi đang lọc theo danh mục hoặc tìm kiếm --}}
+            @if ($selectedCategoryId || $searchKeyword)
+                @php
+                    $selectedCategory = $selectedCategoryId ? $categories->firstWhere('id', $selectedCategoryId) : null;
+                @endphp
+                <div class="alert alert-info d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="fas fa-filter"></i> 
+                        @if ($selectedCategory)
+                            Đang hiển thị món ăn của danh mục: <strong>{{ $selectedCategory->name }}</strong>
+                        @endif
+                        @if ($searchKeyword)
+                            @if ($selectedCategory) | @endif
+                            Tìm kiếm: <strong>"{{ $searchKeyword }}"</strong>
+                        @endif
+                        <span class="badge bg-primary ms-2">{{ $menus->count() }} món</span>
+                    </span>
+                    <a href="{{ route('admin.menus.index') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-times"></i> Xóa lọc
+                    </a>
+                </div>
+            @endif
+
+            {{-- Bộ lọc theo danh mục và tìm kiếm --}}
             <div class="card mb-3">
                 <div class="card-body">
                     <form method="GET" action="{{ route('admin.menus.index') }}" id="filterForm">
@@ -47,12 +74,31 @@
                                 <label for="category_id" class="form-label"><strong>Lọc theo danh mục:</strong></label>
                                 <select name="category_id" id="category_id" class="form-control">
                                     <option value="">Tất cả</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}" {{ $selectedCategoryId == $category->id ? 'selected' : '' }}>
+                                    @foreach ($categories as $category)
+                                        <option value="{{ $category->id }}"
+                                            {{ (string) $selectedCategoryId == (string) $category->id ? 'selected' : '' }}>
                                             {{ $category->name }}
                                         </option>
                                     @endforeach
                                 </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="search" class="form-label"><strong>Tìm kiếm theo tên:</strong></label>
+                                <div class="input-group">
+                                    <input type="text" name="search" id="search" class="form-control"
+                                        placeholder="Nhập tên món ăn..." value="{{ $searchKeyword }}">
+                                    <div class="input-group-append">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search"></i> Tìm kiếm
+                                        </button>
+                                        @if ($searchKeyword)
+                                            <a href="{{ route('admin.menus.index', ['category_id' => $selectedCategoryId]) }}"
+                                                class="btn btn-secondary">
+                                                <i class="fas fa-times"></i> Xóa
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -62,6 +108,14 @@
             <script>
                 document.getElementById('category_id').addEventListener('change', function() {
                     document.getElementById('filterForm').submit();
+                });
+
+                // Tìm kiếm khi nhấn Enter
+                document.getElementById('search').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        document.getElementById('filterForm').submit();
+                    }
                 });
             </script>
 
@@ -192,4 +246,14 @@
             </div>
         </div>
     </div>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById('notify-alert');
+            if (alert) {
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, 3000);
+    </script>
 @endsection

@@ -10,10 +10,12 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <h3 class="mb-0">Quản lý cọc</h3>
                                 <div>
-                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addDepositDateModal">
+                                    <button type="button" class="btn btn-primary" data-toggle="modal"
+                                        data-target="#addDepositDateModal">
                                         <i class="fas fa-plus"></i> Thêm ngày
                                     </button>
-                                    <button type="button" class="btn btn-info" data-toggle="modal" data-target="#addRangeDepositDateModal">
+                                    <button type="button" class="btn btn-info" data-toggle="modal"
+                                        data-target="#addRangeDepositDateModal">
                                         <i class="fas fa-calendar-alt"></i> Thêm khoảng ngày
                                     </button>
                                 </div>
@@ -21,11 +23,30 @@
                         </div>
                         <div class="card-body">
                             @if (session('success'))
-                                <div class="alert alert-success alert-dismissible fade show">
-                                    {{ session('success') }}
-                                    <button type="button" class="close" data-dismiss="alert">
-                                        <span>&times;</span>
-                                    </button>
+                                <div id="notify-alert" class="alert alert-dismissible fade show shadow-sm position-fixed"
+                                    role="alert"
+                                    style="
+                                            top: 20px;
+                                            right: 20px;
+                                            z-index: 1050;
+                                            min-width: 320px;
+                                            max-width: 420px;
+                                            border-radius: 10px;
+                                            font-size: 14px;
+                                            background-color: #e9f7ef;
+                                            border: 1px solid #b7e4c7;
+                                            color: #2d6a4f;
+                                        ">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-check-circle mr-2" style="color:#40916c;font-size:18px;"></i>
+                                        <div class="flex-grow-1">
+                                            {{ session('success') }}
+                                        </div>
+                                        <button type="button" class="close ml-2" data-dismiss="alert"
+                                            style="color:#2d6a4f">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
                                 </div>
                             @endif
 
@@ -41,22 +62,39 @@
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
                                     <h6 class="font-weight-bold mb-3">Cấu hình tiền cọc</h6>
-                                    <form action="{{ route('admin.depositRequiredDate.updateDepositSettings') }}" method="POST" class="row align-items-end">
+                                    <form action="{{ route('admin.depositRequiredDate.updateDepositSettings') }}"
+                                        method="POST" class="row align-items-end">
                                         @csrf
                                         @method('PUT')
-                                        <!-- <div class="col-md-4">
-                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND)</label>
-                                            <input type="number" name="deposit_normal_tables" class="form-control" 
-                                                   value="{{ old('deposit_normal_tables', $deposit_normal_tables ?? 500000) }}" 
-                                                   min="1" step="1" placeholder="Nhập số tiền cọc" required>
-                                        </div> -->
-                                        <div class="col-md-4">
-                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) </label>
-                                            <input type="number" name="deposit_vip_rooms" class="form-control" 
-                                                   value="{{ old('deposit_vip_rooms', $deposit_vip_rooms ?? 1000000) }}" 
-                                                   min="1" step="1" placeholder="Nhập số tiền cọc" required>
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Tiền cọc bàn thường (VND) <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="number" name="deposit_normal_tables" class="form-control"
+                                                value="{{ old('deposit_normal_tables', $deposit_normal_tables ?? 500000) }}"
+                                                min="1" step="1" placeholder="Nhập số tiền cọc" required>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3">
+                                            <label class="font-weight-bold">Tiền cọc phòng VIP (VND) <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="number" name="deposit_vip_rooms" class="form-control"
+                                                value="{{ old('deposit_vip_rooms', $deposit_vip_rooms ?? 1000000) }}"
+                                                min="1" step="1" placeholder="Nhập số tiền cọc" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">Số bàn tối thiểu cần cọc (ngày thường) <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="number" name="min_tables_for_deposit" class="form-control"
+                                                value="{{ old('min_tables_for_deposit', $min_tables_for_deposit ?? 2) }}"
+                                                min="1" step="1" placeholder="Ví dụ: 2" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="font-weight-bold">Số ngày hoàn tiền <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="number" name="refund_days" class="form-control"
+                                                value="{{ old('refund_days', $refund_days ?? 1) }}" min="1"
+                                                step="1" placeholder="Ví dụ: 1" required>
+                                        </div>
+                                        <div class="col-md-2">
                                             <button type="submit" class="btn btn-success w-100">
                                                 <i class="fas fa-save"></i> Lưu cấu hình
                                             </button>
@@ -67,21 +105,29 @@
 
                             <div class="card mb-3 bg-light">
                                 <div class="card-body">
-                                    <form action="{{ route('admin.depositRequiredDate.index') }}" method="GET" class="row" id="filterForm">
+                                    <form action="{{ route('admin.depositRequiredDate.index') }}" method="GET"
+                                        class="row" id="filterForm">
                                         <div class="col-md-4">
                                             <label class="font-weight-bold">Ngày</label>
-                                            <input type="date" name="date" class="form-control" value="{{ request('date') }}" onchange="document.getElementById('filterForm').submit()">
+                                            <input type="date" name="date" class="form-control"
+                                                value="{{ request('date') }}"
+                                                onchange="document.getElementById('filterForm').submit()">
                                         </div>
                                         <div class="col-md-3">
                                             <label class="font-weight-bold">Trạng thái</label>
-                                            <select name="status" class="form-control" onchange="document.getElementById('filterForm').submit()">
+                                            <select name="status" class="form-control"
+                                                onchange="document.getElementById('filterForm').submit()">
                                                 <option value="">Tất cả</option>
-                                                <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Kích hoạt</option>
-                                                <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Vô hiệu</option>
+                                                <option value="active"
+                                                    {{ request('status') == 'active' ? 'selected' : '' }}>Kích hoạt</option>
+                                                <option value="inactive"
+                                                    {{ request('status') == 'inactive' ? 'selected' : '' }}>Vô hiệu
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-3 d-flex align-items-end">
-                                            <a href="{{ route('admin.depositRequiredDate.index') }}" class="btn btn-secondary">
+                                            <a href="{{ route('admin.depositRequiredDate.index') }}"
+                                                class="btn btn-secondary">
                                                 <i class="fas fa-redo"></i> Reset
                                             </a>
                                         </div>
@@ -89,7 +135,7 @@
                                 </div>
                             </div>
 
-                            @if($dates->count() > 0)
+                            @if ($dates->count() > 0)
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-hover">
                                         <thead class="bg-light">
@@ -97,33 +143,41 @@
                                                 <th width="150">Ngày</th>
                                                 <th>Mô tả</th>
                                                 <th width="150" class="text-center">Số tiền cọc/bàn</th>
+                                                <th width="120" class="text-center">Số ngày hoàn</th>
                                                 <th width="120" class="text-center">Trạng thái</th>
                                                 <th width="180" class="text-center">Thao tác</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($dates as $group)
+                                            @foreach ($dates as $group)
                                                 <tr>
                                                     <td>
-                                                        @if($group['is_range'])
-                                                            <strong>Từ {{ $group['start_date']->format('d/m/Y') }} đến {{ $group['end_date']->format('d/m/Y') }}</strong>
-                                                            <br><small class="text-muted">({{ $group['dates']->count() }} ngày)</small>
+                                                        @if ($group['is_range'])
+                                                            <strong>Từ {{ $group['start_date']->format('d/m/Y') }} đến
+                                                                {{ $group['end_date']->format('d/m/Y') }}</strong>
+                                                            <br><small class="text-muted">({{ $group['dates']->count() }}
+                                                                ngày)</small>
                                                         @else
                                                             <strong>{{ $group['start_date']->format('d/m/Y') }}</strong>
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        @if($group['description'])
+                                                        @if ($group['description'])
                                                             {{ $group['description'] }}
                                                         @else
                                                             <span class="text-muted">Không có mô tả</span>
                                                         @endif
                                                     </td>
                                                     <td class="text-center">
-                                                        <strong class="text-primary">{{ number_format($group['deposit_per_table'] ?? 300000, 0, ',', '.') }} VND</strong>
+                                                        <strong
+                                                            class="text-primary">{{ number_format($deposit_normal_tables ?? 500000, 0, ',', '.') }}
+                                                            VND</strong>
                                                     </td>
                                                     <td class="text-center">
-                                                        @if($group['is_active'])
+                                                        <strong class="text-info">{{ $refund_days ?? 1 }} ngày</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if ($group['is_active'])
                                                             <span class="badge badge-success">
                                                                 <i class="fas fa-check-circle"></i> Kích hoạt
                                                             </span>
@@ -137,45 +191,72 @@
                                                         @php
                                                             $date = $group['dates']->first();
                                                         @endphp
-                                                        @if($group['is_range'])
-                                                            <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#editRangeModal{{ $loop->index }}" title="Chỉnh sửa">
+                                                        @if ($group['is_range'])
+                                                            <button type="button" class="btn btn-sm btn-warning"
+                                                                data-toggle="modal"
+                                                                data-target="#editRangeModal{{ $loop->index }}"
+                                                                title="Chỉnh sửa">
                                                                 <i class="fas fa-edit"></i>
                                                             </button>
-                                                            <form action="{{ route('admin.depositRequiredDate.toggleStatus', $date->id) }}" method="POST" style="display:inline;">
+                                                            <form
+                                                                action="{{ route('admin.depositRequiredDate.toggleStatus', $date->id) }}"
+                                                                method="POST" style="display:inline;">
                                                                 @csrf
                                                                 @method('PUT')
-                                                                @foreach($group['dates'] as $d)
-                                                                    <input type="hidden" name="date_ids[]" value="{{ $d->id }}">
+                                                                @foreach ($group['dates'] as $d)
+                                                                    <input type="hidden" name="date_ids[]"
+                                                                        value="{{ $d->id }}">
                                                                 @endforeach
-                                                                <button type="submit" class="btn btn-sm btn-{{ $date->is_active ? 'secondary' : 'success' }}" title="{{ $date->is_active ? 'Vô hiệu hóa tất cả' : 'Kích hoạt tất cả' }}" onclick="return confirm('Bạn có chắc muốn {{ $date->is_active ? 'vô hiệu hóa' : 'kích hoạt' }} {{ $group['dates']->count() }} ngày?')">
-                                                                    <i class="fas fa-{{ $date->is_active ? 'toggle-on' : 'toggle-off' }}"></i>
+                                                                <button type="submit"
+                                                                    class="btn btn-sm btn-{{ $date->is_active ? 'secondary' : 'success' }}"
+                                                                    title="{{ $date->is_active ? 'Vô hiệu hóa tất cả' : 'Kích hoạt tất cả' }}"
+                                                                    onclick="return confirm('Bạn có chắc muốn {{ $date->is_active ? 'vô hiệu hóa' : 'kích hoạt' }} {{ $group['dates']->count() }} ngày?')">
+                                                                    <i
+                                                                        class="fas fa-{{ $date->is_active ? 'toggle-on' : 'toggle-off' }}"></i>
                                                                 </button>
                                                             </form>
-                                                            <form action="{{ route('admin.depositRequiredDate.destroyRange') }}" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa {{ $group['dates']->count() }} ngày này?')">
+                                                            <form
+                                                                action="{{ route('admin.depositRequiredDate.destroyRange') }}"
+                                                                method="POST" style="display:inline;"
+                                                                onsubmit="return confirm('Bạn có chắc muốn xóa {{ $group['dates']->count() }} ngày này?')">
                                                                 @csrf
                                                                 @method('DELETE')
-                                                                @foreach($group['dates'] as $d)
-                                                                    <input type="hidden" name="date_ids[]" value="{{ $d->id }}">
+                                                                @foreach ($group['dates'] as $d)
+                                                                    <input type="hidden" name="date_ids[]"
+                                                                        value="{{ $d->id }}">
                                                                 @endforeach
-                                                                <button type="submit" class="btn btn-sm btn-danger" title="Xóa tất cả">
+                                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                                    title="Xóa tất cả">
                                                                     <i class="fas fa-trash"></i>
                                                                 </button>
                                                             </form>
                                                         @else
-                                                            <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#editDateModal{{ $date->id }}" title="Chỉnh sửa">
+                                                            <button type="button" class="btn btn-sm btn-warning"
+                                                                data-toggle="modal"
+                                                                data-target="#editDateModal{{ $date->id }}"
+                                                                title="Chỉnh sửa">
                                                                 <i class="fas fa-edit"></i>
                                                             </button>
-                                                            <form action="{{ route('admin.depositRequiredDate.toggleStatus', $date->id) }}" method="POST" style="display:inline;">
+                                                            <form
+                                                                action="{{ route('admin.depositRequiredDate.toggleStatus', $date->id) }}"
+                                                                method="POST" style="display:inline;">
                                                                 @csrf
                                                                 @method('PUT')
-                                                                <button type="submit" class="btn btn-sm btn-{{ $date->is_active ? 'secondary' : 'success' }}" title="{{ $date->is_active ? 'Vô hiệu hóa' : 'Kích hoạt' }}">
-                                                                    <i class="fas fa-{{ $date->is_active ? 'toggle-on' : 'toggle-off' }}"></i>
+                                                                <button type="submit"
+                                                                    class="btn btn-sm btn-{{ $date->is_active ? 'secondary' : 'success' }}"
+                                                                    title="{{ $date->is_active ? 'Vô hiệu hóa' : 'Kích hoạt' }}">
+                                                                    <i
+                                                                        class="fas fa-{{ $date->is_active ? 'toggle-on' : 'toggle-off' }}"></i>
                                                                 </button>
                                                             </form>
-                                                            <form action="{{ route('admin.depositRequiredDate.destroy', $date->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa ngày này?')">
+                                                            <form
+                                                                action="{{ route('admin.depositRequiredDate.destroy', $date->id) }}"
+                                                                method="POST" style="display:inline;"
+                                                                onsubmit="return confirm('Bạn có chắc muốn xóa ngày này?')">
                                                                 @csrf
                                                                 @method('DELETE')
-                                                                <button type="submit" class="btn btn-sm btn-danger" title="Xóa">
+                                                                <button type="submit" class="btn btn-sm btn-danger"
+                                                                    title="Xóa">
                                                                     <i class="fas fa-trash"></i>
                                                                 </button>
                                                             </form>
@@ -189,7 +270,7 @@
 
                                 <div class="d-flex justify-content-between align-items-center mt-3">
                                     <div>
-                                        Hiển thị {{ $dates->firstItem() ?? 0 }} đến {{ $dates->lastItem() ?? 0 }} 
+                                        Hiển thị {{ $dates->firstItem() ?? 0 }} đến {{ $dates->lastItem() ?? 0 }}
                                         trong tổng số {{ $dates->total() }} kết quả
                                     </div>
                                     <div>
@@ -203,6 +284,140 @@
                             @endif
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Card Lịch sử hoàn tiền -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="mb-0">
+                                <i class="fas fa-history"></i> Lịch sử hoàn tiền
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            @if ($refundHistory->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th width="150">Mã đơn</th>
+                                                <th width="200">Khách hàng</th>
+                                                <th width="150" class="text-right">Số tiền hoàn (VND)</th>
+                                                <th width="150" class="text-center">Ngày đặt</th>
+                                                <th width="150" class="text-center">Ngày hoàn</th>
+                                                <th width="120" class="text-center">Ảnh hoàn tiền</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($refundHistory as $reservation)
+                                                <tr>
+                                                    <td>
+                                                        <strong
+                                                            class="text-primary">{{ $reservation->reservation_code ?? '#' . $reservation->id }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        {{ $reservation->user->name ?? 'N/A' }}
+                                                        <br><small
+                                                            class="text-muted">{{ $reservation->user->phone ?? '' }}</small>
+                                                    </td>
+                                                    <td class="text-right">
+                                                        <strong
+                                                            class="text-success">{{ number_format($reservation->deposit ?? 0, 0, ',', '.') }}</strong>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        {{ $reservation->reservation_date ? $reservation->reservation_date->format('d/m/Y') : 'N/A' }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge badge-info">
+                                                            {{ $reservation->refunded_at ? $reservation->refunded_at->format('d/m/Y H:i') : 'N/A' }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if ($reservation->refund_bill_image)
+                                                            @php
+                                                                $imagePath = \Illuminate\Support\Facades\Storage::url(
+                                                                    $reservation->refund_bill_image,
+                                                                );
+                                                                $fileExtension = strtolower(
+                                                                    pathinfo(
+                                                                        $reservation->refund_bill_image,
+                                                                        PATHINFO_EXTENSION,
+                                                                    ),
+                                                                );
+                                                                $isPdf = $fileExtension === 'pdf';
+                                                            @endphp
+                                                            @if ($isPdf)
+                                                                <a href="{{ $imagePath }}" target="_blank"
+                                                                    class="btn btn-sm btn-danger" title="Xem PDF">
+                                                                    <i class="fas fa-file-pdf"></i> PDF
+                                                                </a>
+                                                            @else
+                                                                <img src="{{ $imagePath }}" alt="Ảnh bill hoàn tiền"
+                                                                    class="img-thumbnail"
+                                                                    style="max-width: 80px; max-height: 80px; cursor: pointer; object-fit: cover;"
+                                                                    onclick="showRefundBillImage('{{ $imagePath }}')"
+                                                                    title="Click để xem ảnh lớn"
+                                                                    onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                                                <span style="display: none; color: red;"
+                                                                    title="Không thể tải ảnh">
+                                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                                </span>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div>
+                                        Hiển thị {{ $refundHistory->firstItem() ?? 0 }} đến
+                                        {{ $refundHistory->lastItem() ?? 0 }}
+                                        trong tổng số {{ $refundHistory->total() }} kết quả
+                                    </div>
+                                    <div>
+                                        {{ $refundHistory->links('pagination::bootstrap-4') }}
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle"></i> Chưa có lịch sử hoàn tiền nào.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal xem ảnh bill hoàn tiền -->
+    <div class="modal fade" id="refundBillImageModal" tabindex="-1" role="dialog"
+        aria-labelledby="refundBillImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refundBillImageModalLabel">
+                        <i class="fas fa-image"></i> Ảnh bill hoàn tiền
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                        onclick="closeRefundBillImageModal()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="refundBillImageDisplay" src="" alt="Ảnh bill hoàn tiền" class="img-fluid"
+                        style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                        onclick="closeRefundBillImageModal()">Đóng</button>
                 </div>
             </div>
         </div>
@@ -225,7 +440,9 @@
                     <div class="modal-body">
                         <div class="form-group">
                             <label class="font-weight-bold">Ngày <span class="text-danger">*</span></label>
-                            <input type="date" name="date" class="form-control" value="{{ old('date', \Carbon\Carbon::tomorrow()->format('Y-m-d')) }}" min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
+                            <input type="date" name="date" class="form-control"
+                                value="{{ old('date', \Carbon\Carbon::tomorrow()->format('Y-m-d')) }}"
+                                min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
                             @error('date')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -233,18 +450,17 @@
 
                         <div class="form-group">
                             <label class="font-weight-bold">Mô tả (tùy chọn)</label>
-                            <input type="text" name="description" class="form-control" placeholder="Ví dụ: Ngày lễ, Cuối tuần..." value="{{ old('description') }}" maxlength="500">
+                            <input type="text" name="description" class="form-control"
+                                placeholder="Ví dụ: Ngày lễ, Cuối tuần..." value="{{ old('description') }}"
+                                maxlength="500">
                             @error('description')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                            <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table') }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                            @error('deposit_per_table')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1
+                            bàn.
                         </div>
 
                         <input type="hidden" name="is_active" value="1">
@@ -279,7 +495,9 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="font-weight-bold">Từ ngày <span class="text-danger">*</span></label>
-                                    <input type="date" name="start_date" class="form-control" value="{{ old('start_date', \Carbon\Carbon::tomorrow()->format('Y-m-d')) }}" min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
+                                    <input type="date" name="start_date" class="form-control"
+                                        value="{{ old('start_date', \Carbon\Carbon::tomorrow()->format('Y-m-d')) }}"
+                                        min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
                                     @error('start_date')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
@@ -288,7 +506,9 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="font-weight-bold">Đến ngày <span class="text-danger">*</span></label>
-                                    <input type="date" name="end_date" class="form-control" value="{{ old('end_date') }}" min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}" required>
+                                    <input type="date" name="end_date" class="form-control"
+                                        value="{{ old('end_date') }}"
+                                        min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}" required>
                                     @error('end_date')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
@@ -298,27 +518,27 @@
 
                         <div class="form-group">
                             <label class="font-weight-bold">Mô tả (tùy chọn)</label>
-                            <input type="text" name="description" class="form-control" placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description') }}" maxlength="500">
+                            <input type="text" name="description" class="form-control"
+                                placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description') }}"
+                                maxlength="500">
                         </div>
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                            <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table') }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                            @error('deposit_per_table')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù chỉ 1
+                            bàn.
                         </div>
 
                         <div class="form-group">
                             <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="range_is_active" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
+                                <input type="checkbox" class="custom-control-input" id="range_is_active"
+                                    name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
                                 <label class="custom-control-label" for="range_is_active">
                                     Kích hoạt ngay
                                 </label>
                             </div>
                         </div>
 
-                     
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
@@ -332,8 +552,8 @@
     </div>
 
     <!-- Modal Chỉnh sửa ngày đơn lẻ -->
-    @foreach($dates as $group)
-        @if(!$group['is_range'])
+    @foreach ($dates as $group)
+        @if (!$group['is_range'])
             @php
                 $date = $group['dates']->first();
             @endphp
@@ -354,7 +574,9 @@
                             <div class="modal-body">
                                 <div class="form-group">
                                     <label class="font-weight-bold">Ngày <span class="text-danger">*</span></label>
-                                    <input type="date" name="date" class="form-control" value="{{ old('date', $date->date->format('Y-m-d')) }}" min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
+                                    <input type="date" name="date" class="form-control"
+                                        value="{{ old('date', $date->date->format('Y-m-d')) }}"
+                                        min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
                                     @error('date')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
@@ -362,23 +584,24 @@
 
                                 <div class="form-group">
                                     <label class="font-weight-bold">Mô tả (tùy chọn)</label>
-                                    <input type="text" name="description" class="form-control" placeholder="Ví dụ: Ngày lễ, Cuối tuần..." value="{{ old('description', $date->description) }}" maxlength="500">
+                                    <input type="text" name="description" class="form-control"
+                                        placeholder="Ví dụ: Ngày lễ, Cuối tuần..."
+                                        value="{{ old('description', $date->description) }}" maxlength="500">
                                     @error('description')
                                         <small class="text-danger">{{ $message }}</small>
                                     @enderror
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                                    <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table', $date->deposit_per_table) }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
-                                    @error('deposit_per_table')
-                                        <small class="text-danger d-block">{{ $message }}</small>
-                                    @enderror
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù
+                                    chỉ 1 bàn.
                                 </div>
 
                                 <div class="form-group">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="edit_is_active{{ $date->id }}" name="is_active" value="1" {{ old('is_active', $date->is_active) ? 'checked' : '' }}>
+                                        <input type="checkbox" class="custom-control-input"
+                                            id="edit_is_active{{ $date->id }}" name="is_active" value="1"
+                                            {{ old('is_active', $date->is_active) ? 'checked' : '' }}>
                                         <label class="custom-control-label" for="edit_is_active{{ $date->id }}">
                                             Kích hoạt
                                         </label>
@@ -399,15 +622,15 @@
     @endforeach
 
     <!-- Modal Chỉnh sửa range ngày -->
-    @foreach($dates as $index => $group)
-        @if($group['is_range'])
+    @foreach ($dates as $index => $group)
+        @if ($group['is_range'])
             <div class="modal fade" id="editRangeModal{{ $index }}" tabindex="-1" role="dialog">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <form action="{{ route('admin.depositRequiredDate.updateRange') }}" method="POST">
                             @csrf
                             @method('PUT')
-                            @foreach($group['dates'] as $d)
+                            @foreach ($group['dates'] as $d)
                                 <input type="hidden" name="date_ids[]" value="{{ $d->id }}">
                             @endforeach
                             <div class="modal-header bg-warning">
@@ -422,8 +645,11 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="font-weight-bold">Từ ngày <span class="text-danger">*</span></label>
-                                            <input type="date" name="start_date" class="form-control" value="{{ old('start_date', $group['start_date']->format('Y-m-d')) }}" min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
+                                            <label class="font-weight-bold">Từ ngày <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="date" name="start_date" class="form-control"
+                                                value="{{ old('start_date', $group['start_date']->format('Y-m-d')) }}"
+                                                min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
                                             @error('start_date')
                                                 <small class="text-danger">{{ $message }}</small>
                                             @enderror
@@ -431,8 +657,11 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="font-weight-bold">Đến ngày <span class="text-danger">*</span></label>
-                                            <input type="date" name="end_date" class="form-control" value="{{ old('end_date', $group['end_date']->format('Y-m-d')) }}" min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
+                                            <label class="font-weight-bold">Đến ngày <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="date" name="end_date" class="form-control"
+                                                value="{{ old('end_date', $group['end_date']->format('Y-m-d')) }}"
+                                                min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" required>
                                             @error('end_date')
                                                 <small class="text-danger">{{ $message }}</small>
                                             @enderror
@@ -442,24 +671,29 @@
 
                                 <div class="form-group">
                                     <label class="font-weight-bold">Mô tả (tùy chọn)</label>
-                                    <input type="text" name="description" class="form-control" placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..." value="{{ old('description', $group['description']) }}" maxlength="500">
+                                    <input type="text" name="description" class="form-control"
+                                        placeholder="Ví dụ: Tuần lễ vàng, Dịp lễ..."
+                                        value="{{ old('description', $group['description']) }}" maxlength="500">
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="font-weight-bold">Số tiền cọc mỗi bàn (VND) <span class="text-danger">*</span></label>
-                                    <input type="number" name="deposit_per_table" class="form-control" value="{{ old('deposit_per_table', $group['deposit_per_table']) }}" min="0" step="1000" required placeholder="Nhập số tiền cọc">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Lưu ý:</strong> Ngày lễ sẽ bắt buộc cọc dù
+                                    chỉ 1 bàn.
                                 </div>
 
                                 <div class="form-group">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="edit_range_is_active{{ $index }}" name="is_active" value="1" {{ old('is_active', $group['is_active']) ? 'checked' : '' }}>
-                                        <label class="custom-control-label" for="edit_range_is_active{{ $index }}">
+                                        <input type="checkbox" class="custom-control-input"
+                                            id="edit_range_is_active{{ $index }}" name="is_active" value="1"
+                                            {{ old('is_active', $group['is_active']) ? 'checked' : '' }}>
+                                        <label class="custom-control-label"
+                                            for="edit_range_is_active{{ $index }}">
                                             Kích hoạt
                                         </label>
                                     </div>
                                 </div>
 
-                               
+
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
@@ -476,6 +710,96 @@
 @endsection
 
 @push('scripts')
+    <script>
+        function showRefundBillImage(imagePath) {
+            var modal = document.getElementById('refundBillImageModal');
+            var imgDisplay = document.getElementById('refundBillImageDisplay');
+
+            if (modal && imgDisplay) {
+                imgDisplay.src = imagePath;
+
+                if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                    jQuery('#refundBillImageModal').modal('show');
+                } else {
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                    document.body.classList.add('modal-open');
+                    var backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    backdrop.id = 'refundBillImageModalBackdrop';
+                    backdrop.onclick = function() {
+                        closeRefundBillImageModal();
+                    };
+                    document.body.appendChild(backdrop);
+                }
+            }
+        }
+
+        // Hàm đóng modal
+        function closeRefundBillImageModal() {
+            var modal = document.getElementById('refundBillImageModal');
+            if (modal) {
+                if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+                    jQuery('#refundBillImageModal').modal('hide');
+                } else {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                    document.body.classList.remove('modal-open');
+                    var backdrop = document.getElementById('refundBillImageModalBackdrop');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+                    // Xóa tất cả backdrop còn sót lại
+                    var allBackdrops = document.querySelectorAll('.modal-backdrop');
+                    allBackdrops.forEach(function(bd) {
+                        bd.remove();
+                    });
+                }
+            }
+        }
+
+        // Đóng modal khi click vào backdrop hoặc nút X
+        document.addEventListener('DOMContentLoaded', function() {
+            var modal = document.getElementById('refundBillImageModal');
+            if (modal) {
+                // Click vào backdrop để đóng
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeRefundBillImageModal();
+                    }
+                });
+
+                // Đảm bảo các nút đóng hoạt động
+                var closeButtons = modal.querySelectorAll('[data-dismiss="modal"], .close');
+                closeButtons.forEach(function(btn) {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        closeRefundBillImageModal();
+                    });
+                });
+            }
+        });
+
+        // Xử lý sự kiện khi modal được ẩn (Bootstrap event)
+        if (typeof jQuery !== 'undefined' && jQuery.fn.modal) {
+            jQuery(document).ready(function() {
+                jQuery('#refundBillImageModal').on('hidden.bs.modal', function() {
+                    document.body.classList.remove('modal-open');
+                    var backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(function(bd) {
+                        bd.remove();
+                    });
+                });
+            });
+        }
+        setTimeout(() => {
+            const alert = document.getElementById('notify-alert');
+            if (alert) {
+                alert.classList.remove('show');
+                alert.classList.add('fade');
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, 3000);
+    </script>
 @endpush
-
-

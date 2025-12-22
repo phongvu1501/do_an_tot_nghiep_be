@@ -47,7 +47,7 @@ class PointController extends Controller
         }
 
         $subtotal = $reservation->reservationItems->sum(fn($i) => $i->price * $i->quantity);
-        $vat = $subtotal * 0.1;
+        $vat = $subtotal * 0.08;
         $total_price = $subtotal + $vat;
 
         $discount_value = 0;

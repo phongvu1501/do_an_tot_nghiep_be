@@ -5,17 +5,17 @@ use App\Http\Controllers\API\DatBanAnController;
 use App\Http\Controllers\API\OrderController;
 use App\Http\Controllers\API\MenuApiController;
 use App\Http\Controllers\API\MenuCategoryApiController;
-use App\Http\Controllers\Api\PointVoucherController;
-use App\Http\Controllers\Api\RedemptionApiController;
+use App\Http\Controllers\API\PointVoucherController;
+use App\Http\Controllers\API\RedemptionApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\API\VnPayController;
 use App\Http\Controllers\API\ReviewApiController;
-use App\Http\Controllers\Api\VoucherController;
+use App\Http\Controllers\API\VoucherController;
 use App\Http\Controllers\API\DepositRequiredDateController;
-use App\Http\Controllers\api\TierController;
+use App\Http\Controllers\API\TierController;
 
 // ======================================================
 // 🔓 PUBLIC ROUTES (Không cần token)
@@ -105,9 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Xem đánh giá
     Route::get('/reservations/{reservation}/review', [ReviewApiController::class, 'show']);
 
-    // Cập nhật / xóa đánh giá
-    Route::put('/reviews/{review}', [ReviewApiController::class, 'update']);
-    Route::delete('/reviews/{review}', [ReviewApiController::class, 'destroy']);
+    // Cập nhật đánh giá
+    Route::post('/reviews/{review}', [ReviewApiController::class, 'update']);
 
     // // Áp dụng voucher 
     Route::post('/vouchers/apply', [VoucherController::class, 'applyVoucher']);

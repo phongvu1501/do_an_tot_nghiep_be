@@ -5,84 +5,110 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\TierController;
 use App\Http\Controllers\Admin\BanAnController;
+use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\DatBanController;
+use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuCategoryController;
-use App\Http\Controllers\Admin\VoucherController;
-use App\Http\Controllers\Admin\DepositRequiredDateController;
-use App\Http\Controllers\Admin\TierController;
 use App\Http\Controllers\Admin\MenuStatisticsController;
+use App\Http\Controllers\Admin\UserStatisticsController;
+use App\Http\Controllers\Admin\DepositRequiredDateController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\ReviewController;
 
 // --- Trang chính
 Route::get('/', function () {
-    return redirect()->route('login');
+  return redirect()->route('login');
 });
 //
 Route::get('/login', function () {
-    return view('auth.login'); // view login
+  return view('auth.login'); // view login
 })->name('login');
 
 //route tài khoản role admin user
 Route::middleware(['auth'])->group(function () {
-    Route::get('/accounts', [UserController::class, 'showAdmins'])->name('admin.accounts');
-    Route::get('/user/accounts', [UserController::class, 'showUsers'])->name('user.accounts');
-    Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
-    Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
-    Route::put('/admin/profile', [UserController::class, 'updateProfile'])->name('admin.profile.update');
-    Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
-    Route::get('/admin/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
-    Route::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');
+  Route::get('/accounts', [UserController::class, 'showAdmins'])->name('admin.accounts');
+  Route::get('/user/accounts', [UserController::class, 'showUsers'])->name('user.accounts');
+  Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
+  Route::get('/admin/profile', [UserController::class, 'profile'])->name('admin.profile');
+  Route::put('/admin/profile', [UserController::class, 'updateProfile'])->name('admin.profile.update');
+  Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
+  Route::get('/admin/login', [AuthController::class, 'showLoginForm'])->middleware('guest')->name('admin.login');
+  Route::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');
 });
 
 
 // --- Admin routes
-//bọc tất cả router admin lại 
+//bọc tất cả router admin lại
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
-    Route::get('/reservation-statistics', [DashboardController::class, 'reservationStatistics'])->name('admin.reservationStatistics');
-    Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
-    Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
+  Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+  //Thống kê
+  Route::get('/reservation-statistics', [DashboardController::class, 'reservationStatistics'])->name('admin.reservationStatistics');
+  Route::get('/voucher-statistics', [DashboardController::class, 'voucherStatistics'])->name('admin.voucherStatistics');
+  Route::get('/menu-statistics', [MenuStatisticsController::class, 'index'])->name('admin.menuStatistics');
+  Route::get('/thong-ke-statistics', [DashboardController::class, 'revenueStatistics'])->name('admin.thongkeStatistics');
+  Route::get('/binh-luan-statistics', [DashboardController::class, 'commentStatistics'])->name('admin.binhluanStatistics');
+  Route::get('/user-statistics', [UserStatisticsController::class, 'index'])->name('admin.userStatistics');
+  Route::resource('/ban-an', BanAnController::class)->names('admin.banAn');
 
-    Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
-    Route::resource('/menus', MenuController::class)->names('admin.menus');
-    Route::get('/menus-trash', [MenuController::class, 'trash'])->name('admin.menus.trash');
-    Route::post('/menus/{id}/restore', [MenuController::class, 'restore'])->name('admin.menus.restore');
-    Route::delete('/menus/{id}/force-delete', [MenuController::class, 'forceDelete'])->name('admin.menus.forceDelete');
+  Route::resource('/menu-categories', MenuCategoryController::class)->names('admin.menu_categories');
+  Route::resource('/menus', MenuController::class)->names('admin.menus');
+  Route::get('/menus-trash', [MenuController::class, 'trash'])->name('admin.menus.trash');
+  Route::post('/menus/{id}/restore', [MenuController::class, 'restore'])->name('admin.menus.restore');
+  Route::delete('/menus/{id}/force-delete', [MenuController::class, 'forceDelete'])->name('admin.menus.forceDelete');
 
-    Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
+  Route::put('/ban-an/disable/{banAn}', [BanAnController::class, 'disable'])->name('admin.banAn.disable');
 
-    Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
-    Route::get('dat-ban/check-user-by-phone', [DatBanController::class, 'checkUserByPhone'])->name('admin.datBan.checkUserByPhone');
-    Route::get('dat-ban/check-existing-reservation', [DatBanController::class, 'checkExistingReservation'])->name('admin.datBan.checkExistingReservation');
-    Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
-    Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
-    Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
-    Route::post('dat-ban/{id}/confirm-phone', [DatBanController::class, 'confirmPhone'])->name('admin.datBan.confirmPhone');
-    
-    // Voucher routes for admin
-    Route::get('dat-ban/{id}/applicable-vouchers', [DatBanController::class, 'getApplicableVouchers'])->name('admin.datBan.getApplicableVouchers');
-    Route::post('dat-ban/{id}/apply-voucher', [DatBanController::class, 'applyVoucher'])->name('admin.datBan.applyVoucher');
-    Route::delete('dat-ban/{id}/remove-voucher', [DatBanController::class, 'removeVoucher'])->name('admin.datBan.removeVoucher');
+  Route::get('dat-ban/available-tables', [DatBanController::class, 'getAvailableTables'])->name('admin.datBan.availableTables');
+  Route::get('dat-ban/check-user-by-phone', [DatBanController::class, 'checkUserByPhone'])->name('admin.datBan.checkUserByPhone');
+  Route::get('dat-ban/check-existing-reservation', [DatBanController::class, 'checkExistingReservation'])->name('admin.datBan.checkExistingReservation');
+  Route::get('dat-ban/pending-refunds', [DatBanController::class, 'getPendingRefunds'])->name('admin.datBan.getPendingRefunds');
+  Route::post('dat-ban/{id}/process-refund', [DatBanController::class, 'processRefund'])->name('admin.datBan.processRefund');
+  Route::resource('dat-ban', DatBanController::class)->names('admin.datBan');
+  Route::post('dat-ban/update-status', [DatBanController::class, 'updateStatus'])->name('admin.datBan.updateStatus');
+  Route::put('dat-ban/{id}/update-tables', [DatBanController::class, 'updateTables'])->name('admin.datBan.updateTables');
+  Route::post('dat-ban/{id}/confirm-phone', [DatBanController::class, 'confirmPhone'])->name('admin.datBan.confirmPhone');
 
-    Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
-    Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
-    Route::resource('deposit-required-dates', DepositRequiredDateController::class)->names('admin.depositRequiredDate');
-    Route::post('deposit-required-dates/range', [DepositRequiredDateController::class, 'storeRange'])->name('admin.depositRequiredDate.storeRange');
-    Route::put('deposit-required-dates/range/update', [DepositRequiredDateController::class, 'updateRange'])->name('admin.depositRequiredDate.updateRange');
-    Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
-    Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
-    Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
+  // Voucher routes for admin
+  Route::get('dat-ban/{id}/applicable-vouchers', [DatBanController::class, 'getApplicableVouchers'])->name('admin.datBan.getApplicableVouchers');
+  Route::post('dat-ban/{id}/apply-voucher', [DatBanController::class, 'applyVoucher'])->name('admin.datBan.applyVoucher');
+  Route::delete('dat-ban/{id}/remove-voucher', [DatBanController::class, 'removeVoucher'])->name('admin.datBan.removeVoucher');
 
-    Route::resource('/tiers', TierController::class)->names('admin.tiers');
-    Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
+  Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
+  Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
+  Route::resource('deposit-required-dates', DepositRequiredDateController::class)->names('admin.depositRequiredDate');
+  Route::post('deposit-required-dates/range', [DepositRequiredDateController::class, 'storeRange'])->name('admin.depositRequiredDate.storeRange');
+  Route::put('deposit-required-dates/range/update', [DepositRequiredDateController::class, 'updateRange'])->name('admin.depositRequiredDate.updateRange');
+  Route::delete('deposit-required-dates/range/delete', [DepositRequiredDateController::class, 'destroyRange'])->name('admin.depositRequiredDate.destroyRange');
+  Route::put('deposit-required-dates/{id}/toggle-status', [DepositRequiredDateController::class, 'toggleStatus'])->name('admin.depositRequiredDate.toggleStatus');
+  Route::put('deposit-required-dates/settings/update', [DepositRequiredDateController::class, 'updateDepositSettings'])->name('admin.depositRequiredDate.updateDepositSettings');
 
-    // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
-    // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
+  Route::resource('/comments', CommentController::class)->names('admin.comments');
 
+  Route::resource('/tiers', TierController::class)->names('admin.tiers');
+  Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
 
-    Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');
+  Route::resource('/tiers', TierController::class)->names('admin.tiers');
+  Route::put('/tiers/disable/{tier}', [TierController::class, 'disable'])->name('admin.tiers.disable');
+
+  // Route::resource('/voucher', VoucherController::class)->names('admin.vouchers.voucher');
+  // Route::put('/voucher/disable/{voucher}', [VoucherController::class, 'disable'])->name('admin.vouchers.voucher.disable');
+
+  // Quản lý bình luận
+  Route::get('/reviews', [ReviewController::class, 'index'])->name('admin.reviews.index');
+  Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('admin.reviews.destroy');
+
+  Route::get('/accounts/{id}', [UserController::class, 'show'])->name('admin.accounts.show');
+
+  Route::get('/admin/accounts', [UserController::class, 'loc'])
+    ->name('admin.accounts.users');
+
+  Route::get('/admin/user-detail/{id}', [UserController::class, 'detail'])->name('admin.user.detail');
+
+  Route::get('/invoice/{code}/pdf', [InvoiceController::class, 'pdf'])->name('invoice.pdf');
 });
 
 
@@ -100,7 +126,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOTP'])->name('verify.o
 
 
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/login', [AuthController::class, 'showLoginForm'])->middleware('guest')->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -117,3 +143,25 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name(
 
 Route::get('/change-password', [PasswordResetController::class, 'showChangeForm'])->name('password.change.form');
 Route::post('/change-password', [PasswordResetController::class, 'change'])->name('password.change');
+
+// web.php
+Route::get('/test-pdf', function () {
+  $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('
+        <!DOCTYPE html>
+        <html><head>
+          <meta charset="utf-8">
+          <style>
+            @font-face {
+              font-family: "DejaVuSans";
+              src: url("' . public_path('fonts/DejaVuSans.ttf') . '") format("truetype");
+            }
+            body { font-family: "DejaVuSans", sans-serif; }
+          </style>
+        </head>
+        <body>
+          <p>Tiếng Việt có dấu: ă â đ ê ô ư ơ</p>
+        </body>
+        </html>
+    ');
+  return $pdf->download('test.pdf');
+});

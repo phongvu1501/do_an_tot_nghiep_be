@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\API;
 
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -57,7 +57,15 @@ class PointVoucherController extends Controller
                 'status' => 'active',
             ]);
 
-            // 3. Log lịch sử đổi điểm
+            // 3. Gắn voucher vào user
+            $user->vouchers()->attach($voucher->id, [
+                'status' => 'unused',
+                'used_count' => 0,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // 4. Log lịch sử đổi điểm
             PointVoucherLog::create([
                 'user_id' => $user->id,
                 'voucher_id' => $voucher->id,
@@ -83,6 +91,7 @@ class PointVoucherController extends Controller
             ], 500);
         }
     }
+
 
 
 
