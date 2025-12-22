@@ -105,7 +105,7 @@
                 </div>
 
 
-                <div class="card mt-4">
+                {{-- <div class="card mt-4">
                     <div class="card-header">
                         <h5>💰 Top khách chi tiêu nhiều nhất</h5>
                     </div>
@@ -138,7 +138,7 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </div> --}}
 
 
                 <div class="card mt-4">

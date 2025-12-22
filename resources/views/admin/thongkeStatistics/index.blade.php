@@ -1,232 +1,329 @@
 @extends('admin.layouts.main')
 
 @section('noidung')
-<div class="content-wrapper">
+    <div class="content-wrapper">
 
-    <!-- HEADER -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Thống kê Doanh thu</h1>
-                </div>
-            </div>
+        <div class="content-header">
+            <div class="container-fluid">
+                <h1 class="m-0">Thống kê Doanh thu</h1>
 
-            <!-- FILTER -->
-            <div class="row mb-3">
-                <div class="col-12">
-                    <form action="{{ route('admin.thongkeStatistics') }}" method="GET" id="filterForm">
-                        <div class="btn-group" role="group">
-                            <button type="submit" name="filter" value="today"
-                                class="btn btn-sm {{ ($filterType ?? 'this_month') == 'today' ? 'btn-primary' : 'btn-outline-primary' }}">
-                                Hôm nay
+                <form action="{{ route('admin.thongkeStatistics') }}" method="GET" class="mt-3">
+                    <div class="btn-group">
+                        @foreach ([
+            'today' => 'Hôm nay',
+            'this_week' => 'Tuần này',
+            'this_month' => 'Tháng này',
+            'this_year' => 'Năm nay',
+        ] as $k => $v)
+                            <button type="submit" name="filter" value="{{ $k }}"
+                                class="btn btn-sm {{ ($filterType ?? 'this_month') == $k ? 'btn-primary' : 'btn-outline-primary' }}">
+                                {{ $v }}
                             </button>
-                            <button type="submit" name="filter" value="this_week"
-                                class="btn btn-sm {{ ($filterType ?? 'this_month') == 'this_week' ? 'btn-primary' : 'btn-outline-primary' }}">
-                                Tuần này
-                            </button>
-                            <button type="submit" name="filter" value="this_month"
-                                class="btn btn-sm {{ ($filterType ?? 'this_month') == 'this_month' ? 'btn-primary' : 'btn-outline-primary' }}">
-                                Tháng này
-                            </button>
-                            <button type="submit" name="filter" value="this_year"
-                                class="btn btn-sm {{ ($filterType ?? 'this_month') == 'this_year' ? 'btn-primary' : 'btn-outline-primary' }}">
-                                Năm nay
-                            </button>
-                        </div>
+                        @endforeach
+                    </div>
 
-                        <div class="form-inline mt-2">
-                            <label class="mr-2">Tùy chọn:</label>
-                            <input type="date" name="from" value="{{ request('from', $from->format('Y-m-d')) }}"
-                                class="form-control form-control-sm mr-2" id="customFrom">
-                            <label class="mr-2">đến</label>
-                            <input type="date" name="to" value="{{ request('to', $to->format('Y-m-d')) }}"
-                                class="form-control form-control-sm mr-2" id="customTo">
+                    <div class="form-inline mt-2">
+                        <label class="mr-2">Từ</label>
+                        <input type="date" name="from" value="{{ request('from', $from->format('Y-m-d')) }}"
+                            class="form-control form-control-sm mr-2">
 
-                            <input type="hidden" name="filter" value="custom" id="customFilter">
+                        <label class="mr-2">đến</label>
+                        <input type="date" name="to" value="{{ request('to', $to->format('Y-m-d')) }}"
+                            class="form-control form-control-sm mr-2">
 
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-search"></i> Áp dụng
-                            </button>
-                        </div>
+                        <button type="submit" name="filter" value="custom" class="btn btn-sm btn-outline-secondary">
+                            Áp dụng
+                        </button>
+                    </div>
 
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i>
-                                <strong>{{ $filterLabel ?? 'Tháng này' }}</strong>
-                                ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})
-                            </small>
-                        </div>
-                    </form>
-                </div>
+                    <small class="text-muted">
+                        {{ $filterLabel }} ({{ $from->format('d/m/Y') }} - {{ $to->format('d/m/Y') }})
+                    </small>
+                </form>
             </div>
         </div>
-    </div>
 
-    <!-- CONTENT -->
-    <section class="content">
-        <div class="container-fluid">
+        <section class="content">
+            <div class="container-fluid">
 
-            <!-- BOXES -->
-            <div class="row">
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-info">
-                        <div class="inner">
-                            <h3>{{ number_format($totalRevenue, 0, ',', '.') }}₫</h3>
-                            <p>Tổng doanh thu</p>
+                <div class="row">
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-info">
+                            <div class="inner">
+                                <h3>{{ number_format($totalRevenue) }}₫</h3>
+                                <p>Tổng doanh thu</p>
+                            </div>
                         </div>
-                        <div class="icon">
-                            <i class="ion ion-cash"></i>
+                    </div>
+
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-success">
+                            <div class="inner">
+                                <h3>{{ number_format($totalDeposit) }}₫</h3>
+                                <p>Tổng tiền cọc</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-warning">
+                            <div class="inner">
+                                <h3>{{ number_format($totalVoucherDiscount) }}₫</h3>
+                                <p>Voucher giảm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-6">
+                        <div class="small-box bg-danger">
+                            <div class="inner">
+                                <h3>{{ number_format($totalRevenueAfterDiscount) }}₫</h3>
+                                <p>Doanh thu thực tế</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-success">
-                        <div class="inner">
-                            <h3>{{ number_format($totalDeposit, 0, ',', '.') }}₫</h3>
-                            <p>Tổng tiền đặt cọc</p>
-                        </div>
-                        <div class="icon">
-                            <i class="ion ion-android-clipboard"></i>
-                        </div>
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>📅 Doanh thu theo ngày</h5>
                     </div>
-                </div>
-
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-warning">
-                        <div class="inner">
-                            <h3>{{ number_format($totalVoucherDiscount, 0, ',', '.') }}₫</h3>
-                            <p>Tổng giảm giá voucher</p>
-                        </div>
-                        <div class="icon">
-                            <i class="ion ion-pricetags"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
-                        <div class="inner">
-                            <h3>{{ number_format($totalRevenueAfterDiscount, 0, ',', '.') }}₫</h3>
-                            <p>Doanh thu thực tế</p>
-                        </div>
-                        <div class="icon">
-                            <i class="ion ion-stats-bars"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-6 mt-3">
-                    <div class="small-box bg-secondary">
-                        <div class="inner">
-                            <h3>{{ number_format($avgRevenuePerReservation, 0, ',', '.') }}₫</h3>
-                            <p>Doanh thu trung bình mỗi đơn</p>
-                        </div>
-                        <div class="icon">
-                            <i class="ion ion-pie-graph"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DAILY REVENUE TABLE -->
-            <div class="row mt-3">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Doanh thu hàng ngày</h3>
-                        </div>
-                        <div class="card-body table-responsive p-0">
-                            <table class="table table-bordered table-hover text-nowrap">
-                                <thead>
+                    <div class="card-body p-0">
+                        <table class="table table-bordered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Ngày</th>
+                                    <th>Doanh thu</th>
+                                    <th>Tiền cọc</th>
+                                    <th>Voucher</th>
+                                    <th>Thực tế</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($dailyStatistics as $stat)
                                     <tr>
-                                        <th>Ngày</th>
-                                        <th>Tổng doanh thu</th>
-                                        <th>Tiền đặt cọc</th>
-                                        <th>Voucher giảm</th>
-                                        <th>Doanh thu thực tế</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse ($dailyStatistics as $stat)
-                                    <tr>
-                                        <td>{{ $stat['date_display'] }}</td>
-                                        <td>{{ number_format($stat['total_revenue'], 0, ',', '.') }}₫</td>
-                                        <td>{{ number_format($stat['deposit'], 0, ',', '.') }}₫</td>
-                                        <td>{{ number_format($stat['voucher_discount'], 0, ',', '.') }}₫</td>
-                                        <td>{{ number_format($stat['revenue_after_discount'], 0, ',', '.') }}₫</td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">
-                                            Không có dữ liệu trong khoảng thời gian này
+                                        <td>{{ \Carbon\Carbon::parse($stat->date)->format('d/m/Y') }}</td>
+                                        <td>{{ number_format($stat->total_revenue) }}₫</td>
+                                        <td>{{ number_format($stat->deposit) }}₫</td>
+                                        <td>{{ number_format($stat->voucher_discount) }}₫</td>
+                                        <td class="fw-bold text-danger">
+                                            {{ number_format(max($stat->total_revenue - $stat->voucher_discount, 0)) }}₫
                                         </td>
                                     </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Không có dữ liệu</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+
+                        <div class="mt-3 d-flex justify-content-center">
+                            {{ $dailyStatistics->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>💰 Top khách chi tiêu nhiều nhất</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tên</th>
+                                    <th>SĐT</th>
+                                    <th>Tổng chi tiêu</th>
+                                    <th>Chi tiết</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($topSpendingUsers as $u)
+                                    <tr>
+                                        <td>{{ $u->name }}</td>
+                                        <td>{{ $u->phone ?? 'Chưa cập nhật' }}</td>
+                                        <td class="fw-bold text-danger">
+                                            {{ number_format($u->total_spent ?? 0) }}₫
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                                data-bs-target="#detailModal{{ $u->id }}">
+                                                Chi tiết
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Không có dữ liệu</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>📈 Biểu đồ doanh thu</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="revenueChart" height="120"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+    @foreach ($topSpendingUsers as $u)
+        <div class="modal fade" id="detailModal{{ $u->id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            Chi tiết tài khoản: {{ $u->name }}
+                            <small class="text-muted">({{ $u->phone ?? 'Chưa có SĐT' }})</small>
+                        </h5>
+                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+
+                        @forelse ($u->reservations as $r)
+                            <div class="border rounded p-3 mb-4">
+
+                                <div class="fw-bold mb-1">
+                                    🧾 {{ $r->reservation_code }}
+
+                                    @if ($r->status === 'completed')
+                                        <span class="badge bg-success ms-2">Hoàn thành</span>
+                                    @elseif ($r->status === 'cancelled')
+                                        <span class="badge bg-danger ms-2">Đã huỷ</span>
+                                    @else
+                                        <span class="badge bg-secondary ms-2">Khác</span>
+                                    @endif
+                                </div>
+
+                                <div class="mb-2">
+                                    🪑 Bàn:
+                                    @forelse ($r->tables as $table)
+                                        <span class="badge bg-success">Bàn {{ $table->name }}</span>
+                                    @empty
+                                        <span class="text-muted">Không có</span>
                                     @endforelse
-                                </tbody>
-                            </table>
-                        </div>
+                                </div>
+
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Món</th>
+                                            <th width="70">SL</th>
+                                            <th width="120">Đơn giá</th>
+                                            <th width="140">Thành tiền</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php $subtotal = 0; @endphp
+
+                                        @forelse ($r->reservationItems as $item)
+                                            @php
+                                                $itemTotal = $item->price * $item->quantity;
+                                                $subtotal += $itemTotal;
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $item->menu->name ?? 'N/A' }}</td>
+                                                <td>{{ $item->quantity }}</td>
+                                                <td>{{ number_format($item->price) }}₫</td>
+                                                <td>{{ number_format($itemTotal) }}₫</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted">
+                                                    Không có món ăn
+                                                </td>
+                                            </tr>
+                                        @endforelse
+
+                                        <tr>
+                                            <td colspan="3"><strong>Tạm tính</strong></td>
+                                            <td><strong>{{ number_format($subtotal) }}₫</strong></td>
+                                        </tr>
+
+                                        <tr>
+                                            <td colspan="3">VAT 8%</td>
+                                            <td>{{ number_format($r->vat_amount ?? 0) }}₫</td>
+                                        </tr>
+
+                                        @if ($r->voucher_discount > 0)
+                                            <tr class="table-success">
+                                                <td colspan="3">
+                                                    Voucher ({{ $r->voucher->code ?? '' }})
+                                                </td>
+                                                <td>-{{ number_format($r->voucher_discount) }}₫</td>
+                                            </tr>
+                                        @endif
+
+                                        <tr>
+                                            <td colspan="3"><strong>Thành tiền</strong></td>
+                                            <td class="fw-bold text-danger">
+                                                {{ number_format($r->status === 'completed' ? $r->total_amount : 0) }}₫
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+
+                            </div>
+                        @empty
+                            <div class="text-center text-muted py-3">
+                                Không có đơn trong khoảng thời gian này
+                            </div>
+                        @endforelse
+
                     </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+
                 </div>
             </div>
-
-            <!-- CHART -->
-            <div class="row mt-3">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Biểu đồ doanh thu theo ngày</h3>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="revenueChart" style="height: 100px;"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
-    </section>
+    @endforeach
 
-</div>
 
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script>
-    const chartLabels = @json($chartLabels);
-    const chartRevenue = @json($chartRevenue);
-    const chartRevenueAfterDiscount = @json($chartRevenueAfterDiscount);
 
-    const ctx = document.getElementById('revenueChart').getContext('2d');
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                    label: 'Tổng doanh thu',
-                    data: chartRevenue,
-                    borderWidth: 2,
-                    borderColor: 'blue',
-                    fill: false,
-                    tension: 0.3
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            new Chart(document.getElementById('revenueChart'), {
+                type: 'line',
+                data: {
+                    labels: @json($chartLabels),
+                    datasets: [{
+                            label: 'Doanh thu',
+                            data: @json($chartRevenue),
+                            borderColor: 'blue',
+                            fill: false
+                        },
+                        {
+                            label: 'Thực tế',
+                            data: @json($chartRevenueAfterDiscount),
+                            borderColor: 'green',
+                            fill: false
+                        }
+                    ]
                 },
-                {
-                    label: 'Doanh thu thực tế',
-                    data: chartRevenueAfterDiscount,
-                    borderWidth: 2,
-                    borderColor: 'green',
-                    fill: false,
-                    tension: 0.3
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-        }
-    });
-</script>
-@endpush
+            });
+        </script>
+    @endpush
 @endsection
