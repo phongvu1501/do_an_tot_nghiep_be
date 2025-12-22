@@ -617,12 +617,6 @@
                             @endif
                         </div>
                         <div class="modal-footer">
-                            @if ($reservation->reservation_code)
-                                <a href="{{ route('invoice.pdf', $reservation->reservation_code) }}" class="btn btn-primary">
-                                    In hóa đơn
-                                </a>
-                            @endif
-
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
                         </div>
                     </div>
@@ -974,12 +968,12 @@
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
                                 @if ($reservation->reservationItems->count() > 0)
-                                    <form action="{{ route('admin.datBan.updateStatus') }}" method="POST"
+                                    <form id="completeForm{{ $reservation->id }}" action="{{ route('admin.datBan.updateStatus') }}" method="POST"
                                         style="display:inline;">
                                         @csrf
                                         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                                         <input type="hidden" name="status" value="completed">
-                                        <button type="submit" class="btn btn-success">
+                                        <button type="submit" class="btn btn-success" id="completeBtn{{ $reservation->id }}">
                                             <i class="fas fa-check"></i> Xác nhận hoàn tất
                                         </button>
                                     </form>
@@ -1500,12 +1494,12 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                                <form action="{{ route('admin.datBan.updateStatus') }}" method="POST"
+                                <form id="completeForm{{ $reservation->id }}" action="{{ route('admin.datBan.updateStatus') }}" method="POST"
                                     style="display:inline;">
                                     @csrf
                                     <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
                                     <input type="hidden" name="status" value="completed">
-                                    <button type="submit" class="btn btn-success">
+                                    <button type="submit" class="btn btn-success" id="completeBtn{{ $reservation->id }}">
                                         <i class="fas fa-check"></i> Xác nhận hoàn tất
                                     </button>
                                 </form>
@@ -2571,5 +2565,93 @@
                     setTimeout(() => alert.remove(), 300);
                 }
             }, 3000);
+
+            // Xử lý form hoàn tất bằng AJAX
+            document.addEventListener('DOMContentLoaded', function() {
+                // Tìm tất cả các form hoàn tất trong modal
+                const completeForms = document.querySelectorAll('form[id^="completeForm"]');
+                
+                completeForms.forEach(function(form) {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const formId = form.id;
+                        const reservationId = formId.replace('completeForm', '');
+                        const submitBtn = document.getElementById('completeBtn' + reservationId);
+                        
+                        // Disable button và hiển thị loading
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+                        }
+                        
+                        // Lấy form data
+                        const formData = new FormData(form);
+                        
+                        // Gửi AJAX request
+                        fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            // Kiểm tra nếu response là JSON
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                return response.json();
+                            } else {
+                                // Nếu không phải JSON, có thể là redirect hoặc HTML error
+                                throw new Error('Server trả về response không hợp lệ');
+                            }
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                // Tự động download PDF
+                                if (data.invoice_url) {
+                                    const link = document.createElement('a');
+                                    link.href = data.invoice_url;
+                                    link.download = 'invoice-' + data.reservation_code + '.pdf';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }
+                                
+                                // Đóng modal
+                                const modal = document.getElementById('invoiceModal' + reservationId);
+                                if (modal) {
+                                    $(modal).modal('hide');
+                                    // Xóa backdrop nếu còn sót lại
+                                    setTimeout(() => {
+                                        $('.modal-backdrop').remove();
+                                        $('body').removeClass('modal-open');
+                                    }, 300);
+                                }
+                                
+                                // Reload trang để cập nhật trạng thái
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 500);
+                            } else {
+                                alert('Có lỗi xảy ra: ' + (data.message || 'Không thể hoàn tất đơn hàng'));
+                                if (submitBtn) {
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = '<i class="fas fa-check"></i> Xác nhận hoàn tất';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng thử lại.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = '<i class="fas fa-check"></i> Xác nhận hoàn tất';
+                            }
+                        });
+                    });
+                });
+            });
         </script>
     @endpush

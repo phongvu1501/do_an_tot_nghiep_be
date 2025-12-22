@@ -12,12 +12,16 @@ class InvoiceController extends Controller
     public function pdf($code)
     {
         $reservation = Reservation::with(['reservationItems.menu', 'tables', 'user', 'voucher'])
-                    ->where('reservation_code', $code)
+                    ->where(function($query) use ($code) {
+                        $query->where('reservation_code', $code)
+                              ->orWhere('id', $code);
+                    })
                     ->firstOrFail();
 
+        $invoiceCode = $reservation->reservation_code ?? $reservation->id;
         $pdf = Pdf::loadView('admin.invoices.show', compact('reservation'))
                 ->setOptions(['defaultFont' => 'DejaVu Sans']);
 
-        return $pdf->download("invoice-{$code}.pdf");
+        return $pdf->download("invoice-{$invoiceCode}.pdf");
     }
 }
